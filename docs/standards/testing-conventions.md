@@ -15,6 +15,20 @@ last_reviewed: 2026-05-08
 
 Dokumen ini menetapkan pola test agar hasil verifikasi stabil, terbaca, dan mudah dirawat.
 
+## Default Test Requirement (Mandatory)
+
+- setiap pembuatan file kode baru default **wajib** disertai test,
+- setiap pembuatan atau perubahan file konfigurasi yang memengaruhi runtime/build/deploy default **wajib** disertai test atau verification check otomatis,
+- pengecualian hanya boleh jika memang tidak relevan secara teknis, dan harus mencantumkan alasan eksplisit pada PR/task.
+
+Contoh pengecualian yang diperbolehkan:
+
+- perubahan komentar atau typo tanpa dampak perilaku,
+- perubahan dokumen non-eksekusi murni editorial,
+- file konfigurasi yang tidak dieksekusi dan tidak memengaruhi runtime/CI.
+
+Untuk semua pengecualian, tetap wajib ada bukti verifikasi minimal bahwa perubahan tidak mengubah perilaku sistem.
+
 ## Test File Structure
 
 - unit test diletakkan berdampingan dengan package target (`*_test.go`),
@@ -74,6 +88,7 @@ Aturan:
 - seluruh test wajib lulus sebelum merge,
 - failure pada migration/integration test memblokir release,
 - test harus bisa dijalankan tanpa secret production.
+- perubahan file/config baru tanpa test companion dianggap belum siap merge kecuali ada exception rationale yang disetujui reviewer.
 
 ## Related Documents
 

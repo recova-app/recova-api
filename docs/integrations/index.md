@@ -20,12 +20,14 @@ Halaman ini adalah titik masuk dokumentasi untuk dependency eksternal yang dipak
 - auth provider,
 - AI provider,
 - database dependency,
-- kebijakan error mapping dependency eksternal.
+- kebijakan error mapping dependency eksternal,
+- kontrak konsumsi API oleh klien mobile Flutter.
 
 ## Core Integration Documents
 
 - [AI Provider Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/ai-provider.md)
 - [Scraper Flow Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/scraper-flow.md)
+- [Flutter Mobile App Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/flutter-mobile-app.md)
 
 ## Related Sections
 

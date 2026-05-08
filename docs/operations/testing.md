@@ -22,6 +22,12 @@ Dokumen ini mendefinisikan baseline testing agar perubahan layanan aman sebelum 
 - mencegah regresi auth/ownership/security,
 - menjamin migration database aman dijalankan.
 
+## Test-by-Default Rule
+
+- setiap file implementasi baru wajib punya test companion pada layer yang relevan,
+- setiap perubahan konfigurasi runtime/deploy/CI wajib punya verifikasi otomatis (unit/integration/smoke/scripted check),
+- jika test dianggap tidak perlu, alasan teknis wajib dicatat eksplisit dan disetujui reviewer.
+
 ## Test Pyramid
 
 | Layer                        | Fokus                            | Target utama                     |
@@ -75,6 +81,10 @@ Sebelum rilis:
 3. contract tests kompatibilitas lulus,
 4. smoke tests readiness lulus,
 5. critical E2E flows lulus.
+
+Tambahan gate:
+
+6. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
 
 ## Related Documents
 

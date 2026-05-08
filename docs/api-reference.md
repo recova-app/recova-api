@@ -23,6 +23,15 @@ Semua endpoint produk berada di bawah:
 /api/v1
 ```
 
+## Client Contract Context
+
+API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint harus menjaga:
+
+- stabilitas nama field JSON agar parsing model Flutter tidak mudah rusak,
+- kompatibilitas perubahan (tambahan field optional diperbolehkan, penghapusan field wajib dihindari),
+- konsistensi envelope success/error untuk menyederhanakan handler klien,
+- message user-facing berbahasa Indonesia.
+
 ## Endpoint Inventory
 
 | Domain    | Method   | Path                          | Summary                                       | Auth requirement  | Contract status |

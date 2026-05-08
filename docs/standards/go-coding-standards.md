@@ -22,6 +22,12 @@ Dokumen ini menetapkan aturan baseline penulisan kode Go agar implementasi konsi
 - nama package harus merepresentasikan domain atau fungsi teknis,
 - hindari package util generik tanpa boundary jelas.
 
+## Language Rules for Code Identifiers
+
+- nama function, variable, type, const, interface, file, dan package wajib English,
+- hindari identifier berbahasa Indonesia pada kode program,
+- pesan user-facing tidak mengikuti aturan ini dan diatur oleh standar response/error.
+
 ## Layer Contract
 
 Kontrak lintas layer:
@@ -77,6 +83,24 @@ Detail ada di [Error Handling Standard](/Users/macbookpro/Development/recova-bac
 - lint wajib dijalankan sebelum merge,
 - warning lint kritis tidak boleh diabaikan tanpa alasan terdokumentasi.
 
+## Go Comment and Documentation Rules
+
+Ikuti gaya komentar resmi Go (`go.dev/doc/comment`) dan pola di `/usr/local/go/src/log/log.go`.
+
+Aturan wajib:
+
+- setiap package wajib punya package comment,
+- setiap file `.go` wajib punya file-level comment ringkas tujuan file,
+- setiap exported symbol (`type`, `func`, `var`, `const`) wajib punya doc comment tanpa baris kosong di antaranya,
+- kalimat komentar diawali nama symbol yang dijelaskan,
+- komentar internal ditambahkan pada logika non-obvious (bukan untuk hal trivial).
+
+Aturan tambahan:
+
+- default komentar juga diterapkan pada symbol internal penting jika konteks bisnis/teknis tidak langsung jelas,
+- hindari komentar yang hanya mengulang kode apa adanya,
+- pertahankan komentar singkat, presisi, dan sinkron dengan perilaku kode.
+
 ## Code Review Checklist
 
 - naming package/fungsi jelas,
@@ -96,5 +120,7 @@ Detail ada di [Error Handling Standard](/Users/macbookpro/Development/recova-bac
 
 - [How to Write Go Code](https://go.dev/doc/code)
 - [Effective Go](https://go.dev/doc/effective_go)
+- [Go Doc Comments](https://go.dev/doc/comment)
+- [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments)
 - [Organizing a Go Module](https://go.dev/doc/modules/layout)
 - [Fiber Guide: Error Handling](https://docs.gofiber.io/guide/error-handling/)

@@ -54,8 +54,15 @@ Kategori harus dipetakan konsisten ke status HTTP dan envelope API.
 
 - gunakan format respons error standar,
 - berikan `code` stabil untuk klien,
+- gunakan bahasa Indonesia untuk pesan human-readable yang dikirim ke klien,
 - detail internal (query, stack trace, secret) tidak boleh dikirim ke klien,
 - `request_id` harus ikut di error response.
+
+Aturan bahasa:
+
+- `error.code` tetap English uppercase sebagai machine contract,
+- nama function, variable, type, dan identifier teknis tetap English,
+- hanya konten user-facing yang wajib bahasa Indonesia.
 
 ## Logging Rules
 

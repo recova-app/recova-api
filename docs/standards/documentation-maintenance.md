@@ -85,6 +85,7 @@ Checklist periodik:
 - [ ] metadata wajib lengkap dan akurat.
 - [ ] docs debt register diperbarui.
 - [ ] konflik antar dokumen inti terselesaikan.
+- [ ] perubahan file/config baru memiliki test companion atau exception rationale terdokumentasi.
 
 ## Related Documents
 

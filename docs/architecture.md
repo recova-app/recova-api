@@ -15,6 +15,17 @@ last_reviewed: 2026-05-08
 
 Dokumen ini mendefinisikan kontrak arsitektur backend Recova sebagai layanan API yang menjaga kestabilan kontrak `/api/v1` untuk aplikasi klien.
 
+## Primary Client Context
+
+Saat ini API dikonsumsi oleh aplikasi mobile berbasis Flutter.
+
+Implikasi arsitektural:
+
+- perubahan kontrak response harus backward-compatible secara bertahap,
+- payload response dijaga ringkas untuk jaringan mobile yang fluktuatif,
+- message user-facing pada response/error memakai bahasa Indonesia,
+- `error.code` dan field teknis tetap stabil sebagai machine-readable contract.
+
 ## Runtime Topology
 
 ```text

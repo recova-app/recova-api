@@ -22,7 +22,7 @@ Dokumen ini mendefinisikan bentuk response API publik yang konsisten.
 ```json
 {
   "success": true,
-  "message": "Request completed",
+  "message": "Permintaan berhasil diproses",
   "data": {},
   "meta": null
 }
@@ -33,7 +33,7 @@ Dokumen ini mendefinisikan bentuk response API publik yang konsisten.
 ```json
 {
   "success": false,
-  "message": "Request failed",
+  "message": "Permintaan gagal diproses",
   "data": null,
   "error": {
     "code": "VALIDATION_ERROR",
@@ -45,15 +45,15 @@ Dokumen ini mendefinisikan bentuk response API publik yang konsisten.
 
 ## Field Rules
 
-| Field             | Rule                                                     |
-| ----------------- | -------------------------------------------------------- |
-| `success`         | wajib ada pada semua response JSON                       |
-| `message`         | ringkas, aman, tidak mengandung detail internal sensitif |
-| `data`            | objek/array pada sukses, `null` pada error               |
-| `meta`            | metadata tambahan atau `null`                            |
-| `error.code`      | machine-readable code stabil                             |
-| `error.details`   | detail aman untuk klien, tanpa stack/internal payload    |
-| `error.requestId` | wajib untuk korelasi log                                 |
+| Field             | Rule                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| `success`         | wajib ada pada semua response JSON                                          |
+| `message`         | ringkas, aman, dan **berbahasa Indonesia** untuk konsumsi user aplikasi     |
+| `data`            | objek/array pada sukses, `null` pada error                                  |
+| `meta`            | metadata tambahan atau `null`                                               |
+| `error.code`      | machine-readable code stabil, tetap English uppercase                       |
+| `error.details`   | detail aman untuk klien, gunakan bahasa Indonesia untuk teks human-readable |
+| `error.requestId` | wajib untuk korelasi log                                                    |
 
 ## Pagination Metadata
 
@@ -106,6 +106,13 @@ Response API tidak boleh mengandung:
 - token/kredensial,
 - konten sensitif pengguna (misal isi jurnal/chat) di message error umum.
 
+## Language and Client Rules
+
+- teks untuk konsumsi pengguna (`message`, `error.details` human-readable) harus memakai bahasa Indonesia,
+- identifier teknis tetap English (`error.code`, nama field JSON, enum internal),
+- jangan campur istilah user-facing English jika padanan Indonesia tersedia,
+- pertahankan konsistensi agar client mobile tidak perlu fallback parsing per bahasa.
+
 ## Mapping Guidance (High-Level)
 
 - validasi input gagal -> `VALIDATION_ERROR` (`422`)
@@ -127,3 +134,4 @@ Response API tidak boleh mengandung:
 
 - [/Users/macbookpro/Development/bisakerja-api/docs/api-response-standard.md](/Users/macbookpro/Development/bisakerja-api/docs/api-response-standard.md)
 - [Fiber Error Handling Guide](https://docs.gofiber.io/guide/error-handling)
+- [Flutter Internationalization](https://docs.flutter.dev/ui/internationalization)

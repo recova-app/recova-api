@@ -33,6 +33,11 @@ Setiap perubahan berikut wajib diikuti update dokumen terkait:
 
 Perubahan dianggap belum selesai bila dokumen terdampak belum diperbarui.
 
+Aturan tambahan:
+
+- setiap file kode atau konfigurasi baru default wajib punya test companion,
+- jika test tidak dibuat, wajib ada exception rationale singkat yang menjelaskan alasan teknis dan bukti verifikasi alternatif.
+
 ## Change-to-Docs Mapping
 
 | Jenis perubahan       | Dokumen minimum yang harus diperbarui                                                                            |
@@ -51,6 +56,7 @@ PR review wajib memeriksa:
 - apakah metadata dokumen valid dan `last_reviewed` diperbarui,
 - apakah link internal dokumen tetap valid,
 - apakah contoh payload aman dari data sensitif.
+- apakah perubahan file/config memiliki test companion atau exception rationale.
 
 ## OpenAPI and Route Inventory Cadence
 
