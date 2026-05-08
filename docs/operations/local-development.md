@@ -75,6 +75,11 @@ Catatan build:
 - layout repository menggunakan direktori `api/` untuk kontrak OpenAPI;
 - karena itu build artifact diarahkan eksplisit ke `./bin/recova-api` agar tidak bentrok dengan direktori `api/`.
 
+Catatan env local:
+
+- target `make run`, `make migrate-*`, dan `make seed` auto-load env dari `.env` melalui `scripts/with-env.sh`,
+- jika ingin memakai file env lain, gunakan `ENV_FILE=<path> make <target>`.
+
 ## Local Verification Baseline
 
 Setiap perubahan utama lokal harus memverifikasi:

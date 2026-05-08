@@ -38,6 +38,11 @@ Wrapper command lokal:
 - `make migrate-check`,
 - `make migrate-force VERSION=<version>`.
 
+Catatan env local:
+
+- command `make migrate-*` auto-load `.env` lewat `scripts/with-env.sh`,
+- untuk override profile env, jalankan `ENV_FILE=<path> make migrate-up`.
+
 ## File Naming Convention
 
 Gunakan format timestamp + deskripsi singkat:

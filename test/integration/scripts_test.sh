@@ -26,6 +26,21 @@ assert_file_contains() {
 temp_dir="$(mktemp -d)"
 trap 'rm -rf "$temp_dir"' EXIT
 
+# with-env.sh must fail when command missing.
+assert_fail ./scripts/with-env.sh
+
+# with-env.sh must load env file before running command.
+env_file="$temp_dir/local.env"
+cat > "$env_file" <<'ENVFILE'
+INTEGRATION_ENV_CHECK=from-dotenv
+ENVFILE
+
+loaded_value="$(ENV_FILE="$env_file" ./scripts/with-env.sh sh -c 'printf "%s" "${INTEGRATION_ENV_CHECK:-}"')"
+if [ "$loaded_value" != "from-dotenv" ]; then
+  echo "expected with-env.sh to load env file value, got: $loaded_value" >&2
+  exit 1
+fi
+
 # migrate.sh must fail if command argument missing.
 assert_fail ./scripts/migrate.sh
 

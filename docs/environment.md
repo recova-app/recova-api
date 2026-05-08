@@ -122,6 +122,13 @@ Kompatibilitas nilai lama pada source saat ini:
 - parsing numeric/duration invalid harus menghentikan startup.
 - format duration mengikuti `time.ParseDuration` Go dan mendukung suffix `d` (hari) untuk kebutuhan token TTL.
 
+## Local Command Env Loading
+
+Untuk workflow development lokal:
+
+- `make run`, `make migrate-*`, dan `make seed` memuat `.env` otomatis melalui `scripts/with-env.sh`,
+- jika perlu profile env berbeda, set `ENV_FILE` saat menjalankan target make.
+
 ## Related Documents
 
 - [Environment Matrix and Runtime Profiles](/Users/macbookpro/Development/recova-backend-v2/docs/operations/environments.md)

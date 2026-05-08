@@ -26,22 +26,22 @@ build:
 
 run:
 	@echo "[run] starting api"
-	@go run ./cmd/api
+	@./scripts/with-env.sh go run ./cmd/api
 
 migrate-up:
-	@./scripts/migrate.sh up
+	@./scripts/with-env.sh ./scripts/migrate.sh up
 
 migrate-down:
-	@./scripts/migrate.sh down 1
+	@./scripts/with-env.sh ./scripts/migrate.sh down 1
 
 migrate-status:
-	@./scripts/migrate.sh status
+	@./scripts/with-env.sh ./scripts/migrate.sh status
 
 migrate-check:
-	@./scripts/migrate.sh check
+	@./scripts/with-env.sh ./scripts/migrate.sh check
 
 migrate-force:
-	@./scripts/migrate.sh force $(VERSION)
+	@./scripts/with-env.sh ./scripts/migrate.sh force $(VERSION)
 
 seed:
-	@./scripts/seed.sh
+	@./scripts/with-env.sh ./scripts/seed.sh
