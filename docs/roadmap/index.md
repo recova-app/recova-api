@@ -23,6 +23,12 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 - model data dan migration policy,
 - operasi, keamanan, dan observability.
 
+## Baseline Documents
+
+- [Current Express Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/express-baseline.md)
+- [Feature Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/feature-inventory.md)
+- [Current Runtime Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/current-runtime-inventory.md)
+
 ## Related Sections
 
 - [Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
