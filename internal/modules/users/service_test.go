@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"gorm.io/gorm"
@@ -21,7 +20,7 @@ func TestService_UpdateSettings_ValidationErrorWhenEmptyPayload(t *testing.T) {
 
 func TestService_CompleteOnboarding_IdempotentWhenSamePayload(t *testing.T) {
 	reason := "Fokus"
-	checkIn := time.Date(2000, 1, 1, 9, 0, 0, 0, time.UTC)
+	checkIn := "09:00"
 	answers := map[string]any{"a": "b"}
 	answersJSON, _ := json.Marshal(answers)
 
@@ -57,7 +56,7 @@ func TestService_CompleteOnboarding_IdempotentWhenSamePayload(t *testing.T) {
 
 func TestService_CompleteOnboarding_ConflictWhenAlreadyCompletedDifferentPayload(t *testing.T) {
 	reason := "Fokus"
-	checkIn := time.Date(2000, 1, 1, 9, 0, 0, 0, time.UTC)
+	checkIn := "09:00"
 	answersJSON, _ := json.Marshal(map[string]any{"a": "b"})
 
 	repo := &fakeUsersRepo{

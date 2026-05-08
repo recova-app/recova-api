@@ -46,7 +46,7 @@ func TestRegisterOnboardingRoute_ValidationError(t *testing.T) {
 
 func TestRegisterUserRoutes_GetMeSuccess(t *testing.T) {
 	reason := "Fokus"
-	checkIn := time.Date(2000, 1, 1, 9, 0, 0, 0, time.UTC)
+	checkIn := "09:00"
 	authService := buildUsersAuthService(t, "user-1")
 	usersService := NewService(&usersRouteRepo{
 		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester", UserWhy: &reason, CheckInTime: &checkIn},

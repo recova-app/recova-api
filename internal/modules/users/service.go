@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
@@ -149,11 +148,14 @@ func buildUserProfilePayload(user models.User, completed bool) UserProfilePayloa
 	}
 }
 
-func formatCheckInTime(raw *time.Time) *string {
+func formatCheckInTime(raw *string) *string {
 	if raw == nil {
 		return nil
 	}
-	formatted := raw.UTC().Format(timeOfDayLayout)
+	formatted := normalizeTimeString(*raw)
+	if formatted == "" {
+		return nil
+	}
 	return &formatted
 }
 
@@ -190,4 +192,17 @@ func valueOrEmpty(v *string) string {
 		return ""
 	}
 	return *v
+}
+
+func normalizeTimeString(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	if len(trimmed) >= len(timeOfDayLayout) {
+		return trimmed[:len(timeOfDayLayout)]
+	}
+
+	return trimmed
 }

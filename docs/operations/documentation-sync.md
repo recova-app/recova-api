@@ -40,13 +40,14 @@ Aturan tambahan:
 
 ## Change-to-Docs Mapping
 
-| Jenis perubahan       | Dokumen minimum yang harus diperbarui                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Endpoint/contract API | `docs/api-reference.md`, `docs/generated/routes.md`, dokumen modul terkait                                       |
-| Auth/security         | `docs/operations/security.md`, `docs/modules/auth.md`, standar terkait                                           |
-| Database/schema       | `docs/database.md`, `docs/operations/database-migrations.md`                                                     |
-| Deployment/runtime    | `docs/operations/deployment.md`, `docs/operations/rollback.md`, post-deploy checks                               |
-| Privacy/logging       | `docs/operations/data-privacy.md`, `docs/operations/data-retention.md`, `docs/standards/log-redaction-policy.md` |
+| Jenis perubahan             | Dokumen minimum yang harus diperbarui                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Endpoint/contract API       | `docs/api-reference.md`, `docs/generated/routes.md`, dokumen modul terkait                                       |
+| Auth/security               | `docs/operations/security.md`, `docs/modules/auth.md`, standar terkait                                           |
+| Database/schema             | `docs/database.md`, `docs/operations/database-migrations.md`                                                     |
+| Deployment/runtime          | `docs/operations/deployment.md`, `docs/operations/rollback.md`, post-deploy checks                               |
+| Privacy/logging             | `docs/operations/data-privacy.md`, `docs/operations/data-retention.md`, `docs/standards/log-redaction-policy.md` |
+| Release validation evidence | `docs/generated/release-confidence-report.md` atau artefak report release validation yang ekuivalen              |
 
 ## Pull Request Review Gate
 
@@ -57,6 +58,7 @@ PR review wajib memeriksa:
 - apakah link internal dokumen tetap valid,
 - apakah contoh payload aman dari data sensitif.
 - apakah perubahan file/config memiliki test companion atau exception rationale.
+- apakah report release confidence (E2E + performance smoke) terlampir untuk release candidate.
 
 ## OpenAPI and Route Inventory Cadence
 
@@ -90,6 +92,7 @@ Debt `critical` dan `high` wajib diselesaikan sebelum rilis mayor.
 - [ ] route inventory/OpenAPI sinkron dengan kontrak runtime.
 - [ ] tidak ada konten sensitif mentah pada contoh log/payload.
 - [ ] action item documentation debt tercatat bila ada gap.
+- [ ] evidence release confidence terbaru tersedia untuk candidate rilis.
 
 ## Related Documents
 
@@ -99,6 +102,5 @@ Debt `critical` dan `high` wajib diselesaikan sebelum rilis mayor.
 
 ## Source Reference
 
-- [/Users/macbookpro/Development/bisakerja-api/docs/operations/documentation-sync.md](/Users/macbookpro/Development/bisakerja-api/docs/operations/documentation-sync.md)
 - [tasks/lessons.md](/Users/macbookpro/Development/recova-backend-v2/tasks/lessons.md)
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)

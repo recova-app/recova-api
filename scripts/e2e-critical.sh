@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+set -eu
+
+db_url="${RECOVA_DB_INTEGRATION_URL:-}"
+if [ -z "$db_url" ]; then
+  echo "[e2e-critical] RECOVA_DB_INTEGRATION_URL wajib diisi" >&2
+  exit 1
+fi
+case "$db_url" in
+  *_test*) ;;
+  *)
+    echo "[e2e-critical] RECOVA_DB_INTEGRATION_URL wajib mengarah ke database *_test" >&2
+    exit 1
+    ;;
+esac
+
+report_path="${RECOVA_E2E_REPORT_PATH:-artifacts/release-confidence/e2e-critical-flows.json}"
+mkdir -p "$(dirname "$report_path")"
+
+RECOVA_E2E_REPORT_PATH="$report_path" go test -count=1 ./test/e2e -run TestE2E_CriticalFlows
+
+echo "[e2e-critical] report: $report_path"

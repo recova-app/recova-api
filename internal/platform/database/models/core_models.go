@@ -5,14 +5,14 @@ import (
 )
 
 type User struct {
-	ID          string     `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	GoogleID    string     `gorm:"column:google_id;not null;uniqueIndex"`
-	Email       string     `gorm:"not null;uniqueIndex"`
-	Nickname    string     `gorm:"not null"`
-	UserWhy     *string    `gorm:"column:user_why"`
-	CheckInTime *time.Time `gorm:"column:check_in_time;type:time"`
-	CreatedAt   time.Time  `gorm:"not null;default:now()"`
-	UpdatedAt   time.Time  `gorm:"not null;default:now()"`
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	GoogleID    string    `gorm:"column:google_id;not null;uniqueIndex"`
+	Email       string    `gorm:"not null;uniqueIndex"`
+	Nickname    string    `gorm:"not null"`
+	UserWhy     *string   `gorm:"column:user_why"`
+	CheckInTime *string   `gorm:"column:check_in_time;type:time"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
+	UpdatedAt   time.Time `gorm:"not null;default:now()"`
 }
 
 type Profile struct {

@@ -83,7 +83,7 @@ func (r *Repository) CompleteOnboarding(ctx context.Context, userID string, inpu
 		if err := txRepo.UpdateUserFields(ctx, userID, map[string]any{
 			"nickname":      input.Nickname,
 			"user_why":      input.RecoveryReason,
-			"check_in_time": input.DailyCheckIn,
+			"check_in_time": input.DailyCheckInRaw,
 		}); err != nil {
 			return err
 		}

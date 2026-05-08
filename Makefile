@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy
 
 preflight:
 	@./scripts/preflight.sh
@@ -18,6 +18,16 @@ test:
 test-integration:
 	@echo "[test-integration] running shell integration checks"
 	@./test/integration/scripts_test.sh
+
+test-e2e:
+	@echo "[test-e2e] running critical flow e2e suite"
+	@./scripts/e2e-critical.sh
+
+test-performance:
+	@echo "[test-performance] running performance smoke suite"
+	@./scripts/performance-smoke.sh
+
+release-validation: test-e2e test-performance
 
 build:
 	@echo "[build] building api binary"

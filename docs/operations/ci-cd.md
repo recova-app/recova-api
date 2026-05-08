@@ -92,7 +92,10 @@ Kontrol concurrency:
 - `make migrate-up`,
 - `make migrate-check`,
 - rollback smoke (`make migrate-down` lalu `make migrate-up`),
-- `go test ./...` dengan `RECOVA_DB_INTEGRATION_URL`.
+- `go test ./...` dengan `RECOVA_DB_INTEGRATION_URL`,
+- `make test-e2e` dengan output report `artifacts/release-confidence/e2e-critical-flows.json`,
+- `make test-performance` dengan output report `artifacts/release-confidence/performance-smoke.json`,
+- upload artifact `release-confidence-reports`.
 
 `container-compose-smoke`:
 
@@ -129,4 +132,5 @@ Setelah deployment:
 - [GitHub Actions Workflow Syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)
 - [GitHub Actions Concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
 - [GitHub Actions PostgreSQL Service Containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
+- [Store and Share Data with Workflow Artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data)
 - [actions/setup-go](https://github.com/actions/setup-go)

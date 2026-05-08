@@ -29,6 +29,10 @@ trap 'rm -rf "$temp_dir"' EXIT
 # with-env.sh must fail when command missing.
 assert_fail ./scripts/with-env.sh
 
+# e2e/performance scripts must fail without integration DB url.
+assert_fail ./scripts/e2e-critical.sh
+assert_fail ./scripts/performance-smoke.sh
+
 # openapi.sh must fail for unsupported command.
 assert_fail ./scripts/openapi.sh unknown-command
 
@@ -253,6 +257,31 @@ assert_file_contains "$fake_staging_migrate_log" "-path migrations -database pos
 assert_file_contains "$fake_staging_psql_log" "postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable -v ON_ERROR_STOP=1 -f migrations/seeds/000001_baseline_seed.sql"
 assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/live"
 assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/ready"
+
+# e2e-critical.sh and performance-smoke.sh should invoke go test with report env.
+fake_go_log="$temp_dir/fake-go.log"
+cat > "$temp_dir/go" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s|%s|%s\n' "$*" "${RECOVA_E2E_REPORT_PATH:-}" "${RECOVA_PERF_REPORT_PATH:-}" >> "$FAKE_GO_LOG"
+exit 0
+SCRIPT
+chmod +x "$temp_dir/go"
+
+PATH="$temp_dir:$PATH" \
+FAKE_GO_LOG="$fake_go_log" \
+RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+RECOVA_E2E_REPORT_PATH="$temp_dir/e2e-report.json" \
+./scripts/e2e-critical.sh >/dev/null
+
+assert_file_contains "$fake_go_log" "test -count=1 ./test/e2e -run TestE2E_CriticalFlows|$temp_dir/e2e-report.json|"
+
+PATH="$temp_dir:$PATH" \
+FAKE_GO_LOG="$fake_go_log" \
+RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+RECOVA_PERF_REPORT_PATH="$temp_dir/perf-report.json" \
+./scripts/performance-smoke.sh >/dev/null
+
+assert_file_contains "$fake_go_log" "test -count=1 ./test/performance -run TestPerformance_LoadSmoke||$temp_dir/perf-report.json"
 
 # preflight should pass on current baseline repository.
 ./scripts/preflight.sh >/dev/null

@@ -124,6 +124,25 @@ jobs:
       - name: Integration and contract test gate with DB
         run: go test ./...
 
+      - name: E2E critical flow release validation
+        env:
+          RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+          RECOVA_E2E_REPORT_PATH: artifacts/release-confidence/e2e-critical-flows.json
+        run: make test-e2e
+
+      - name: Performance smoke release validation
+        env:
+          RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+          RECOVA_PERF_REPORT_PATH: artifacts/release-confidence/performance-smoke.json
+        run: make test-performance
+
+      - name: Upload release validation reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-confidence-reports
+          path: artifacts/release-confidence
+          if-no-files-found: error
+
   container-compose-smoke:
     name: Container Compose Smoke
     runs-on: ubuntu-latest

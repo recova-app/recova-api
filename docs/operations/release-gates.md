@@ -31,6 +31,9 @@ Wajib lulus:
 - integration tests database,
 - migration up/down verification,
 - contract compatibility tests,
+- critical flow E2E suite (`make test-e2e`),
+- performance/load smoke suite (`make test-performance`),
+- report release confidence tersimpan pada artefak pipeline,
 - compose runtime smoke (`api` + `db`) lulus,
 - security checklist terisi dan disetujui.
 
@@ -60,6 +63,8 @@ Release harus dibatalkan atau ditahan jika:
 
 - migration gagal,
 - smoke test kritikal gagal,
+- E2E critical flow tidak lulus,
+- performance smoke melewati threshold,
 - readiness gagal stabil,
 - vulnerability critical/high tanpa approval,
 - contract drift tidak disetujui.
@@ -87,3 +92,4 @@ Rollback harus diikuti post-rollback verification:
 ## Source Reference
 
 - [GitHub Actions Workflow Syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)
+- [Store and Share Data with Workflow Artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data)

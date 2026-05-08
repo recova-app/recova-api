@@ -240,10 +240,26 @@ func (s *Service) RefreshCookieValue(c fiber.Ctx) string {
 	return s.tokens.RefreshCookieValue(c)
 }
 
-func formatCheckInTime(raw *time.Time) *string {
+func formatCheckInTime(raw *string) *string {
 	if raw == nil {
 		return nil
 	}
-	formatted := raw.UTC().Format(timeOfDayLayout)
+	formatted := normalizeTimeString(*raw)
+	if formatted == "" {
+		return nil
+	}
 	return &formatted
+}
+
+func normalizeTimeString(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	if len(trimmed) >= len(timeOfDayLayout) {
+		return trimmed[:len(timeOfDayLayout)]
+	}
+
+	return trimmed
 }

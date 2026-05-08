@@ -76,17 +76,25 @@ Wajib:
 
 Perintah verifikasi baseline:
 
-| Command                 | Scope                                                         |
-| ----------------------- | ------------------------------------------------------------- |
-| `make test`             | unit tests package Go                                         |
-| `make lint`             | static checks baseline (`go vet ./...`)                       |
-| `make build`            | compile gate untuk binary API                                 |
-| `make preflight`        | validasi dependency command dan struktur minimum project      |
-| `make test-integration` | scripted checks untuk workflow tooling (mis. migrasi wrapper) |
-| `make migrate-check`    | validasi state migration (versi/dirtiness)                    |
-| `make openapi-check`    | validasi OpenAPI source/generated + drift route runtime       |
-| `make security-scan`    | vulnerability scan dependency Go via govulncheck              |
-| `make compose-smoke`    | smoke runtime container (`docker-compose.local.yml`)          |
+| Command                   | Scope                                                                 |
+| ------------------------- | --------------------------------------------------------------------- |
+| `make test`               | unit tests package Go                                                 |
+| `make lint`               | static checks baseline (`go vet ./...`)                               |
+| `make build`              | compile gate untuk binary API                                         |
+| `make preflight`          | validasi dependency command dan struktur minimum project              |
+| `make test-integration`   | scripted checks untuk workflow tooling (mis. migrasi wrapper)         |
+| `make migrate-check`      | validasi state migration (versi/dirtiness)                            |
+| `make openapi-check`      | validasi OpenAPI source/generated + drift route runtime               |
+| `make security-scan`      | vulnerability scan dependency Go via govulncheck                      |
+| `make compose-smoke`      | smoke runtime container (`docker-compose.local.yml`)                  |
+| `make test-e2e`           | E2E critical flow suite + report JSON                                 |
+| `make test-performance`   | load/performance smoke suite + report JSON                            |
+| `make release-validation` | menjalankan seluruh gate release-validation (E2E + performance smoke) |
+
+Default output report:
+
+- `artifacts/release-confidence/e2e-critical-flows.json`
+- `artifacts/release-confidence/performance-smoke.json`
 
 ## Release Readiness Testing Gate
 
@@ -101,15 +109,18 @@ Sebelum rilis:
 Tambahan gate:
 
 6. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
+7. report release confidence E2E + performance tersedia dan dapat diaudit.
 
 ## Related Documents
 
 - [Verification Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/operations/verification-matrix.md)
 - [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
+- [Release Confidence Report](/Users/macbookpro/Development/recova-backend-v2/docs/generated/release-confidence-report.md)
 
 ## Source Reference
 
-- [Go Testing Package](https://go.dev/pkg/testing/?m=old)
+- [Go Testing Package](https://pkg.go.dev/testing)
 - [go Command Documentation](https://pkg.go.dev/cmd/go)
 - [PostgreSQL Current Documentation](https://www.postgresql.org/docs/current/)
+- [Fiber App API](https://docs.gofiber.io/api/app/)
