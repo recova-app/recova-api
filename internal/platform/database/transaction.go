@@ -10,11 +10,11 @@ import (
 // WithTransaction executes fn inside one database transaction and returns callback error directly.
 func WithTransaction(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB) error) error {
 	if db == nil {
-		return fmt.Errorf("database handle wajib tersedia")
+		return fmt.Errorf("database handle is required")
 	}
 
 	if fn == nil {
-		return fmt.Errorf("callback transaksi wajib tersedia")
+		return fmt.Errorf("transaction callback is required")
 	}
 
 	if ctx == nil {

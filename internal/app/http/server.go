@@ -22,7 +22,7 @@ import (
 
 const (
 	defaultShutdownTimeout = 5 * time.Second
-	requestLogMessage      = "request selesai"
+	requestLogMessage      = "request completed"
 )
 
 // Server wraps the Fiber application lifecycle.
@@ -76,7 +76,7 @@ func WithModuleDependencies(deps ModuleDependencies) ServerOption {
 func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*Server, error) {
 	bodyLimit, err := parseBodyLimitBytes(cfg.Security.RequestBodyLimit)
 	if err != nil {
-		return nil, fmt.Errorf("request body limit tidak valid: %w", err)
+		return nil, fmt.Errorf("invalid request body limit: %w", err)
 	}
 
 	srv := &Server{
@@ -117,20 +117,20 @@ func (s *Server) Start(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		s.logger.Info("shutdown dimulai")
+		s.logger.Info("shutdown started")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
 		defer cancel()
 
 		if err := s.app.ShutdownWithContext(shutdownCtx); err != nil {
-			return fmt.Errorf("shutdown server gagal: %w", err)
+			return fmt.Errorf("server shutdown failed: %w", err)
 		}
 
-		s.logger.Info("shutdown selesai")
+		s.logger.Info("shutdown completed")
 		return nil
 	case err := <-errCh:
 		if err != nil {
-			return fmt.Errorf("server gagal listen: %w", err)
+			return fmt.Errorf("server listen failed: %w", err)
 		}
 		return nil
 	}
@@ -257,7 +257,7 @@ func (s *Server) errorHandler(requestIDHeader string) fiber.ErrorHandler {
 			reqID = strings.TrimSpace(c.Get(requestIDHeader))
 		}
 
-		s.logger.Error("request gagal",
+		s.logger.Error("request failed",
 			"requestId", reqID,
 			"method", c.Method(),
 			"path", c.Path(),

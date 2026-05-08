@@ -110,6 +110,7 @@ Response API tidak boleh mengandung:
 
 - teks untuk konsumsi pengguna (`message`, `error.details` human-readable) harus memakai bahasa Indonesia,
 - identifier teknis tetap English (`error.code`, nama field JSON, enum internal),
+- logger internal, pesan debug, dan error non-response wajib menggunakan bahasa Inggris,
 - jangan campur istilah user-facing English jika padanan Indonesia tersedia,
 - pertahankan konsistensi agar client mobile tidak perlu fallback parsing per bahasa.
 

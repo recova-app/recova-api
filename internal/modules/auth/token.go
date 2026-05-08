@@ -156,13 +156,13 @@ func (m *TokenManager) newClaims(userID string, tokenType string, ttl time.Durat
 func (m *TokenManager) parseToken(rawToken string, expectedType string) (SessionClaims, error) {
 	raw := strings.TrimSpace(rawToken)
 	if raw == "" {
-		return SessionClaims{}, fmt.Errorf("token kosong")
+		return SessionClaims{}, fmt.Errorf("token is required")
 	}
 
 	claims := &SessionClaims{}
 	_, err := jwt.ParseWithClaims(raw, claims, func(token *jwt.Token) (any, error) {
 		if token.Method == nil || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
-			return nil, fmt.Errorf("algoritma token tidak didukung")
+			return nil, fmt.Errorf("unsupported token algorithm")
 		}
 		return m.secret, nil
 	},
@@ -175,10 +175,10 @@ func (m *TokenManager) parseToken(rawToken string, expectedType string) (Session
 	}
 
 	if strings.TrimSpace(claims.TokenType) != expectedType {
-		return SessionClaims{}, fmt.Errorf("jenis token tidak valid")
+		return SessionClaims{}, fmt.Errorf("invalid token type")
 	}
 	if strings.TrimSpace(claims.Subject) == "" {
-		return SessionClaims{}, fmt.Errorf("sub token wajib ada")
+		return SessionClaims{}, fmt.Errorf("token subject is required")
 	}
 
 	return *claims, nil

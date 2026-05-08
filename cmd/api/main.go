@@ -21,10 +21,10 @@ func main() {
 	}
 
 	logger := platformlogger.New(cfg)
-	logger.Info("konfigurasi berhasil dimuat", "config", cfg.RedactedSummary())
+	logger.Info("configuration loaded", "config", cfg.RedactedSummary())
 	app, err := bootstrap.NewApplication(cfg, logger)
 	if err != nil {
-		logger.Error("gagal bootstrap aplikasi", "error", err)
+		logger.Error("application bootstrap failed", "error", err)
 		os.Exit(1)
 	}
 
@@ -32,7 +32,7 @@ func main() {
 	defer stop()
 
 	if err := app.Run(ctx); err != nil {
-		logger.Error("aplikasi berhenti dengan error", "error", err)
+		logger.Error("application stopped with error", "error", err)
 		os.Exit(1)
 	}
 }

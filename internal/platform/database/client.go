@@ -23,12 +23,12 @@ type Client struct {
 func Connect(cfg config.Config) (*Client, error) {
 	gormDB, err := gorm.Open(postgres.Open(cfg.Database.URL), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("gagal membuka koneksi database: %w", err)
+		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
 	sqlDB, err := gormDB.DB()
 	if err != nil {
-		return nil, fmt.Errorf("gagal mengambil handle sql database: %w", err)
+		return nil, fmt.Errorf("failed to get sql database handle: %w", err)
 	}
 
 	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
@@ -45,7 +45,7 @@ func Connect(cfg config.Config) (*Client, error) {
 
 	if err := sqlDB.PingContext(ctx); err != nil {
 		_ = sqlDB.Close()
-		return nil, fmt.Errorf("koneksi database tidak sehat: %w", err)
+		return nil, fmt.Errorf("database connection is unhealthy: %w", err)
 	}
 
 	return &Client{
@@ -65,7 +65,7 @@ func (c *Client) Gorm() *gorm.DB {
 // Ping runs database connectivity check using the provided context.
 func (c *Client) Ping(ctx context.Context) error {
 	if c == nil || c.sqlDB == nil {
-		return fmt.Errorf("koneksi database belum diinisialisasi")
+		return fmt.Errorf("database connection is not initialized")
 	}
 
 	if ctx == nil {

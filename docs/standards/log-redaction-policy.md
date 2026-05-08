@@ -55,6 +55,11 @@ Field minimum yang aman untuk observability:
 - `errorCode` (jika gagal),
 - `dependency` (jika error dari downstream).
 
+Aturan bahasa log:
+
+- message log dan diagnostics internal harus berbahasa Inggris,
+- string user-facing tetap mengikuti kontrak response API (bahasa Indonesia).
+
 Konten request/response body hanya boleh dicatat jika endpoint tidak memproses data sensitif dan sudah disetujui owner.
 
 ## Enforcement Points

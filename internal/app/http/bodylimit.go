@@ -19,7 +19,7 @@ var bodyLimitUnitsByPriority = []string{"gb", "mb", "kb", "b"}
 func parseBodyLimitBytes(value string) (int, error) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	if normalized == "" {
-		return 0, fmt.Errorf("nilai kosong")
+		return 0, fmt.Errorf("value is empty")
 	}
 
 	unit := "b"
@@ -34,30 +34,30 @@ func parseBodyLimitBytes(value string) (int, error) {
 	}
 
 	if number == "" {
-		return 0, fmt.Errorf("angka body limit tidak ditemukan")
+		return 0, fmt.Errorf("body limit number is missing")
 	}
 
 	parsedNumber, err := strconv.ParseInt(number, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("angka body limit tidak valid: %w", err)
+		return 0, fmt.Errorf("invalid body limit number: %w", err)
 	}
 
 	if parsedNumber <= 0 {
-		return 0, fmt.Errorf("body limit harus lebih besar dari 0")
+		return 0, fmt.Errorf("body limit must be greater than 0")
 	}
 
 	multiplier, ok := bodyLimitUnitMultiplier[unit]
 	if !ok {
-		return 0, fmt.Errorf("unit body limit tidak didukung: %s", unit)
+		return 0, fmt.Errorf("unsupported body limit unit: %s", unit)
 	}
 
 	if parsedNumber > math.MaxInt64/multiplier {
-		return 0, fmt.Errorf("body limit melebihi batas integer")
+		return 0, fmt.Errorf("body limit exceeds integer range")
 	}
 
 	total := parsedNumber * multiplier
 	if total > int64(maxInt()) {
-		return 0, fmt.Errorf("body limit melebihi batas integer")
+		return 0, fmt.Errorf("body limit exceeds integer range")
 	}
 
 	return int(total), nil

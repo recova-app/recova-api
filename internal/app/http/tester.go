@@ -10,10 +10,10 @@ import (
 // Test executes one synthetic HTTP request against the in-memory Fiber app.
 func (s *Server) Test(req *http.Request, cfg ...fiber.TestConfig) (*http.Response, error) {
 	if s == nil || s.app == nil {
-		return nil, fmt.Errorf("server belum diinisialisasi")
+		return nil, fmt.Errorf("server is not initialized")
 	}
 	if req == nil {
-		return nil, fmt.Errorf("request wajib diisi")
+		return nil, fmt.Errorf("request is required")
 	}
 	return s.app.Test(req, cfg...)
 }

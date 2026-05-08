@@ -1,6 +1,6 @@
 ---
 title: Recova Backend Route Inventory
-description: Inventaris route API Recova Backend untuk verifikasi coverage kontrak dan deteksi drift dokumentasi.
+description: Runtime API route inventory used for contract coverage verification and documentation drift detection.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -15,7 +15,7 @@ generated_at: 2026-05-08T00:00:00Z
 
 # Recova Backend Route Inventory
 
-Dokumen ini adalah inventaris route aktif berdasarkan runtime Go Fiber saat ini.
+This document lists active routes from the current Go Fiber runtime.
 
 ## Summary
 
@@ -41,11 +41,11 @@ Dokumen ini adalah inventaris route aktif berdasarkan runtime Go Fiber saat ini.
 
 ## Drift Check Use
 
-Gunakan file ini untuk validasi sinkronisasi route runtime dan kontrak OpenAPI pada proses review maupun CI.
+Use this file to validate runtime route and OpenAPI contract synchronization in review and CI flows.
 
 ## Known Gap
 
-Inventaris route ini disinkronkan otomatis dari runtime. Perbedaan terhadap kontrak OpenAPI diperlakukan sebagai drift dan harus diperbaiki sebelum merge.
+This route inventory is auto-synced from runtime. Any mismatch with the OpenAPI contract is treated as drift and must be fixed before merge.
 
 ## Related Documents
 

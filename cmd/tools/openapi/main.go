@@ -96,7 +96,7 @@ func runCheck() error {
 	}
 
 	if !bytes.Equal(sourceBytes, generatedBytes) {
-		return errors.New("generated openapi spec tidak sinkron dengan source; jalankan `go run ./cmd/tools/openapi generate`")
+		return errors.New("generated OpenAPI spec is out of sync with source; run `go run ./cmd/tools/openapi generate`")
 	}
 
 	runtimeRouteSet, err := runtimeRouteSet()
@@ -106,11 +106,11 @@ func runCheck() error {
 	specRouteSet := contractopenapi.SpecRouteSet(generatedDoc)
 	drift := contractopenapi.CompareRouteSets(runtimeRouteSet, specRouteSet)
 	if drift.HasDrift() {
-		return fmt.Errorf("route-spec drift terdeteksi\n%s", formatDrift(drift))
+		return fmt.Errorf("route-spec drift detected\n%s", formatDrift(drift))
 	}
 
 	if sourceDoc.OpenAPI == "" {
-		return errors.New("openapi source harus memiliki field openapi")
+		return errors.New("OpenAPI source must include the `openapi` field")
 	}
 
 	expectedRoutesDoc := renderRouteInventory(runtimeRouteSet)
@@ -119,7 +119,7 @@ func runCheck() error {
 		return fmt.Errorf("read route inventory: %w", err)
 	}
 	if !bytes.Equal([]byte(expectedRoutesDoc), actualRoutesDoc) {
-		return errors.New("route inventory tidak sinkron; jalankan `go run ./cmd/tools/openapi generate`")
+		return errors.New("route inventory is out of sync; run `go run ./cmd/tools/openapi generate`")
 	}
 
 	return nil
@@ -187,13 +187,13 @@ func writeFile(path string, content []byte) error {
 func formatDrift(drift contractopenapi.DriftResult) string {
 	lines := []string{}
 	if len(drift.MissingInSpec) > 0 {
-		lines = append(lines, "runtime ada, spec tidak ada:")
+		lines = append(lines, "present in runtime, missing in spec:")
 		for _, route := range drift.MissingInSpec {
 			lines = append(lines, "- "+route.String())
 		}
 	}
 	if len(drift.MissingInRuntime) > 0 {
-		lines = append(lines, "spec ada, runtime tidak ada:")
+		lines = append(lines, "present in spec, missing in runtime:")
 		for _, route := range drift.MissingInRuntime {
 			lines = append(lines, "- "+route.String())
 		}
@@ -208,7 +208,7 @@ func renderRouteInventory(routeSet map[contractopenapi.RouteKey]struct{}) string
 	builder := &strings.Builder{}
 	builder.WriteString("---\n")
 	builder.WriteString("title: Recova Backend Route Inventory\n")
-	builder.WriteString("description: Inventaris route API Recova Backend untuk verifikasi coverage kontrak dan deteksi drift dokumentasi.\n")
+	builder.WriteString("description: Runtime API route inventory used for contract coverage verification and documentation drift detection.\n")
 	builder.WriteString("owner: backend-owner\n")
 	builder.WriteString("reviewers:\n")
 	builder.WriteString("  - engineering-lead\n")
@@ -221,7 +221,7 @@ func renderRouteInventory(routeSet map[contractopenapi.RouteKey]struct{}) string
 	builder.WriteString("generated_at: " + now.Format(time.RFC3339) + "\n")
 	builder.WriteString("---\n\n")
 	builder.WriteString("# Recova Backend Route Inventory\n\n")
-	builder.WriteString("Dokumen ini adalah inventaris route aktif berdasarkan runtime Go Fiber saat ini.\n\n")
+	builder.WriteString("This document lists active routes from the current Go Fiber runtime.\n\n")
 	builder.WriteString("## Summary\n\n")
 	builder.WriteString("| Metric | Value |\n")
 	builder.WriteString("| --- | --- |\n")
@@ -235,9 +235,9 @@ func renderRouteInventory(routeSet map[contractopenapi.RouteKey]struct{}) string
 		builder.WriteString(fmt.Sprintf("| `%s` | `%s` | `%s` |\n", route.Method, route.Path, inferModule(route.Path)))
 	}
 	builder.WriteString("\n## Drift Check Use\n\n")
-	builder.WriteString("Gunakan file ini untuk validasi sinkronisasi route runtime dan kontrak OpenAPI pada proses review maupun CI.\n\n")
+	builder.WriteString("Use this file to validate runtime route and OpenAPI contract synchronization in review and CI flows.\n\n")
 	builder.WriteString("## Known Gap\n\n")
-	builder.WriteString("Inventaris route ini disinkronkan otomatis dari runtime. Perbedaan terhadap kontrak OpenAPI diperlakukan sebagai drift dan harus diperbaiki sebelum merge.\n\n")
+	builder.WriteString("This route inventory is auto-synced from runtime. Any mismatch with the OpenAPI contract is treated as drift and must be fixed before merge.\n\n")
 	builder.WriteString("## Related Documents\n\n")
 	builder.WriteString("- [OpenAPI Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/openapi.md)\n")
 	builder.WriteString("- [API Reference](/Users/macbookpro/Development/recova-backend-v2/docs/api-reference.md)\n")

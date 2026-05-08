@@ -175,19 +175,19 @@ func Load() (Config, error) {
 	cfg.Logger.SlogLevel = parseSlogLevel(cfg.Logger.Level)
 
 	if !strings.HasPrefix(cfg.Application.APIPrefix, "/") {
-		v.addIssue("API_PREFIX", "harus diawali '/'")
+		v.addIssue("API_PREFIX", "must start with '/'")
 	}
 
 	if cfg.Database.MaxIdleConns > cfg.Database.MaxOpenConns {
-		v.addIssue("DATABASE_MAX_IDLE_CONNS", "tidak boleh lebih besar dari DATABASE_MAX_OPEN_CONNS")
+		v.addIssue("DATABASE_MAX_IDLE_CONNS", "must not be greater than DATABASE_MAX_OPEN_CONNS")
 	}
 
 	if cfg.AI.FallbackProvider == "" && cfg.AI.FallbackModel != "" {
-		v.addIssue("AI_FALLBACK_PROVIDER", "wajib diisi jika AI_FALLBACK_MODEL diisi")
+		v.addIssue("AI_FALLBACK_PROVIDER", "is required when AI_FALLBACK_MODEL is set")
 	}
 
 	if cfg.AI.FallbackProvider != "" && cfg.AI.FallbackModel == "" {
-		v.addIssue("AI_FALLBACK_MODEL", "wajib diisi jika AI_FALLBACK_PROVIDER diisi")
+		v.addIssue("AI_FALLBACK_MODEL", "is required when AI_FALLBACK_PROVIDER is set")
 	}
 
 	if v.hasIssue() {
@@ -259,13 +259,13 @@ type validator struct {
 func (v *validator) requiredString(key string) string {
 	value, exists := os.LookupEnv(key)
 	if !exists {
-		v.addIssue(key, "wajib diisi")
+		v.addIssue(key, "is required")
 		return ""
 	}
 
 	value = strings.TrimSpace(value)
 	if value == "" {
-		v.addIssue(key, "wajib diisi dan tidak boleh kosong")
+		v.addIssue(key, "is required and cannot be empty")
 	}
 
 	return value
@@ -292,7 +292,7 @@ func (v *validator) requiredSecret(key string, minLen int) string {
 	}
 
 	if len(value) < minLen {
-		v.addIssue(key, fmt.Sprintf("minimal %d karakter", minLen))
+		v.addIssue(key, fmt.Sprintf("minimum %d characters", minLen))
 	}
 
 	return value
@@ -305,7 +305,7 @@ func (v *validator) requiredEnum(key string, allowed []string) string {
 	}
 
 	if !slices.Contains(allowed, value) {
-		v.addIssue(key, fmt.Sprintf("nilai harus salah satu: %s", strings.Join(allowed, ", ")))
+		v.addIssue(key, fmt.Sprintf("must be one of: %s", strings.Join(allowed, ", ")))
 	}
 
 	return value
@@ -318,7 +318,7 @@ func (v *validator) optionalEnum(key string, allowed []string) string {
 	}
 
 	if !slices.Contains(allowed, value) {
-		v.addIssue(key, fmt.Sprintf("nilai harus salah satu: %s", strings.Join(allowed, ", ")))
+		v.addIssue(key, fmt.Sprintf("must be one of: %s", strings.Join(allowed, ", ")))
 	}
 
 	return value
@@ -332,7 +332,7 @@ func (v *validator) requiredBool(key string) bool {
 
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
-		v.addIssue(key, "wajib boolean valid")
+		v.addIssue(key, "must be a valid boolean")
 		return false
 	}
 
@@ -347,12 +347,12 @@ func (v *validator) requiredInt(key string, min int, max int) int {
 
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
-		v.addIssue(key, "wajib integer valid")
+		v.addIssue(key, "must be a valid integer")
 		return 0
 	}
 
 	if parsed < min || parsed > max {
-		v.addIssue(key, fmt.Sprintf("harus di rentang %d..%d", min, max))
+		v.addIssue(key, fmt.Sprintf("must be in range %d..%d", min, max))
 	}
 
 	return parsed
@@ -366,12 +366,12 @@ func (v *validator) requiredDuration(key string) time.Duration {
 
 	parsed, err := parseDuration(value)
 	if err != nil {
-		v.addIssue(key, "format duration tidak valid")
+		v.addIssue(key, "invalid duration format")
 		return 0
 	}
 
 	if parsed <= 0 {
-		v.addIssue(key, "duration harus lebih besar dari 0")
+		v.addIssue(key, "duration must be greater than 0")
 	}
 
 	return parsed
@@ -398,7 +398,7 @@ func (v *validator) requiredAbsoluteURL(key string) string {
 	}
 
 	if !isAbsoluteURL(value) {
-		v.addIssue(key, "wajib URL absolut valid")
+		v.addIssue(key, "must be a valid absolute URL")
 	}
 
 	return value
@@ -411,7 +411,7 @@ func (v *validator) optionalAbsoluteURL(key string) string {
 	}
 
 	if !isAbsoluteURL(value) {
-		v.addIssue(key, "wajib URL absolut valid")
+		v.addIssue(key, "must be a valid absolute URL")
 	}
 
 	return value
@@ -424,7 +424,7 @@ func (v *validator) requiredDatabaseURL(key string) string {
 	}
 
 	if !isDatabaseURL(value) {
-		v.addIssue(key, "wajib database URL valid")
+		v.addIssue(key, "must be a valid database URL")
 	}
 
 	return value
@@ -437,7 +437,7 @@ func (v *validator) optionalDatabaseURL(key string) string {
 	}
 
 	if !isDatabaseURL(value) {
-		v.addIssue(key, "wajib database URL valid")
+		v.addIssue(key, "must be a valid database URL")
 	}
 
 	return value
@@ -458,14 +458,14 @@ func (v *validator) requiredCSVAbsoluteURLs(key string) []string {
 		}
 
 		if !isAbsoluteURL(origin) {
-			v.addIssue(key, fmt.Sprintf("origin tidak valid: %s", origin))
+			v.addIssue(key, fmt.Sprintf("invalid origin: %s", origin))
 			continue
 		}
 		origins = append(origins, origin)
 	}
 
 	if len(origins) == 0 {
-		v.addIssue(key, "minimal satu origin valid")
+		v.addIssue(key, "at least one valid origin is required")
 	}
 
 	return origins

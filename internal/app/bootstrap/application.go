@@ -67,10 +67,10 @@ func (a *Application) Run(ctx context.Context) error {
 			return
 		}
 		if err := a.database.Close(); err != nil {
-			a.logger.Error("gagal menutup koneksi database", "error", err)
+			a.logger.Error("failed to close database connection", "error", err)
 		}
 	}()
 
-	a.logger.Info("menjalankan aplikasi", "app", "api")
+	a.logger.Info("starting application", "app", "api")
 	return a.server.Start(ctx)
 }

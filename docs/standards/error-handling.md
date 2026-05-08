@@ -69,6 +69,7 @@ Aturan bahasa:
 - log error menyertakan `request_id`, kategori, dan jalur endpoint,
 - data sensitif dalam payload harus di-redact,
 - stack trace dicatat hanya pada level yang sesuai kebijakan runtime.
+- teks log/internal diagnostics wajib bahasa Inggris; hanya payload response API ke klien yang boleh bahasa Indonesia.
 
 ## Retry and Idempotency Rules
 

@@ -29,16 +29,16 @@ func (v *GoogleIDTokenVerifier) Verify(ctx context.Context, rawToken string, aud
 	}
 
 	if _, ok := allowedGoogleIssuers[strings.TrimSpace(payload.Issuer)]; !ok {
-		return GoogleIdentity{}, fmt.Errorf("google issuer tidak valid")
+		return GoogleIdentity{}, fmt.Errorf("invalid google issuer")
 	}
 
 	email, _ := payload.Claims["email"].(string)
 	name, _ := payload.Claims["name"].(string)
 	if strings.TrimSpace(payload.Subject) == "" {
-		return GoogleIdentity{}, fmt.Errorf("google subject kosong")
+		return GoogleIdentity{}, fmt.Errorf("google subject is empty")
 	}
 	if strings.TrimSpace(email) == "" {
-		return GoogleIdentity{}, fmt.Errorf("email Google tidak tersedia")
+		return GoogleIdentity{}, fmt.Errorf("google email is unavailable")
 	}
 
 	return GoogleIdentity{
