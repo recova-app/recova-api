@@ -58,6 +58,8 @@ Aturan verifikasi:
 - cek tidak ada lock migrasi tertinggal,
 - cek query error kritis setelah deploy.
 
+Untuk staging berbasis Compose, verifikasi ini dijalankan otomatis lewat `scripts/staging-deploy.sh` sebelum release dipromosikan.
+
 ## Observability Checks
 
 Verifikasi sinyal minimum:

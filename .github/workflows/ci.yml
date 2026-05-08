@@ -170,7 +170,33 @@ jobs:
     environment:
       name: staging
     steps:
-      - name: Staging gate acknowledgment
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install migrate CLI
         run: |
-          echo "Semua gate CI lulus."
-          echo "Environment staging dapat menerapkan protection rule untuk approval deploy."
+          go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Staging gate acknowledgment
+        env:
+          ENV_FILE: .env.example
+          COMPOSE_PROJECT_NAME: recova-staging-ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_stage_ci
+          APP_PORT: 3000
+          DB_PORT: 5432
+        run: |
+          ./scripts/staging-deploy.sh

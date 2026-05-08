@@ -42,6 +42,7 @@ Wajib lulus:
 - vulnerability scan sesuai policy,
 - deployment plan dan rollback path tersedia,
 - gate environment staging melewati approval/protection yang ditetapkan,
+- dry-run deploy staging lulus (`scripts/staging-deploy.sh`) termasuk migration dry-run, seed idempotency, integrity checks, dan readiness checks,
 - release sign-off engineering + platform.
 
 ## Gate D - Post-Deploy

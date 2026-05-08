@@ -64,6 +64,25 @@ Sebelum deploy, wajib tersedia:
 7) Promote deployment status to healthy
 ```
 
+## Compose-Based Staging Deployment Runner
+
+Untuk staging berbasis Docker Compose, gunakan runner otomatis:
+
+- `make staging-deploy` atau `./scripts/staging-deploy.sh`.
+
+Runner ini mengeksekusi urutan berikut secara deterministik:
+
+1. validasi konfigurasi compose (`docker compose config -q`),
+2. bootstrap dependency database,
+3. apply migration dan migration health check,
+4. migration dry-run (`down 1 -> up`) pada database staging disposable,
+5. seed reference data dua kali untuk verifikasi idempotency,
+6. integrity checks data referensi,
+7. startup service API dengan readiness gate,
+8. smoke check health endpoint.
+
+Jika salah satu langkah gagal, deployment dianggap gagal dan stack dibersihkan otomatis (kecuali `KEEP_STACK=true`).
+
 ## Database Migration Order
 
 Aturan urutan migrasi:

@@ -85,6 +85,14 @@ CI wajib memverifikasi:
 - rollback minimal satu langkah sukses,
 - tidak ada drift schema tak terdokumentasi.
 
+Untuk jalur staging berbasis Compose, migration dry-run dijalankan oleh `scripts/staging-deploy.sh` dengan pola:
+
+- `migrate up`,
+- `migrate check`,
+- `migrate down 1`,
+- `migrate up`,
+- `migrate check`.
+
 ### Production Rollout
 
 Urutan minimum:

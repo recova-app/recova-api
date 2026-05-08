@@ -104,6 +104,16 @@ Aturan runner:
 - data referensi aktif tersedia untuk endpoint read,
 - tidak ada data rahasia atau kredensial produksi.
 
+## Automated Staging Check
+
+Runner `scripts/staging-deploy.sh` menjalankan verifikasi seeding otomatis:
+
+1. jalankan seed pass pertama,
+2. simpan row count `education_contents`, `daily_motivations`, `daily_challenges`,
+3. jalankan seed pass kedua,
+4. pastikan row count tidak berubah (idempotent),
+5. pastikan tidak ada duplicate content pada tabel reference harian.
+
 ## Related Documents
 
 - [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)

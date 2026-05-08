@@ -105,7 +105,8 @@ Kontrol concurrency:
 `deploy-gate-staging`:
 
 - mensyaratkan semua job sebelumnya sukses,
-- dieksekusi pada environment `staging` agar approval/protection rule bisa diterapkan dari GitHub Environment.
+- dieksekusi pada environment `staging` agar approval/protection rule bisa diterapkan dari GitHub Environment,
+- menjalankan `scripts/staging-deploy.sh` untuk memverifikasi jalur deploy Compose + migration dry-run + seed idempotency + integrity + readiness sebelum promote.
 
 ## Post-Deploy Verification
 

@@ -156,6 +156,104 @@ SEED_FILE="$seed_file" \
 
 assert_file_contains "$fake_psql_log" "postgres://user:pass@localhost:5432/recova?sslmode=disable -v ON_ERROR_STOP=1 -f $seed_file"
 
+# staging-deploy.sh must orchestrate compose + migrate + seed + readiness checks.
+staging_compose_file="$temp_dir/staging-compose.yml"
+cat > "$staging_compose_file" <<'YAML'
+services:
+  db:
+    image: postgres:17-alpine
+  api:
+    image: recova-backend-v2:test
+YAML
+
+staging_env_file="$temp_dir/staging.env"
+cat > "$staging_env_file" <<'ENVFILE'
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=recova_stage
+DB_PORT=55432
+APP_PORT=33000
+ENVFILE
+
+fake_staging_docker_log="$temp_dir/fake-staging-docker.log"
+cat > "$temp_dir/docker-staging" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STAGING_DOCKER_LOG"
+
+case "$*" in
+  *"SELECT COUNT(*) FROM education_contents;"*)
+    printf '2\n'
+    ;;
+  *"SELECT COUNT(*) FROM daily_motivations;"*)
+    printf '2\n'
+    ;;
+  *"SELECT COUNT(*) FROM daily_challenges;"*)
+    printf '2\n'
+    ;;
+  *"daily_motivations GROUP BY content HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"daily_challenges GROUP BY content HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+esac
+
+exit 0
+SCRIPT
+chmod +x "$temp_dir/docker-staging"
+
+fake_staging_migrate_log="$temp_dir/fake-staging-migrate.log"
+cat > "$temp_dir/migrate-staging" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STAGING_MIGRATE_LOG"
+if [ "${1:-}" = "-path" ] && [ "${4:-}" = "version" ]; then
+  printf '43\n'
+fi
+SCRIPT
+chmod +x "$temp_dir/migrate-staging"
+
+fake_staging_psql_log="$temp_dir/fake-staging-psql.log"
+cat > "$temp_dir/psql-staging" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STAGING_PSQL_LOG"
+SCRIPT
+chmod +x "$temp_dir/psql-staging"
+
+fake_staging_curl_log="$temp_dir/fake-staging-curl.log"
+cat > "$temp_dir/curl" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STAGING_CURL_LOG"
+exit 0
+SCRIPT
+chmod +x "$temp_dir/curl"
+
+PATH="$temp_dir:$PATH" \
+DOCKER_BIN="$temp_dir/docker-staging" \
+MIGRATE_BIN="$temp_dir/migrate-staging" \
+PSQL_BIN="$temp_dir/psql-staging" \
+FAKE_STAGING_DOCKER_LOG="$fake_staging_docker_log" \
+FAKE_STAGING_MIGRATE_LOG="$fake_staging_migrate_log" \
+FAKE_STAGING_PSQL_LOG="$fake_staging_psql_log" \
+FAKE_STAGING_CURL_LOG="$fake_staging_curl_log" \
+COMPOSE_FILE="$staging_compose_file" \
+ENV_FILE="$staging_env_file" \
+COMPOSE_PROJECT_NAME="recova-staging-test" \
+./scripts/staging-deploy.sh >/dev/null
+
+assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test config -q"
+assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test up -d db --wait --wait-timeout 120"
+assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test up -d api --build --wait --wait-timeout 180"
+assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test ps"
+assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test down -v --remove-orphans"
+
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable up"
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable down 1"
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable version"
+
+assert_file_contains "$fake_staging_psql_log" "postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable -v ON_ERROR_STOP=1 -f migrations/seeds/000001_baseline_seed.sql"
+assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/live"
+assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/ready"
+
 # preflight should pass on current baseline repository.
 ./scripts/preflight.sh >/dev/null
 
