@@ -1,6 +1,6 @@
 ---
 title: Users Module
-description: Kontrak modul users untuk profil pengguna, aturan akses pemilik data, pembaruan pengaturan, dan perlindungan privasi.
+description: Kontrak modul users untuk profil pengguna, pengaturan akun, dan kontrol kepemilikan data profil.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,87 +13,104 @@ last_reviewed: 2026-05-08
 
 # Users Module
 
-Modul users mengelola data profil pengguna yang dipakai lintas fitur aplikasi.
-
 ## Responsibility
 
-Modul users bertanggung jawab pada:
+- mengambil profil pengguna saat ini,
+- memperbarui pengaturan profil,
+- menegakkan ownership data,
+- mencatat audit perubahan profil.
 
-- pengambilan profil pengguna terautentikasi,
-- pembaruan pengaturan profil,
-- pembatasan akses berdasarkan kepemilikan akun,
-- audit event pada perubahan data profil.
+## API Contract
 
-## Route Prefix
+Route prefix:
 
 ```text
 /api/v1/users
 ```
 
-## Endpoint Summary
+| Method   | Path                          | Auth class        | Purpose                               |
+| -------- | ----------------------------- | ----------------- | ------------------------------------- |
+| `GET`    | `/api/v1/users/me`            | Bearer            | ambil profil pengguna saat ini        |
+| `PUT`    | `/api/v1/users/settings`      | Bearer            | update pengaturan profil              |
+| `DELETE` | `/api/v1/users/me/reset-data` | Bearer (dev-only) | reset data user untuk pengujian lokal |
 
-| Method   | Path                          | Auth   | Purpose                                   |
-| -------- | ----------------------------- | ------ | ----------------------------------------- |
-| `GET`    | `/api/v1/users/me`            | Bearer | Ambil profil milik pengguna saat ini      |
-| `PUT`    | `/api/v1/users/settings`      | Bearer | Perbarui pengaturan profil pengguna       |
-| `DELETE` | `/api/v1/users/me/reset-data` | Bearer | Reset data pengguna untuk pengujian lokal |
+## Database Model
 
-Catatan:
+Entitas utama:
 
-- endpoint reset-data bersifat khusus development dan harus nonaktif di production.
+- `users`,
+- `user_profiles` (nickname, recovery reason, check-in time),
+- audit table untuk perubahan profil (bila diaktifkan).
 
-## Profile Data Contract
+Constraint minimum:
 
-Field profil minimum yang sudah teridentifikasi:
+- satu profil aktif per `user_id`,
+- field sensitif tidak boleh terekspos langsung ke publik.
 
-- `nickname`,
-- `recovery_reason`,
-- `daily_checkin_time`,
-- `onboarding_completed`.
+## Authentication and Authorization
 
-Field tambahan yang umum dibutuhkan:
+- semua endpoint modul users wajib bearer auth,
+- akses hanya ke resource milik principal saat ini,
+- `user_id` dari auth context tidak boleh ditimpa payload klien,
+- endpoint reset-data hanya aktif di environment development.
 
-- `created_at`,
-- `updated_at`.
+## Service and Business Rules
 
-## Ownership Rules
+- update profil bersifat parsial terkontrol,
+- perubahan field kritis dicatat sebagai audit event,
+- reset data harus idempotent dan aman untuk re-run.
 
-- route `GET /me` dan `PUT /settings` hanya boleh mengakses data milik principal autentikasi saat ini,
-- identifier user pada path/query eksternal tidak boleh menimpa context `user_id` dari token,
-- akses data pengguna lain harus ditolak.
+## Validation Rules
 
-## Update Rules
+- `nickname` wajib valid format dan panjang,
+- `daily_checkin_time` wajib valid sesuai format waktu yang didukung,
+- payload kosong atau field ilegal ditolak,
+- field tak dikenal tidak boleh diam-diam diabaikan tanpa kebijakan eksplisit.
 
-- `nickname` wajib tervalidasi format dan panjang,
-- `recovery_reason` diperlakukan sebagai data sensitif moderat,
-- `daily_checkin_time` wajib valid sebagai jam lokal pengguna (format terdokumentasi),
-- update parsial harus jelas: field yang tidak dikirim tidak diubah.
+## Error Contract
 
-## Privacy and Logging Rules
+| Condition              | HTTP  | Error code         |
+| ---------------------- | ----- | ------------------ |
+| auth invalid/missing   | `401` | `UNAUTHENTICATED`  |
+| akses bukan milik user | `403` | `FORBIDDEN`        |
+| user tidak ditemukan   | `404` | `NOT_FOUND`        |
+| payload invalid        | `422` | `VALIDATION_ERROR` |
+| kegagalan internal     | `500` | `INTERNAL_ERROR`   |
 
-- jangan log nilai mentah `recovery_reason`,
-- jangan log payload penuh request update profil,
-- audit log cukup menyimpan event type, user id, request id, dan ringkasan field yang berubah.
+## Observability Contract
 
-## Reset Data Guardrails
+Log field minimum:
 
-Jika endpoint reset data digunakan:
+- `request_id`,
+- `user_id`,
+- `profile_action`,
+- `status_code`.
 
-- wajib dikunci environment development,
-- wajib menolak di staging/production,
-- respons error harus konsisten dan aman saat route dinonaktifkan.
+Metrik minimum:
+
+- profile read/update rate,
+- profile update validation failure rate,
+- p95 latency endpoint users.
+
+## Testing Requirements
+
+- unit test validator profil,
+- handler test ownership + auth failure,
+- integration test update profil dan persistensi,
+- test guard reset-data non-development,
+- contract test error envelope users routes.
 
 ## Open Gaps
 
-- aturan panjang final dan karakter yang diizinkan untuk `nickname`,
-- format final `daily_checkin_time` (local time string atau timezone-aware payload),
-- kebutuhan audit detail per regulasi data.
+- batas final panjang `nickname`,
+- format final `daily_checkin_time`,
+- detail retention audit profile changes.
 
 ## Related Documents
 
 - [Auth Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/auth.md)
-- [Onboarding Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/onboarding.md)
 - [Data Sensitivity Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/references/data-sensitivity-matrix.md)
+- [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
 
 ## Source Reference
 

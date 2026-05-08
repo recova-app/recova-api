@@ -1,6 +1,6 @@
 ---
 title: Routine Module
-description: Kontrak modul routine untuk check-in harian, streak, statistik pengguna, dan aturan konsistensi harian berbasis timezone.
+description: Kontrak modul routine untuk check-in harian, perhitungan streak, dan statistik pengguna dengan boundary harian berbasis timezone.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,75 +13,107 @@ last_reviewed: 2026-05-08
 
 # Routine Module
 
-Modul routine mengelola interaksi kebiasaan harian pengguna: check-in, streak, dan statistik ringkas.
-
 ## Responsibility
 
 - menerima check-in harian,
-- menjaga konsistensi satu check-in per hari per pengguna,
-- menghitung dan memperbarui streak,
-- menyajikan statistik rutin pengguna.
+- menjaga konsistensi check-in per hari,
+- menghitung streak,
+- menyediakan statistik rutin.
 
-## Route Prefix
+## API Contract
+
+Route prefix:
 
 ```text
 /api/v1/routine
 ```
 
-## Endpoint Summary
+| Method | Path                         | Auth class | Purpose                |
+| ------ | ---------------------------- | ---------- | ---------------------- |
+| `POST` | `/api/v1/routine/checkin`    | Bearer     | simpan check-in harian |
+| `GET`  | `/api/v1/routine/statistics` | Bearer     | ambil statistik rutin  |
+| `GET`  | `/api/v1/routine/relapses`   | Bearer     | ambil riwayat relapse  |
 
-| Method | Path                         | Auth   | Purpose                         |
-| ------ | ---------------------------- | ------ | ------------------------------- |
-| `POST` | `/api/v1/routine/checkin`    | Bearer | Simpan check-in harian pengguna |
-| `GET`  | `/api/v1/routine/statistics` | Bearer | Ambil ringkasan statistik rutin |
-| `GET`  | `/api/v1/routine/relapses`   | Bearer | Ambil riwayat relapse pengguna  |
+## Database Model
 
-## Data Contract Summary
+Entitas utama:
 
-Input check-in minimum:
+- `check_ins`,
+- `streaks`,
+- `routine_statistics` (materialized atau computed).
 
-- `mood`,
-- `commitment`,
-- `timestamp` atau waktu server penerimaan.
+Constraint minimum:
 
-Output statistik minimum:
+- unique check-in per `(user_id, local_date)`,
+- update streak dan check-in harus berada dalam transaksi yang konsisten.
 
-- `current_streak`,
-- `longest_streak`,
-- `total_checkins`.
+## Authentication and Authorization
 
-## Daily Boundary and Timezone
+- seluruh endpoint routine wajib bearer auth,
+- semua data berbasis `user_id` dari auth context,
+- akses ke data pengguna lain ditolak.
 
-Aturan harian:
+## Service and Business Rules
 
-- boundary harian dihitung berdasarkan timezone pengguna,
-- jika timezone pengguna belum tersedia, gunakan default layanan yang terdokumentasi,
-- perubahan timezone harus memperhatikan dampak pada boundary hari berjalan.
+- boundary harian mengikuti timezone pengguna,
+- duplicate check-in pada hari sama harus idempotent sesuai kontrak,
+- race condition check-in paralel harus ditangani aman.
 
-## Consistency Rules
+## Validation Rules
 
-- check-in harian bersifat idempotent untuk kombinasi `(user_id, local_date)`,
-- duplicate submit pada hari yang sama harus menghasilkan perilaku konsisten (reject atau update terbatas) sesuai kontrak check-ins,
-- pembaruan streak harus terjadi atomik bersama pencatatan check-in.
+- `mood` wajib dalam enum/format yang didukung,
+- `commitment` wajib valid sesuai batas panjang,
+- timestamp/check-in time harus valid,
+- request invalid dipetakan ke error validation standar.
 
-## Race Condition Prevention
+## Error Contract
 
-- gunakan unique constraint untuk kunci harian pengguna,
-- lakukan write check-in + update streak dalam satu transaksi,
-- tangani konflik insert sebagai kasus idempotency, bukan error internal.
+| Condition                        | HTTP  | Error code         |
+| -------------------------------- | ----- | ------------------ |
+| auth invalid/missing             | `401` | `UNAUTHENTICATED`  |
+| payload invalid                  | `422` | `VALIDATION_ERROR` |
+| check-in conflict non-idempotent | `409` | `CONFLICT`         |
+| user data tidak ditemukan        | `404` | `NOT_FOUND`        |
+| kegagalan internal               | `500` | `INTERNAL_ERROR`   |
 
-## Privacy Rules
+## Observability Contract
 
-- jangan log konten mentah commitment jika dianggap sensitif,
-- log hanya metadata ringkas (request id, user id, status).
+Log field minimum:
+
+- `request_id`,
+- `user_id`,
+- `local_date`,
+- `routine_action`,
+- `status_code`.
+
+Metrik minimum:
+
+- check-in success rate,
+- duplicate/conflict rate,
+- streak computation latency,
+- p95 endpoint routine.
+
+## Testing Requirements
+
+- unit test perhitungan streak,
+- unit test boundary timezone,
+- integration test transaksi check-in + streak,
+- handler test auth, validation, idempotency,
+- contract test response statistics.
+
+## Open Gaps
+
+- default timezone fallback final,
+- perilaku final duplicate check-in (reject atau update terbatas),
+- definisi final payload relapse.
 
 ## Related Documents
 
 - [Check-Ins Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/check-ins.md)
 - [Streaks Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/streaks.md)
 - [Statistics Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/statistics.md)
-- [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/current/)

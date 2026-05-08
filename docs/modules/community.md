@@ -1,6 +1,6 @@
 ---
 title: Community Module
-description: Kontrak modul komunitas untuk posting, komentar, interaksi like, visibilitas publik, dan batasan akses pemilik data.
+description: Kontrak modul komunitas untuk posting, komentar, dan interaksi like dengan kontrol ownership, moderasi, dan anti-abuse.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,121 +13,111 @@ last_reviewed: 2026-05-08
 
 # Community Module
 
-Modul community mengelola interaksi sosial pengguna berupa post, komentar, dan like.
-
 ## Responsibility
 
-Modul community bertanggung jawab pada:
+- menyediakan feed komunitas,
+- membuat post,
+- menambahkan komentar,
+- mengelola state like/unlike secara konsisten,
+- menerapkan baseline moderasi konten.
 
-- mengambil daftar post komunitas,
-- membuat post baru,
-- menambahkan komentar pada post,
-- mencatat like dan unlike secara konsisten,
-- menjaga visibilitas identitas penulis sesuai kebijakan privasi.
+## API Contract
 
-Modul community tidak bertanggung jawab pada:
-
-- autentikasi identitas pengguna,
-- manajemen profil pengguna,
-- evaluasi keamanan prompt AI.
-
-## Route Prefix
+Route prefix:
 
 ```text
 /api/v1/community
 ```
 
-## Endpoint Summary
+| Method | Path                                 | Auth class | Purpose              |
+| ------ | ------------------------------------ | ---------- | -------------------- |
+| `GET`  | `/api/v1/community`                  | Bearer     | ambil feed komunitas |
+| `POST` | `/api/v1/community`                  | Bearer     | buat post baru       |
+| `POST` | `/api/v1/community/:postId/comments` | Bearer     | tambah komentar      |
+| `POST` | `/api/v1/community/:postId/like`     | Bearer     | set state like user  |
 
-| Method | Path                                 | Auth   | Purpose                                     |
-| ------ | ------------------------------------ | ------ | ------------------------------------------- |
-| `GET`  | `/api/v1/community`                  | Bearer | Ambil feed post komunitas                   |
-| `POST` | `/api/v1/community`                  | Bearer | Buat post komunitas baru                    |
-| `POST` | `/api/v1/community/:postId/comments` | Bearer | Tambah komentar ke post tertentu            |
-| `POST` | `/api/v1/community/:postId/like`     | Bearer | Atur state like pengguna terhadap satu post |
+## Database Model
 
-## Post and Comment Contract
+Entitas utama:
 
-Field minimum untuk post:
+- `community_posts`,
+- `community_comments`,
+- `community_likes`.
 
-- `id`,
-- `author_id`,
-- `content`,
-- `created_at`,
-- `updated_at`.
+Constraint minimum:
 
-Field minimum untuk komentar:
+- unique like per `(post_id, user_id)`,
+- comment terkait post yang valid,
+- relasi user ownership terjaga untuk post/comment.
 
-- `id`,
-- `post_id`,
-- `author_id`,
-- `content`,
-- `created_at`.
+## Authentication and Authorization
 
-Aturan kontrak:
+- endpoint community wajib bearer auth,
+- ownership diterapkan untuk aksi perubahan data,
+- user tidak dapat memodifikasi konten milik user lain tanpa izin moderasi.
 
-- `author_id` berasal dari auth context server, bukan dari payload klien,
-- konten kosong ditolak,
-- konten melanggar kebijakan moderasi ditolak atau ditandai sesuai aturan moderasi.
-
-## Visibility Rules
-
-Aturan visibilitas baseline:
-
-- feed komunitas dapat ditampilkan ke pengguna terautentikasi,
-- identitas penulis ditampilkan dalam bentuk profil publik terbatas,
-- data sensitif profil (misalnya alasan recovery detail) tidak boleh diekspos pada feed komunitas,
-- post atau komentar yang dimoderasi dapat disembunyikan dari feed publik.
-
-## Like and Unlike Behavior
-
-Kontrak perilaku like:
+## Service and Business Rules
 
 - endpoint like harus idempotent terhadap state akhir,
-- satu pengguna hanya boleh memiliki satu relasi like aktif untuk satu post,
-- permintaan like pada post yang sudah di-like diperlakukan sebagai no-op sukses,
-- permintaan unlike pada post yang belum di-like diperlakukan sebagai no-op sukses,
-- penghitungan total like harus konsisten terhadap state relasi unik `(post_id, user_id)`.
+- post/comment yang melanggar kebijakan dapat ditandai atau disembunyikan,
+- rate limit lebih ketat pada endpoint write.
 
-## Duplicate Like Conflict Handling
+## Validation Rules
 
-Kontrol konsistensi:
+- konten post/comment wajib non-empty,
+- batas panjang konten ditegakkan,
+- `postId` harus valid,
+- payload invalid dipetakan ke `VALIDATION_ERROR`.
 
-- database wajib memiliki unique constraint `(post_id, user_id)` untuk relasi like,
-- ketika request paralel memicu konflik unique, service memetakan hasil ke state idempotent final,
-- konflik tidak boleh menghasilkan data like duplikat,
-- bila kontrak response membutuhkan sinyal eksplisit, gunakan error `CONFLICT` hanya untuk request yang benar-benar ambigu, bukan retry identik.
+## Error Contract
 
-## Abuse and Rate-Limit Direction
+| Condition                    | HTTP  | Error code         |
+| ---------------------------- | ----- | ------------------ |
+| auth invalid/missing         | `401` | `UNAUTHENTICATED`  |
+| akses tidak diizinkan        | `403` | `FORBIDDEN`        |
+| post/comment tidak ditemukan | `404` | `NOT_FOUND`        |
+| payload invalid              | `422` | `VALIDATION_ERROR` |
+| conflict state               | `409` | `CONFLICT`         |
+| kegagalan internal           | `500` | `INTERNAL_ERROR`   |
 
-Baseline proteksi:
+## Observability Contract
 
-- endpoint create post dan create comment wajib punya rate limit lebih ketat daripada read endpoint,
-- endpoint like harus dibatasi untuk mencegah spam interaksi,
-- payload konten yang diduga abuse perlu dipetakan ke alur moderasi,
-- event abuse dicatat sebagai metadata tanpa menyimpan payload sensitif berlebihan.
+Log field minimum:
 
-## Observability and Audit Rules
+- `request_id`,
+- `user_id`,
+- `post_id`,
+- `community_action`,
+- `status_code`.
 
-- log hanya metadata operasional: `request_id`, `user_id`, `post_id`, `action`, status,
-- konten mentah post/komentar tidak dicatat pada log error umum,
-- audit event minimum: post created, comment created, like state changed, moderation action.
+Metrik minimum:
+
+- post/comment creation rate,
+- like operation rate,
+- moderation action count,
+- p95 latency endpoint community.
+
+## Testing Requirements
+
+- unit test idempotency like/unlike,
+- unit test validator konten,
+- integration test unique constraint likes,
+- handler test auth/ownership,
+- contract test error mapping komunitas.
 
 ## Open Gaps
 
-- aturan final apakah feed komunitas boleh untuk pengguna non-login,
-- batas panjang final konten post/komentar,
-- kebijakan final soft-delete atau hard-delete untuk post dan komentar.
+- batas final panjang konten,
+- kontrak final visibilitas feed untuk non-login,
+- kebijakan delete post/comment final.
 
 ## Related Documents
 
 - [Community Moderation Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community-moderation.md)
 - [Users Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/users.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
-- [Data Sensitivity Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/references/data-sensitivity-matrix.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
-- [/Users/macbookpro/Development/bisakerja-api/docs/modules/users.md](/Users/macbookpro/Development/bisakerja-api/docs/modules/users.md)
 - [Fiber Limiter Middleware](https://docs.gofiber.io/middleware/limiter/)

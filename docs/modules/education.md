@@ -1,6 +1,6 @@
 ---
 title: Education Module
-description: Kontrak modul konten edukasi untuk penyajian daftar materi, lifecycle aktif/nonaktif, dan ownership pengelolaan konten.
+description: Kontrak modul education untuk distribusi konten edukasi aktif dengan kontrol lifecycle konten dan konsistensi payload konsumsi klien.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,96 +13,100 @@ last_reviewed: 2026-05-08
 
 # Education Module
 
-Modul education menyediakan konten edukasi yang relevan untuk perjalanan pemulihan pengguna.
-
 ## Responsibility
 
-Modul education bertanggung jawab pada:
+- menyediakan daftar konten edukasi aktif,
+- menjaga lifecycle aktif/nonaktif konten,
+- menjaga kualitas metadata konten,
+- memisahkan jalur konsumsi user dan jalur pengelolaan konten.
 
-- menyajikan daftar konten edukasi aktif,
-- menjaga metadata konten agar konsisten,
-- mendukung lifecycle aktif/nonaktif konten,
-- menjaga batas ownership antara data konten dan modul konsumennya.
+## API Contract
 
-## Route Prefix
+Route prefix:
 
 ```text
 /api/v1/education
 ```
 
-## Endpoint Summary
+| Method | Path                | Auth class | Purpose                           |
+| ------ | ------------------- | ---------- | --------------------------------- |
+| `GET`  | `/api/v1/education` | Bearer     | ambil daftar konten edukasi aktif |
 
-| Method | Path                | Auth   | Purpose                           |
-| ------ | ------------------- | ------ | --------------------------------- |
-| `GET`  | `/api/v1/education` | Bearer | Ambil daftar konten edukasi aktif |
+## Database Model
 
-## Content Contract
+Entitas utama:
 
-Field minimum konten edukasi:
+- `education_contents`,
+- metadata status publikasi dan timestamp.
 
-- `id`,
-- `title`,
-- `summary`,
-- `content_body` atau `content_url`,
-- `status` (`active`/`inactive`),
-- `published_at`,
-- `updated_at`.
+Constraint minimum:
 
-Field opsional arah lanjut:
+- hanya konten status `active` yang tampil ke user,
+- konten nonaktif tetap terlacak untuk audit.
 
-- `tags`,
-- `difficulty_level`,
-- `reading_time_minutes`,
-- `language_code`.
+## Authentication and Authorization
 
-## Content Lifecycle
+- endpoint konsumsi saat ini menggunakan bearer auth,
+- perubahan konten hanya melalui jalur internal terotorisasi,
+- data editorial tidak boleh diekspos ke endpoint konsumsi.
 
-Aturan lifecycle baseline:
+## Service and Business Rules
 
-- hanya konten `active` yang muncul di endpoint publik,
-- konten `inactive` tetap tersimpan untuk audit histori,
-- perubahan status konten harus tercatat pada audit event,
-- konten yang ditarik tidak boleh hilang dari referensi internal tanpa jejak.
+- sorting konten harus deterministik,
+- konten tidak aktif tidak boleh muncul di payload,
+- fallback data harus aman jika stok konten terbatas.
 
-## Seed and Source Strategy
+## Validation Rules
 
-Arah baseline:
+- `title` dan ringkasan konten wajib valid,
+- `status` hanya nilai yang diizinkan,
+- atribut bahasa/label konten harus sesuai format,
+- payload invalid ditolak sebelum persist.
 
-- konten awal dapat dimuat melalui seed data terkurasi,
-- sumber konten eksternal harus melalui proses verifikasi editorial sebelum dipublikasi,
-- jika ingestion otomatis dipakai di masa depan, jalurnya harus mengikuti dokumen data-flow dan integrasi scraper.
+## Error Contract
 
-## Ownership Model
+| Condition                             | HTTP  | Error code         |
+| ------------------------------------- | ----- | ------------------ |
+| auth invalid/missing                  | `401` | `UNAUTHENTICATED`  |
+| payload invalid (internal write flow) | `422` | `VALIDATION_ERROR` |
+| konten tidak ditemukan                | `404` | `NOT_FOUND`        |
+| kegagalan internal                    | `500` | `INTERNAL_ERROR`   |
 
-- source of truth konten berada pada storage backend,
-- modul client hanya mengonsumsi payload yang sudah dipublikasi,
-- perubahan konten dilakukan melalui jalur admin/internal yang terdokumentasi terpisah.
+## Observability Contract
 
-## Localization Direction
+Log field minimum:
 
-- payload dianjurkan menyertakan `language_code`,
-- fallback bahasa harus eksplisit bila konten lokal tidak tersedia,
-- translasi otomatis tanpa review editorial tidak boleh langsung dipublikasikan.
+- `request_id`,
+- `content_id`,
+- `education_action`,
+- `status_code`.
 
-## Observability Rules
+Metrik minimum:
 
-- log akses cukup menyimpan metadata (`content_id`, `request_id`, status),
-- jangan simpan payload konten penuh pada log request standar,
-- metrik minimum: request count, latency, error rate.
+- content fetch rate,
+- response latency,
+- error rate endpoint education.
+
+## Testing Requirements
+
+- unit test filter status konten,
+- unit test validator metadata,
+- integration test query konten aktif,
+- contract test response list education,
+- regression test fallback behavior saat data minim.
 
 ## Open Gaps
 
-- kontrak final apakah endpoint education bersifat public tanpa auth,
-- format final `content_body` vs `content_url` untuk berbagai tipe konten,
-- kebutuhan pagination dan filtering awal.
+- keputusan final apakah route education bisa public,
+- strategi pagination awal,
+- kebutuhan final multi-bahasa dan fallback.
 
 ## Related Documents
 
 - [Daily Content Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/daily-content.md)
-- [Data Flow Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview/data-flow.md)
 - [Scraper Flow Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/scraper-flow.md)
+- [Data Flow Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview/data-flow.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
-- [/Users/macbookpro/Development/bisakerja-api/docs/integrations/scraper-api.md](/Users/macbookpro/Development/bisakerja-api/docs/integrations/scraper-api.md)

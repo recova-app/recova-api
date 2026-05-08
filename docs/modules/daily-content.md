@@ -1,6 +1,6 @@
 ---
 title: Daily Content Module
-description: Kontrak modul konten harian untuk motivasi dan tantangan harian, termasuk aturan lifecycle, seed data, dan konsistensi publikasi.
+description: Kontrak modul daily content untuk motivasi dan tantangan harian dengan aturan lifecycle konten, boundary tanggal, dan konsistensi konsumsi.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,84 +13,100 @@ last_reviewed: 2026-05-08
 
 # Daily Content Module
 
-Modul daily-content menyediakan konten motivasi harian dan tantangan harian untuk menjaga engagement pengguna.
-
 ## Responsibility
 
-- menyajikan konten harian aktif,
-- menjamin satu set konten harian yang konsisten untuk tanggal tertentu,
-- mengelola lifecycle aktif/nonaktif item konten,
-- mendukung strategi seed data dan update berkala.
+- menyediakan motivasi dan tantangan harian,
+- memastikan konten harian konsisten per tanggal,
+- mengelola lifecycle konten aktif/nonaktif,
+- menjaga keterpisahan data konten vs data interaksi user.
 
-## Route Prefix
+## API Contract
+
+Route prefix:
 
 ```text
 /api/v1/content
 ```
 
-## Endpoint Summary
+| Method | Path                    | Auth class | Purpose                   |
+| ------ | ----------------------- | ---------- | ------------------------- |
+| `GET`  | `/api/v1/content/daily` | Bearer     | ambil konten harian aktif |
 
-| Method | Path                    | Auth   | Purpose                                          |
-| ------ | ----------------------- | ------ | ------------------------------------------------ |
-| `GET`  | `/api/v1/content/daily` | Bearer | Ambil motivasi harian dan tantangan harian aktif |
+## Database Model
 
-## Daily Payload Contract
+Entitas utama:
 
-Komponen minimum response:
+- `daily_motivations`,
+- `daily_challenges`,
+- mapping tanggal konten harian.
 
-- `date`,
-- `motivation`:
-  - `id`,
-  - `title` atau `text`,
-  - `status`,
-- `challenge`:
-  - `id`,
-  - `title`,
-  - `instruction`,
-  - `status`.
+Constraint minimum:
 
-## Publish and Lifecycle Rules
+- satu set konten aktif per tanggal layanan,
+- konten nonaktif tidak boleh muncul di output endpoint.
 
-- hanya item berstatus `active` yang boleh disajikan,
-- item `inactive` tidak boleh masuk payload harian,
-- pergantian konten harian mengikuti boundary tanggal layanan yang terdokumentasi,
-- perubahan konten harian harus audit-able.
+## Authentication and Authorization
 
-## Seed Strategy
+- endpoint konsumsi saat ini memakai bearer auth,
+- update konten harian hanya pada jalur internal terotorisasi,
+- user tidak dapat menulis source konten harian.
 
-- seed data awal wajib menyediakan cakupan minimal beberapa hari,
-- generator seed harus deterministik pada environment test,
-- source eksternal untuk konten harian harus melewati validasi editorial sebelum aktif.
+## Service and Business Rules
 
-## Ownership Rules
+- pemilihan konten mengikuti boundary tanggal yang terdokumentasi,
+- jika stok konten kurang, fallback harus deterministik,
+- status konten harus audit-able saat berubah.
 
-- user tidak dapat menulis langsung daily content,
-- daily content dikelola oleh jalur internal/editorial,
-- data konsumsi user terhadap daily content (misal completion challenge) berada pada modul lain dan tidak mengubah source konten.
+## Validation Rules
 
-## Localization Direction
+- field motivasi/challenge wajib valid dan non-empty,
+- `status` wajib nilai yang diizinkan,
+- format tanggal konten harus konsisten,
+- payload invalid ditolak.
 
-- dukung field `language_code` untuk ekspansi multi-bahasa,
-- fallback bahasa harus eksplisit,
-- translasi machine-only tanpa review tidak dipublikasikan.
+## Error Contract
 
-## Observability Rules
+| Condition                             | HTTP  | Error code         |
+| ------------------------------------- | ----- | ------------------ |
+| auth invalid/missing                  | `401` | `UNAUTHENTICATED`  |
+| konten tidak tersedia                 | `404` | `NOT_FOUND`        |
+| payload invalid (internal write flow) | `422` | `VALIDATION_ERROR` |
+| kegagalan internal                    | `500` | `INTERNAL_ERROR`   |
 
-- metrik minimum: request volume, latency, error rate,
-- log konten harian cukup menyimpan `content_id`, `date`, `request_id`,
-- hindari logging payload lengkap jika tidak diperlukan.
+## Observability Contract
+
+Log field minimum:
+
+- `request_id`,
+- `content_date`,
+- `daily_content_action`,
+- `status_code`.
+
+Metrik minimum:
+
+- daily content fetch rate,
+- fallback usage count,
+- latency endpoint daily content,
+- error rate.
+
+## Testing Requirements
+
+- unit test selector konten per tanggal,
+- unit test validator challenge/motivation,
+- integration test query konten aktif,
+- contract test bentuk payload `daily`,
+- regression test fallback saat stok menipis.
 
 ## Open Gaps
 
-- timezone final untuk boundary konten harian lintas wilayah,
-- strategi rotasi konten bila stok konten aktif habis,
-- kontrak format final untuk instruksi challenge multimedia.
+- timezone final boundary tanggal lintas wilayah,
+- format final konten challenge multimedia,
+- kebijakan rotasi saat konten habis.
 
 ## Related Documents
 
 - [Education Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/education.md)
 - [Data Flow Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview/data-flow.md)
-- [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
 
 ## Source Reference
 

@@ -24,6 +24,7 @@ Halaman ini menjadi entry point dokumentasi per modul domain agar boundary fungs
 
 ## Core Module Documents
 
+- [Module Documentation Guide](/Users/macbookpro/Development/recova-backend-v2/docs/modules/README.md)
 - [Auth Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/auth.md)
 - [Users Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/users.md)
 - [Onboarding Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/onboarding.md)
@@ -37,6 +38,7 @@ Halaman ini menjadi entry point dokumentasi per modul domain agar boundary fungs
 - [Education Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/education.md)
 - [Daily Content Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/daily-content.md)
 - [AI Coach Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/ai-coach.md)
+- [Health Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/health.md)
 
 ## Related Sections
 

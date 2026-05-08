@@ -1,6 +1,6 @@
 ---
 title: Journals Module
-description: Kontrak modul jurnal pribadi untuk create/list entry, ownership pengguna, klasifikasi privasi, serta kebijakan retensi dan penghapusan.
+description: Kontrak modul jurnal pribadi untuk pembuatan dan pembacaan entri jurnal dengan kontrol privasi, ownership, dan retensi aman.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,87 +13,98 @@ last_reviewed: 2026-05-08
 
 # Journals Module
 
-Modul journals mengelola catatan refleksi pribadi pengguna dengan kontrol privasi ketat.
-
 ## Responsibility
 
-- membuat entri jurnal baru,
-- menampilkan daftar entri jurnal milik pengguna,
-- memastikan kepemilikan data pada setiap operasi,
-- menerapkan batas privasi pada storage dan logging.
+- membuat entri jurnal,
+- menampilkan daftar entri jurnal milik user,
+- menjaga privasi konten jurnal,
+- menegakkan ownership data jurnal.
 
-## Route Prefix
+## API Contract
+
+Route prefix:
 
 ```text
 /api/v1/journals
 ```
 
-## Endpoint Summary
+| Method | Path               | Auth class | Purpose                        |
+| ------ | ------------------ | ---------- | ------------------------------ |
+| `GET`  | `/api/v1/journals` | Bearer     | ambil daftar jurnal milik user |
+| `POST` | `/api/v1/journals` | Bearer     | buat entri jurnal baru         |
 
-| Method | Path               | Auth   | Purpose                           |
-| ------ | ------------------ | ------ | --------------------------------- |
-| `GET`  | `/api/v1/journals` | Bearer | Ambil daftar entri jurnal sendiri |
-| `POST` | `/api/v1/journals` | Bearer | Buat entri jurnal baru            |
+## Database Model
 
-## Data Contract
+Entitas utama:
 
-Field minimum entri jurnal:
+- `journals` (`id`, `user_id`, `content`, `created_at`, `updated_at`),
+- index berdasarkan `user_id` dan waktu pembuatan.
 
-- `content`,
-- `created_at`,
-- `updated_at`.
+Constraint minimum:
 
-Field opsional masa depan:
+- jurnal selalu terkait satu `user_id`,
+- skema delete (soft/hard) harus konsisten dengan kebijakan retensi.
 
-- `title`,
-- `tags`,
-- `mood_marker`.
+## Authentication and Authorization
 
-## Ownership Rules
+- seluruh endpoint journals wajib bearer auth,
+- akses data hanya untuk `user_id` pemilik,
+- parameter klien tidak boleh menimpa owner data.
 
-- user hanya boleh membaca dan menulis jurnal miliknya sendiri,
-- `user_id` sumber kebenaran diambil dari auth context,
-- parameter dari client tidak boleh mengganti owner data.
+## Service and Business Rules
 
-## Privacy Classification
+- konten jurnal diperlakukan sebagai data sensitif,
+- create/list menjaga urutan hasil konsisten,
+- operasi penghapusan atau reset data harus audit-able jika diaktifkan.
 
-Konten jurnal diklasifikasikan sebagai data sensitif pribadi.
+## Validation Rules
 
-Aturan:
+- `content` wajib non-empty,
+- batas panjang konten harus ditegakkan,
+- field tidak dikenal ditolak sesuai kebijakan validator,
+- payload invalid dipetakan ke `VALIDATION_ERROR`.
 
-- tidak boleh masuk log aplikasi sebagai teks mentah,
-- tidak boleh dikirim ke sistem eksternal tanpa kontrak eksplisit,
-- error response tidak boleh memantulkan konten jurnal.
+## Error Contract
 
-## Retention and Delete Policy
+| Condition                | HTTP  | Error code         |
+| ------------------------ | ----- | ------------------ |
+| auth invalid/missing     | `401` | `UNAUTHENTICATED`  |
+| akses bukan milik user   | `403` | `FORBIDDEN`        |
+| resource tidak ditemukan | `404` | `NOT_FOUND`        |
+| payload invalid          | `422` | `VALIDATION_ERROR` |
+| kegagalan internal       | `500` | `INTERNAL_ERROR`   |
 
-Arah kebijakan retensi:
+## Observability Contract
 
-- default: data jurnal dipertahankan sampai pengguna menghapus,
-- kebijakan auto-delete jika dibutuhkan harus terdokumentasi eksplisit,
-- delete policy final (soft delete/hard delete) harus konsisten dengan kebijakan privasi global.
+Log field minimum:
 
-## Future Search and Filter Direction
+- `request_id`,
+- `user_id`,
+- `journal_action`,
+- `status_code`.
 
-Ruang pengembangan:
+Metrik minimum:
 
-- filter berdasarkan rentang tanggal,
-- full-text search terbatas,
-- agregasi statistik journaling non-personal.
+- create journal rate,
+- list journal latency,
+- validation failure rate,
+- error rate modul journals.
 
-Penambahan fitur ini wajib disertai kajian dampak privasi dan index strategy.
+Konten mentah jurnal tidak boleh masuk log standar.
 
-## Security and Observability Rules
+## Testing Requirements
 
-- log operasional hanya menyimpan metadata (request id, user id, jumlah record),
-- audit event untuk create/delete jurnal dicatat tanpa konten,
-- response time dan error rate jurnal tetap dipantau sebagai metrik operasional.
+- unit test validator jurnal,
+- handler test auth + ownership,
+- integration test persist/list jurnal,
+- test redaction log untuk konten sensitif,
+- contract test response envelope.
 
 ## Open Gaps
 
-- batas panjang final `content`,
-- keputusan final soft delete vs hard delete,
-- strategi enkripsi at-rest per kolom untuk konten jurnal.
+- keputusan final soft-delete vs hard-delete,
+- kebutuhan enkripsi tambahan untuk konten jurnal,
+- retention period final data jurnal.
 
 ## Related Documents
 

@@ -1,6 +1,6 @@
 ---
 title: Auth Module
-description: Kontrak modul autentikasi untuk login Google OAuth, issuance JWT, refresh session, middleware auth, dan kontrol revocation.
+description: Kontrak modul autentikasi untuk login Google OAuth, akses token, refresh session, dan kontrol logout/revocation.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,171 +13,114 @@ last_reviewed: 2026-05-08
 
 # Auth Module
 
-Modul ini mengelola identitas pengguna, validasi kredensial federated login, pembentukan sesi, dan penghentian sesi.
-
 ## Responsibility
 
-Modul auth memiliki tanggung jawab:
+- memverifikasi identity token Google,
+- menerbitkan access token,
+- mengelola refresh token jika mode refresh aktif,
+- menangani logout dan revocation sesi,
+- menyediakan middleware auth untuk endpoint terproteksi.
 
-- login/registrasi via Google identity token,
-- validasi identity token dari Google,
-- issuance access token,
-- issuance dan rotasi refresh token bila mode refresh-cookie diaktifkan,
-- logout dan revocation sesi,
-- auth middleware untuk endpoint terproteksi.
+Di luar cakupan modul ini: manajemen konten domain (routine, journals, community).
 
-Modul auth tidak memiliki tanggung jawab:
+## API Contract
 
-- manajemen konten domain (routine, journals, community),
-- kalkulasi statistik pengguna,
-- kebijakan retensi data lintas modul.
-
-## Route Prefix
+Route prefix:
 
 ```text
 /api/v1/auth
 ```
 
-## Endpoint Summary
+| Method | Path                      | Auth class | Purpose                           |
+| ------ | ------------------------- | ---------- | --------------------------------- |
+| `POST` | `/api/v1/auth/google`     | Public     | login/registrasi via Google token |
+| `POST` | `/api/v1/auth/onboarding` | Bearer     | melengkapi onboarding awal        |
+| `POST` | `/api/v1/auth/refresh`    | Cookie     | refresh access token              |
+| `POST` | `/api/v1/auth/logout`     | Bearer     | mengakhiri sesi aktif             |
 
-| Method | Path                      | Auth   | Purpose                                                           |
-| ------ | ------------------------- | ------ | ----------------------------------------------------------------- |
-| `POST` | `/api/v1/auth/google`     | Public | Login/registrasi melalui Google identity token                    |
-| `POST` | `/api/v1/auth/onboarding` | Bearer | Menyelesaikan data onboarding awal pengguna terautentikasi        |
-| `POST` | `/api/v1/auth/refresh`    | Cookie | Mengeluarkan access token baru dari refresh token (jika aktif)    |
-| `POST` | `/api/v1/auth/logout`     | Bearer | Mengakhiri sesi aktif dan revoke refresh token terkait (jika ada) |
+## Database Model
 
-Catatan kompatibilitas:
+Entitas utama:
 
-- Endpoint `refresh` dan `logout` wajib tersedia jika refresh-cookie strategy digunakan.
-- Jika refresh-cookie belum diaktifkan pada rilis awal, endpoint tetap dipertahankan sebagai contract-ready dan mengembalikan error terstandar saat mode dinonaktifkan.
+- `users` (identitas akun),
+- `sessions` atau tabel sejenis untuk state sesi,
+- `refresh_tokens` (token hash + expiry + revoked state bila dipakai).
 
-## Authentication Flow
+Constraint minimum:
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as User App
-  participant A as Recova Backend
-  participant G as Google Identity
-  participant D as PostgreSQL
+- relasi token ke `user_id` harus konsisten,
+- token mentah tidak disimpan plaintext di database.
 
-  U->>G: User sign-in consent flow
-  G-->>U: ID token
-  U->>A: POST /api/v1/auth/google (id_token)
-  A->>G: Verify token signature and claims
-  G-->>A: Token valid + claims
-  A->>D: Upsert user and profile baseline
-  D-->>A: User state
-  A-->>U: Access JWT (+ refresh cookie when enabled)
-```
+## Authentication and Authorization
 
-## Google Token Verification Rules
+- endpoint `/google` public,
+- endpoint lain wajib autentikasi sesuai kontrak,
+- `user_id` sumber kebenaran berasal dari token tervalidasi,
+- endpoint auth tidak boleh menerima override principal dari payload klien.
 
-Backend wajib memverifikasi identity token dengan aturan berikut:
+## Service and Business Rules
 
-- signature valid,
-- `aud` sesuai client id backend,
-- `iss` adalah issuer Google yang valid,
-- `exp` belum kedaluwarsa,
-- `sub` dipakai sebagai identifier principal eksternal stabil.
+- verifikasi claim `iss`, `aud`, `exp`, `sub` untuk token Google,
+- access token berlaku pendek,
+- refresh token harus dirotasi pada refresh sukses,
+- logout bersifat idempotent.
 
-Token yang gagal verifikasi harus ditolak dengan `401 UNAUTHENTICATED` tanpa detail sensitif.
+## Validation Rules
 
-## Access Token Contract
+- token input wajib non-empty,
+- claim wajib tervalidasi sebelum issuance session,
+- header auth dan cookie harus sesuai format yang didukung,
+- request invalid dipetakan ke `VALIDATION_ERROR` atau `UNAUTHENTICATED`.
 
-Arah kontrak access token:
+## Error Contract
 
-- format JWT ditandatangani server,
-- masa berlaku pendek,
-- claims minimal: `sub`, `iat`, `exp`, `iss`, `aud`,
-- algoritma signing harus di-whitelist eksplisit.
+| Condition                         | HTTP  | Error code         |
+| --------------------------------- | ----- | ------------------ |
+| token Google tidak valid          | `401` | `UNAUTHENTICATED`  |
+| refresh token tidak valid/revoked | `401` | `UNAUTHENTICATED`  |
+| payload tidak valid               | `422` | `VALIDATION_ERROR` |
+| konflik sesi                      | `409` | `CONFLICT`         |
+| kegagalan internal                | `500` | `INTERNAL_ERROR`   |
 
-Aturan validasi inbound JWT:
+## Observability Contract
 
-- verifikasi algoritma sebelum key usage,
-- verifikasi signature,
-- verifikasi `iss`, `aud`, `exp`, dan `sub`.
+Log field minimum:
 
-## Refresh Token and Cookie Rules
+- `request_id`,
+- `user_id` (jika ada),
+- `auth_action` (`google_login`, `refresh`, `logout`),
+- `status_code`.
 
-Jika mode refresh-cookie diaktifkan:
+Metrik minimum:
 
-- refresh token bersifat opaque/random,
-- token mentah hanya disimpan di cookie `HttpOnly`,
-- server hanya menyimpan hash refresh token,
-- setiap refresh sukses wajib merotasi refresh token,
-- logout wajib menginvalidasi refresh token aktif.
+- auth request rate,
+- auth failure rate,
+- token refresh success ratio,
+- p95 latency endpoint auth.
 
-Cookie minimum:
+## Testing Requirements
 
-- `HttpOnly`,
-- `Secure` di production,
-- `SameSite` eksplisit,
-- scope domain/path eksplisit,
-- TTL sesuai kebijakan sesi.
-
-## Middleware Contract
-
-Auth middleware wajib:
-
-- mengekstrak bearer token dari header `Authorization`,
-- memverifikasi token sesuai aturan validasi,
-- menaruh identity context aman ke request context,
-- menolak request invalid dengan envelope error standar.
-
-Context aman minimum:
-
-- `user_id`,
-- `session_id` atau `token_id` bila ada,
-- `request_id` dari middleware request-id.
-
-## Revocation and Logout
-
-- logout endpoint harus idempotent,
-- refresh token yang sudah direvoke tidak boleh diterima ulang,
-- revoke event harus tercatat pada audit log,
-- akses token lama ditangani melalui TTL pendek dan denylist opsional bila diperlukan.
-
-## CORS and CSRF Considerations
-
-Aturan wajib jika refresh menggunakan cookie lintas-origin:
-
-- `AllowCredentials=true` hanya untuk daftar origin eksplisit,
-- wildcard origin dilarang saat credentials aktif,
-- unsafe HTTP methods wajib dilindungi CSRF token untuk endpoint berbasis cookie,
-- trusted origin list harus eksplisit.
-
-## Development-Only Behavior
-
-Jika ada endpoint reset data pengguna untuk pengujian:
-
-- hanya aktif pada environment development,
-- tidak boleh aktif di staging/production,
-- wajib dilindungi guard environment fail-fast.
+- unit test verifikasi claim token,
+- unit test rotasi refresh token,
+- handler test untuk `401`, `422`, dan success path,
+- integration test revocation/logout idempotent,
+- contract test error envelope endpoint auth.
 
 ## Open Gaps
 
-Area yang perlu finalisasi lanjutan sebelum implementasi penuh:
-
-- keputusan nilai TTL access/refresh token final,
-- strategi denylist access token saat incident response,
-- kebijakan multi-device session limits.
+- nilai final TTL access/refresh token,
+- batas sesi multi-device,
+- strategi denylist access token saat incident response.
 
 ## Related Documents
 
-- [Authentication and Trust Boundaries](/Users/macbookpro/Development/recova-backend-v2/docs/overview/authentication-and-trust-boundaries.md)
 - [Users Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/users.md)
-- [Onboarding Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/onboarding.md)
+- [Authentication and Trust Boundaries](/Users/macbookpro/Development/recova-backend-v2/docs/overview/authentication-and-trust-boundaries.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
-- [ADR 0007 Auth Token Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0007-auth-token-strategy.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
-- [Google OAuth2 Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server)
 - [Google Backend Auth Verification](https://developers.google.com/identity/sign-in/web/backend-auth)
-- [JWT Best Current Practices (RFC 8725)](https://www.rfc-editor.org/rfc/rfc8725)
+- [JWT Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725)
 - [Fiber JWT Middleware](https://docs.gofiber.io/contrib/v3_jwt_v1.x.x/jwt/)
-- [Fiber CORS Middleware](https://docs.gofiber.io/middleware/cors/)
-- [Fiber CSRF Middleware](https://docs.gofiber.io/middleware/csrf/)

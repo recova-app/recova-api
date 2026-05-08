@@ -1,6 +1,6 @@
 ---
 title: AI Coach Module
-description: Kontrak modul AI Coach untuk chat, histori percakapan, ringkasan check-in, analisis onboarding, serta kontrol keamanan dan privasi.
+description: Kontrak modul AI Coach untuk chat pendampingan, riwayat percakapan, ringkasan progres, dan analisis onboarding dengan kontrol keamanan data.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,111 +13,113 @@ last_reviewed: 2026-05-08
 
 # AI Coach Module
 
-Modul AI Coach menyediakan dukungan percakapan, ringkasan progres, dan analisis onboarding berbasis model AI dengan kontrol privasi ketat.
-
 ## Responsibility
 
-Modul AI Coach bertanggung jawab pada:
+- menerima prompt pengguna,
+- memproses permintaan ke provider AI melalui abstraction layer,
+- menyajikan chat history dan ringkasan,
+- menjaga safety dan privasi data AI.
 
-- menerima permintaan chat pengguna,
-- mengambil histori chat pengguna,
-- menghasilkan ringkasan check-in harian,
-- menghasilkan analisis onboarding,
-- memetakan kegagalan provider AI ke error API aman.
+## API Contract
 
-Modul AI Coach tidak bertanggung jawab pada:
-
-- autentikasi pengguna,
-- manajemen profil non-AI,
-- manajemen konten komunitas.
-
-## Route Prefix
+Route prefix:
 
 ```text
 /api/v1/ai
 ```
 
-## Endpoint Summary
+| Method | Path                             | Auth class | Purpose                          |
+| ------ | -------------------------------- | ---------- | -------------------------------- |
+| `POST` | `/api/v1/ai/ask-coach`           | Bearer     | kirim pertanyaan ke AI coach     |
+| `GET`  | `/api/v1/ai/chat-history`        | Bearer     | ambil riwayat percakapan         |
+| `GET`  | `/api/v1/ai/summary`             | Bearer     | ambil ringkasan progres pengguna |
+| `POST` | `/api/v1/ai/onboarding-analysis` | Bearer     | analisis onboarding pengguna     |
 
-| Method | Path                             | Auth   | Purpose                                        |
-| ------ | -------------------------------- | ------ | ---------------------------------------------- |
-| `POST` | `/api/v1/ai/ask-coach`           | Bearer | Kirim prompt pengguna dan terima respons coach |
-| `GET`  | `/api/v1/ai/chat-history`        | Bearer | Ambil histori percakapan pengguna              |
-| `GET`  | `/api/v1/ai/summary`             | Bearer | Ambil ringkasan progres check-in               |
-| `POST` | `/api/v1/ai/onboarding-analysis` | Bearer | Analisis data onboarding untuk insight awal    |
+## Database Model
 
-## Request and Response Contract
+Entitas utama:
 
-Kontrak minimum `ask-coach`:
+- `ai_chat_messages` atau penyimpanan histori sejenis,
+- metadata request AI (`provider`, `model`, `latency`, `status`),
+- relasi riwayat AI ke `user_id`.
 
-- request memuat pesan pengguna dan konteks aman minimum,
-- response memuat jawaban coach, metadata request, dan indikator sumber model,
-- response tidak boleh memuat credential provider atau detail internal prompt template.
+Constraint minimum:
 
-Kontrak minimum `chat-history`:
+- data AI terikat ke pemilik akun,
+- retensi histori mengikuti kebijakan privasi.
 
-- hanya mengembalikan percakapan milik pengguna terautentikasi,
-- payload dapat dipaginasi,
-- data sensitif dimask jika ada kebijakan redaksi tambahan.
-
-Kontrak minimum `summary` dan `onboarding-analysis`:
-
-- memakai data internal pengguna yang tervalidasi,
-- menyajikan hasil ringkas yang aman untuk klien,
-- kesalahan downstream dipetakan ke error standar.
-
-## Ownership and Access Rules
+## Authentication and Authorization
 
 - seluruh endpoint AI wajib bearer auth,
-- `user_id` diambil dari auth context, bukan dari payload klien,
-- pengguna tidak dapat membaca histori AI milik akun lain.
+- data AI hanya untuk user pemilik,
+- user tidak boleh membaca histori user lain.
 
-## Provider Abstraction Rules
+## Service and Business Rules
 
-- modul AI Coach harus memanggil interface provider internal, bukan SDK provider langsung dari handler,
-- provider dapat diganti antar implementasi kompatibel tanpa mengubah kontrak endpoint publik,
-- model, timeout, dan base URL provider dikendalikan lewat konfigurasi environment tervalidasi.
+- handler wajib memanggil abstraction provider, bukan SDK vendor langsung,
+- timeout request AI wajib eksplisit,
+- retry default konservatif untuk hindari duplikasi side effect,
+- safety filtering dijalankan sebelum respons dikirim.
 
-## Timeout, Retry, and Fallback
+## Validation Rules
 
-Aturan baseline:
+- prompt tidak boleh kosong,
+- batas panjang prompt wajib ditegakkan,
+- parameter mode/opsi harus whitelist,
+- input invalid dipetakan ke `VALIDATION_ERROR`.
 
-- setiap request AI memiliki timeout eksplisit,
-- retry default adalah `0` untuk mencegah duplikasi side effect percakapan,
-- fallback ke provider cadangan hanya aktif jika dikonfigurasi,
-- jika downstream gagal, API mengembalikan `503 SERVICE_UNAVAILABLE` atau `502 DOWNSTREAM_ERROR` sesuai klasifikasi.
+## Error Contract
 
-## Privacy and Logging Rules
+| Condition              | HTTP        | Error code         |
+| ---------------------- | ----------- | ------------------ |
+| auth invalid/missing   | `401`       | `UNAUTHENTICATED`  |
+| payload invalid        | `422`       | `VALIDATION_ERROR` |
+| provider timeout/error | `502`/`503` | `DOWNSTREAM_ERROR` |
+| akses tidak diizinkan  | `403`       | `FORBIDDEN`        |
+| kegagalan internal     | `500`       | `INTERNAL_ERROR`   |
 
-Aturan wajib:
+## Observability Contract
 
-- prompt mentah pengguna tidak dicatat pada log umum,
-- konten jurnal pengguna tidak boleh dimasukkan mentah ke log AI,
-- chat history disimpan dengan retensi minimum yang disetujui,
-- audit log menyimpan metadata (`request_id`, `user_id`, `provider`, status), bukan isi sensitif.
+Log field minimum:
 
-## Safety Rules
+- `request_id`,
+- `user_id`,
+- `provider`,
+- `model`,
+- `ai_action`,
+- `status_code`.
 
-- lakukan input guardrail untuk mengurangi abuse prompt,
-- lakukan output filtering untuk mencegah respons berisiko,
-- jika output ditahan oleh safety policy, return error aman dan tidak mengungkap detail kebijakan internal.
+Metrik minimum:
+
+- request success rate,
+- provider error rate,
+- timeout rate,
+- p95 latency AI endpoint.
+
+Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
+
+## Testing Requirements
+
+- unit test validator prompt,
+- unit test mapping error provider,
+- handler test auth + ownership,
+- integration test provider abstraction dengan mock,
+- contract test response AI dan error envelope.
 
 ## Open Gaps
 
-- durasi retensi final histori chat AI,
-- kebijakan final fallback multi-provider,
-- format final skor confidence/quality pada respons AI.
+- retensi final histori chat,
+- aturan final fallback multi-provider,
+- format final metadata confidence output.
 
 ## Related Documents
 
 - [AI Provider Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/ai-provider.md)
 - [AI Safety Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/ai-safety.md)
 - [Data Sensitivity Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/references/data-sensitivity-matrix.md)
-- [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
-- [/Users/macbookpro/Development/bisakerja-api/docs/integrations/model-api.md](/Users/macbookpro/Development/bisakerja-api/docs/integrations/model-api.md)
-- [OpenAI API Authentication](https://developers.openai.com/api/reference/overview#authentication)
-- [Gemini API OAuth Quickstart](https://ai.google.dev/gemini-api/docs/oauth)
+- [OpenAI API Overview](https://platform.openai.com/docs/overview)
+- [Gemini API Overview](https://ai.google.dev/gemini-api/docs)
