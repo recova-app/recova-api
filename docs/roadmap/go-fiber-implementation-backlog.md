@@ -5,7 +5,7 @@ owner: backend-owner
 reviewers:
   - engineering-lead
   - platform-docs-maintainer
-doc_status: draft
+doc_status: review
 source_repo: recova-backend-v2
 source_path: docs/roadmap/go-fiber-implementation-backlog.md
 last_reviewed: 2026-05-08
@@ -14,6 +14,14 @@ last_reviewed: 2026-05-08
 # Recova Backend Go Fiber Implementation Backlog
 
 Dokumen ini menyusun urutan implementasi yang bergantung pada kontrak dokumen yang sudah tersedia.
+
+## Kickoff Constraint
+
+Eksekusi backlog ini hanya berjalan ketika keputusan readiness aktif menyatakan `go` atau `conditional-go` beserta scope implementasi yang jelas.
+
+Sumber keputusan aktif:
+
+- [Implementation Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/implementation-readiness.md)
 
 ## Backlog Prioritization Principles
 
@@ -30,6 +38,16 @@ Dokumen ini menyusun urutan implementasi yang bergantung pada kontrak dokumen ya
 | Data foundation           | model database, migration pipeline, repository baseline   |
 | Domain modules            | implementasi domain API sesuai module contracts           |
 | Cutover and stabilization | contract tests, cutover, rollback rehearsal               |
+
+## Lane Ownership Baseline
+
+| Lane                      | Owner utama      | Output lane                                                  |
+| ------------------------- | ---------------- | ------------------------------------------------------------ |
+| Platform foundation       | platform-owner   | runtime app baseline + health/readiness                      |
+| Core security             | security-owner   | auth+validation+redaction baseline                           |
+| Data foundation           | database-owner   | connector, migration runner, schema baseline                 |
+| Domain modules            | backend-owner    | endpoint domain sesuai kontrak modul                         |
+| Cutover and stabilization | operations-owner | cutover evidence, rollback rehearsal, stabilization evidence |
 
 ## Ordered Implementation Backlog
 
@@ -108,6 +126,11 @@ Satu item backlog selesai jika:
 - tests relevan lulus,
 - dokumen terkait diperbarui bila ada perubahan kontrak,
 - evidence verifikasi tercatat.
+
+Kriteria tambahan untuk lane foundation:
+
+- perubahan fondasi punya test companion yang lulus,
+- checklist release gate dasar sudah terisi sebelum domain pertama merge.
 
 ## Related Documents
 
