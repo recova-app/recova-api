@@ -20,7 +20,7 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 - information architecture dokumen,
 - metadata dokumen dan lifecycle status,
 - aturan naming dan struktur konten teknis,
-- governance review lintas area kritis.
+- secure coding dan governance review lintas area kritis.
 
 ## Related Documents
 
@@ -33,5 +33,6 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 - [Error Taxonomy](/Users/macbookpro/Development/recova-backend-v2/docs/standards/error-taxonomy.md)
 - [GORM Modeling Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/gorm-modeling.md)
 - [Configuration Validation Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/config-validation.md)
+- [Secure Coding Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/secure-coding.md)
 - [Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
 - [Decisions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/index.md)

@@ -1,6 +1,6 @@
 ---
 title: Recova Backend Documentation Roadmap Index
-description: Indeks rencana dokumen prioritas untuk memastikan kontrak teknis layanan terdokumentasi lengkap.
+description: Indeks dokumen prioritas untuk memastikan kontrak teknis layanan terdokumentasi lengkap dan dapat diverifikasi.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,7 +13,7 @@ last_reviewed: 2026-05-08
 
 # Recova Backend Documentation Roadmap
 
-Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubahan layanan dapat ditinjau dan diverifikasi secara konsisten.
+Halaman ini merangkum prioritas dokumen yang harus tersedia agar perubahan layanan dapat ditinjau dan diverifikasi secara konsisten.
 
 ## Priority Areas
 
@@ -21,7 +21,7 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 - kontrak arsitektur target,
 - kontrak API dan response,
 - model data dan migration policy,
-- operasi, keamanan, dan observability.
+- operasi, keamanan, testing, dan observability.
 
 ## Baseline Documents
 
@@ -33,6 +33,7 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 
 - [Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-strategy.md)
 - [Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-matrix.md)
+- [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
 - [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
 
 ## Related Sections

@@ -19,7 +19,7 @@ Halaman ini menampung daftar keputusan teknis yang bersifat arsitektural dan ber
 
 - keputusan framework dan komponen inti,
 - keputusan data access dan migration policy,
-- keputusan keamanan dan observability baseline,
+- keputusan keamanan, testing, dan deployment strategy,
 - status keputusan: draft, active, deprecated.
 
 ## Active Decision Drafts
@@ -31,6 +31,7 @@ Halaman ini menampung daftar keputusan teknis yang bersifat arsitektural dan ber
 - [ADR 0005 Database Migration Tool](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0005-database-migration-tool.md)
 - [ADR 0006 GORM Model Conventions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0006-gorm-model-conventions.md)
 - [ADR 0007 Auth Token Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0007-auth-token-strategy.md)
+- [ADR 0008 CI/CD Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0008-ci-cd-strategy.md)
 
 ## Related Sections
 
