@@ -25,6 +25,10 @@ Halaman ini menampung daftar keputusan teknis yang bersifat arsitektural dan ber
 ## Active Decision Drafts
 
 - [ADR 0001 Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0001-migration-strategy.md)
+- [ADR 0002 Go Project Layout](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0002-go-project-layout.md)
+- [ADR 0003 HTTP Framework Fiber](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0003-http-framework-fiber.md)
+- [ADR 0004 ORM GORM PostgreSQL](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0004-orm-gorm-postgresql.md)
+- [ADR 0005 Database Migration Tool](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0005-database-migration-tool.md)
 
 ## Related Sections
 

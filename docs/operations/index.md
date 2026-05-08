@@ -22,6 +22,10 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk observability, in
 - logging, metrics, dan tracing baseline,
 - verifikasi sebelum release.
 
+## Core Operations Documents
+
+- [Health and Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/operations/health-readiness.md)
+
 ## Related Sections
 
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
