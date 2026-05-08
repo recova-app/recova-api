@@ -23,13 +23,13 @@ import (
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
+	"github.com/recova-app/backend-v2/internal/platform/observability"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 	"github.com/recova-app/backend-v2/internal/shared/response"
 )
 
 const (
 	defaultShutdownTimeout = 5 * time.Second
-	requestLogMessage      = "request completed"
 )
 
 // Server wraps the Fiber application lifecycle.
@@ -40,6 +40,7 @@ type Server struct {
 	readinessChecks  []ReadinessCheck
 	readinessTimeout time.Duration
 	moduleDeps       ModuleDependencies
+	observability    *observability.Recorder
 }
 
 // ModuleDependencies stores domain services required to register API routes.
@@ -82,6 +83,13 @@ func WithReadinessChecks(checks []ReadinessCheck) ServerOption {
 func WithModuleDependencies(deps ModuleDependencies) ServerOption {
 	return func(s *Server) {
 		s.moduleDeps = deps
+	}
+}
+
+// WithObservability configures shared observability recorder for middleware and routes.
+func WithObservability(recorder *observability.Recorder) ServerOption {
+	return func(s *Server) {
+		s.observability = recorder
 	}
 }
 
@@ -154,7 +162,16 @@ func (s *Server) registerMiddleware(cfg config.Config) {
 		Header: cfg.Observability.RequestIDHeader,
 	}))
 	s.app.Use(recoverer.New())
-	s.app.Use(requestLogMiddleware(s.logger))
+	s.app.Use(observability.NewRequestTelemetryMiddleware(
+		s.logger,
+		s.observability,
+		cfg.Observability.RequestIDHeader,
+		observability.RequestHooks{
+			OnComplete: func(ctx observability.RequestContext) {
+				observability.RecordAuditEvent(s.logger, s.observability, ctx)
+			},
+		},
+	))
 	s.app.Use(helmet.New())
 	s.app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.Security.CORSOrigins,
@@ -181,6 +198,10 @@ func (s *Server) registerMiddleware(cfg config.Config) {
 }
 
 func (s *Server) registerRoutes(cfg config.Config) {
+	if s.observability != nil {
+		s.app.Get("/metrics", s.observability.MetricsHandler())
+	}
+
 	s.app.Get("/health/live", func(c fiber.Ctx) error {
 		payload := response.Success("Layanan aktif", fiber.Map{"status": "ok"}, nil)
 		return c.Status(fiber.StatusOK).JSON(payload)
@@ -210,6 +231,7 @@ func (s *Server) registerRoutes(cfg config.Config) {
 	apiGroup := s.app.Group(strings.TrimSpace(cfg.Application.APIPrefix))
 	if s.moduleDeps.AuthService != nil {
 		authGroup := apiGroup.Group("/auth")
+		authGroup.Use(authRequestLimiter(cfg))
 		authmodule.RegisterCoreRoutes(authGroup, s.moduleDeps.AuthService)
 		if s.moduleDeps.UsersService != nil {
 			usersmodule.RegisterOnboardingRoute(authGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
@@ -281,11 +303,7 @@ func communityWriteLimiter(cfg config.Config) fiber.Handler {
 		Max:        maxWrite,
 		Expiration: window,
 		KeyGenerator: func(c fiber.Ctx) string {
-			principal, ok := authmodule.PrincipalFromContext(c)
-			if ok && strings.TrimSpace(principal.UserID) != "" {
-				return strings.TrimSpace(principal.UserID)
-			}
-			return strings.TrimSpace(c.IP())
+			return limiterKeyFromContext(c)
 		},
 		LimitReached: func(_ fiber.Ctx) error {
 			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan komunitas, coba lagi sebentar", nil, nil)
@@ -311,11 +329,7 @@ func aiRequestLimiter(cfg config.Config) fiber.Handler {
 		Max:        maxAI,
 		Expiration: window,
 		KeyGenerator: func(c fiber.Ctx) string {
-			principal, ok := authmodule.PrincipalFromContext(c)
-			if ok && strings.TrimSpace(principal.UserID) != "" {
-				return strings.TrimSpace(principal.UserID)
-			}
-			return strings.TrimSpace(c.IP())
+			return limiterKeyFromContext(c)
 		},
 		LimitReached: func(_ fiber.Ctx) error {
 			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan AI, coba lagi sebentar", nil, nil)
@@ -323,38 +337,38 @@ func aiRequestLimiter(cfg config.Config) fiber.Handler {
 	})
 }
 
-func requestLogMiddleware(logger *slog.Logger) fiber.Handler {
-	return func(c fiber.Ctx) error {
-		started := time.Now()
-		err := c.Next()
-		latency := time.Since(started)
-
-		reqID := requestid.FromContext(c)
-		statusCode := c.Response().StatusCode()
-		path := c.Path()
-		method := c.Method()
-
-		if err != nil {
-			logger.Error(requestLogMessage,
-				"requestId", strings.TrimSpace(reqID),
-				"method", method,
-				"path", path,
-				"status", statusCode,
-				"latencyMs", latency.Milliseconds(),
-				"error", err,
-			)
-			return err
-		}
-
-		logger.Info(requestLogMessage,
-			"requestId", strings.TrimSpace(reqID),
-			"method", method,
-			"path", path,
-			"status", statusCode,
-			"latencyMs", latency.Milliseconds(),
-		)
-		return nil
+func authRequestLimiter(cfg config.Config) fiber.Handler {
+	window := time.Duration(cfg.Security.RateLimit.WindowMs) * time.Millisecond
+	if window <= 0 {
+		window = time.Minute
 	}
+
+	maxAuth := cfg.Security.RateLimit.AuthMax
+	if maxAuth <= 0 {
+		maxAuth = 1
+	}
+	if cfg.Security.RateLimit.Max > 0 && maxAuth > cfg.Security.RateLimit.Max {
+		maxAuth = cfg.Security.RateLimit.Max
+	}
+
+	return limiter.New(limiter.Config{
+		Max:        maxAuth,
+		Expiration: window,
+		KeyGenerator: func(c fiber.Ctx) string {
+			return limiterKeyFromContext(c)
+		},
+		LimitReached: func(_ fiber.Ctx) error {
+			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan autentikasi, coba lagi sebentar", nil, nil)
+		},
+	})
+}
+
+func limiterKeyFromContext(c fiber.Ctx) string {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if ok && strings.TrimSpace(principal.UserID) != "" {
+		return strings.TrimSpace(principal.UserID)
+	}
+	return strings.TrimSpace(c.IP())
 }
 
 func (s *Server) errorHandler(requestIDHeader string) fiber.ErrorHandler {

@@ -28,12 +28,12 @@ Dokumen ini menetapkan kontrol keamanan minimum sebelum layanan menerima trafik 
 | ------------------ | --------------------------------------------------------------------- |
 | CORS               | hanya origin allowlist eksplisit, tidak wildcard pada mode kredensial |
 | HTTP headers       | aktifkan security headers (helmet) dengan konfigurasi eksplisit       |
-| Rate limiting      | limiter berbasis endpoint group: auth, AI, public read                |
+| Rate limiting      | limiter berbasis endpoint group: auth, AI, dan community write        |
 | Request size       | batas ukuran body untuk mencegah abuse payload besar                  |
-| Auth               | validasi JWT `iss`, `aud`, `exp`, `sub`, dan jenis token              |
+| Auth               | validasi JWT `iss`, `aud`, `exp`, `sub`, signature, dan jenis token   |
 | Secret handling    | redaksi field sensitif di log dan payload error                       |
 | Data access        | query melalui repository + parameter binding aman                     |
-| Dependency hygiene | scan kerentanan dependency dalam pipeline                             |
+| Dependency hygiene | scan kerentanan dependency dengan `govulncheck`                       |
 
 ## Middleware Hardening Order
 
@@ -115,7 +115,7 @@ Log aman minimal berisi:
 ## Dependency and Build Security
 
 - pin versi dependency,
-- jalankan vulnerability scan pada CI,
+- jalankan vulnerability scan via `make security-scan`,
 - blok rilis jika ada kerentanan critical/high yang belum di-approve,
 - dokumentasikan exception risk dengan owner dan batas waktu remediation.
 

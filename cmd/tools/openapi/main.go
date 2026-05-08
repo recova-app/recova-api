@@ -23,6 +23,7 @@ import (
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	aiplatform "github.com/recova-app/backend-v2/internal/platform/ai"
 	"github.com/recova-app/backend-v2/internal/platform/config"
+	"github.com/recova-app/backend-v2/internal/platform/observability"
 	contractopenapi "github.com/recova-app/backend-v2/internal/platform/openapi"
 )
 
@@ -147,16 +148,18 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	contentService := contentmodule.NewService(contentmodule.NewRepository(nil))
 	aiService := aimodule.NewService(aimodule.NewRepository(nil), &noopAIProvider{})
 
-	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-		AuthService:      authService,
-		UsersService:     usersService,
-		RoutineService:   routineService,
-		JournalsService:  journalsService,
-		CommunityService: communityService,
-		EducationService: educationService,
-		ContentService:   contentService,
-		AIService:        aiService,
-	}))
+	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)),
+		apphttp.WithObservability(observability.NewRecorder()),
+		apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
+			AuthService:      authService,
+			UsersService:     usersService,
+			RoutineService:   routineService,
+			JournalsService:  journalsService,
+			CommunityService: communityService,
+			EducationService: educationService,
+			ContentService:   contentService,
+			AIService:        aiService,
+		}))
 	if err != nil {
 		return nil, fmt.Errorf("build runtime server: %w", err)
 	}
@@ -188,6 +191,12 @@ func testRuntimeConfig() config.Config {
 		Security: config.SecurityConfig{
 			CORSOrigins:      []string{"http://localhost:5173"},
 			RequestBodyLimit: "1mb",
+			RateLimit: config.RateLimitConfig{
+				WindowMs: 60000,
+				Max:      120,
+				AuthMax:  10,
+				AIMax:    20,
+			},
 		},
 		Observability: config.ObservabilityConfig{
 			RequestIDHeader:      "x-request-id",

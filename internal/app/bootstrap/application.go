@@ -17,6 +17,7 @@ import (
 	aiplatform "github.com/recova-app/backend-v2/internal/platform/ai"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	"github.com/recova-app/backend-v2/internal/platform/database"
+	"github.com/recova-app/backend-v2/internal/platform/observability"
 )
 
 // Application coordinates the top-level runtime process for the API service.
@@ -28,8 +29,14 @@ type Application struct {
 
 // NewApplication constructs an executable application instance from runtime dependencies.
 func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error) {
+	obsRecorder := observability.NewRecorder()
+
 	dbClient, err := database.Connect(cfg)
 	if err != nil {
+		return nil, err
+	}
+	if err := observability.RegisterDatabaseMetrics(dbClient.Gorm(), obsRecorder); err != nil {
+		_ = dbClient.Close()
 		return nil, err
 	}
 
@@ -53,6 +60,7 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 		_ = dbClient.Close()
 		return nil, err
 	}
+	aiClient = observability.WrapAIClient(aiClient, obsRecorder)
 	aiService := aimodule.NewService(aimodule.NewRepository(dbClient.Gorm()), aiClient)
 
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
@@ -71,7 +79,7 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 		EducationService: educationService,
 		ContentService:   contentService,
 		AIService:        aiService,
-	}))
+	}), apphttp.WithObservability(obsRecorder))
 	if err != nil {
 		_ = dbClient.Close()
 		return nil, err

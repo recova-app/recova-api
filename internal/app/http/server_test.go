@@ -6,10 +6,14 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/recova-app/backend-v2/internal/platform/config"
+	"github.com/recova-app/backend-v2/internal/platform/observability"
+	"github.com/recova-app/backend-v2/internal/shared/errs"
+	"github.com/recova-app/backend-v2/internal/shared/response"
 	"github.com/recova-app/backend-v2/test/fixtures"
 	httpharness "github.com/recova-app/backend-v2/test/harness/http"
 )
@@ -123,10 +127,60 @@ func TestNewServer_APIPrefixBaseline_NotFoundEnvelope(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "NOT_FOUND")
 }
 
+func TestNewServer_MetricsRoute_ExposedWhenObservabilityEnabled(t *testing.T) {
+	cfg := testServerConfig()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	srv, err := NewServer(cfg, logger, WithObservability(observability.NewRecorder()))
+	if err != nil {
+		t.Fatalf("failed to build server with observability: %v", err)
+	}
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/live", nil, map[string]string{
+		"Origin": "http://localhost:5173",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+
+	metricsResp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/metrics", nil, nil)
+	httpharness.RequireStatus(t, metricsResp.StatusCode, fiber.StatusOK)
+	if !strings.Contains(string(metricsResp.Body), "recova_http_requests_total") {
+		t.Fatalf("expected recova metrics in output, got: %s", string(metricsResp.Body))
+	}
+}
+
+func TestAuthRequestLimiter_RejectsAfterLimit(t *testing.T) {
+	app := newLimiterTestApp()
+	cfg := testServerConfig()
+	cfg.Security.RateLimit.WindowMs = 60000
+	cfg.Security.RateLimit.AuthMax = 1
+
+	app.Use(authRequestLimiter(cfg))
+	app.Post("/api/v1/auth/google", func(c fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(response.Success("ok", fiber.Map{"ok": true}, nil))
+	})
+
+	first := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/google", map[string]any{"token": "x"}, nil)
+	httpharness.RequireStatus(t, first.StatusCode, fiber.StatusOK)
+
+	second := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/google", map[string]any{"token": "x"}, nil)
+	httpharness.RequireStatus(t, second.StatusCode, fiber.StatusTooManyRequests)
+	httpharness.RequireErrorEnvelope(t, second.JSON, "RATE_LIMITED")
+}
+
 func buildTestServer(t *testing.T) *Server {
 	t.Helper()
 
-	cfg := config.Config{
+	cfg := testServerConfig()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	srv, err := NewServer(cfg, logger)
+	if err != nil {
+		t.Fatalf("failed to build server: %v", err)
+	}
+
+	return srv
+}
+
+func testServerConfig() config.Config {
+	return config.Config{
 		Application: config.ApplicationConfig{
 			AppName:   "recova-test",
 			AppEnv:    "test",
@@ -136,18 +190,25 @@ func buildTestServer(t *testing.T) *Server {
 		Security: config.SecurityConfig{
 			CORSOrigins:      []string{"http://localhost:5173"},
 			RequestBodyLimit: "1mb",
+			RateLimit: config.RateLimitConfig{
+				WindowMs: 60000,
+				Max:      120,
+				AuthMax:  10,
+				AIMax:    20,
+			},
 		},
 		Observability: config.ObservabilityConfig{
 			RequestIDHeader:      "x-request-id",
 			HealthCheckTimeoutMs: 2000,
 		},
 	}
+}
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv, err := NewServer(cfg, logger)
-	if err != nil {
-		t.Fatalf("failed to build server: %v", err)
-	}
-
-	return srv
+func newLimiterTestApp() *fiber.App {
+	return fiber.New(fiber.Config{
+		ErrorHandler: func(c fiber.Ctx, err error) error {
+			mapped := errs.Map(err)
+			return c.Status(mapped.Status).JSON(response.Error(mapped.Message, string(mapped.Code), mapped.Details, ""))
+		},
+	})
 }

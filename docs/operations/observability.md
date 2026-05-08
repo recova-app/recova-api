@@ -70,11 +70,22 @@ Larangan log:
 - 4xx/5xx rate,
 - rate-limit hit count.
 
+Metric names:
+
+- `recova_http_requests_total`,
+- `recova_http_request_duration_seconds`,
+- `recova_http_errors_total`.
+
 ### Dependency Metrics
 
 - PostgreSQL latency + error rate,
 - AI provider latency + timeout rate,
 - outbound integration error rate.
+
+Metric names:
+
+- `recova_db_operation_duration_seconds`,
+- `recova_ai_request_duration_seconds`.
 
 ### Business-Critical Metrics
 
@@ -94,6 +105,14 @@ Larangan log:
 - `GET /health/live`: hanya cek proses hidup,
 - `GET /health/ready`: cek dependency kritis (minimum database),
 - readiness gagal harus memicu `503` dengan payload aman.
+- `GET /metrics`: endpoint export metrik format `text/plain` untuk scraping.
+
+## Audit Event Baseline
+
+- event auth penting: login, refresh, logout, onboarding,
+- event profile sensitif: update settings, reset data user,
+- field minimum audit log: `action`, `result`, `requestId`, `userId`, `status`, `method`, `path`,
+- counter metric audit: `recova_audit_events_total`.
 
 ## Alerting Baseline
 

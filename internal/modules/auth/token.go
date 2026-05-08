@@ -28,6 +28,7 @@ type SessionClaims struct {
 type TokenManager struct {
 	secret         []byte
 	issuer         string
+	audience       string
 	accessTTL      time.Duration
 	refreshTTL     time.Duration
 	cookieName     string
@@ -39,9 +40,15 @@ type TokenManager struct {
 
 // NewTokenManager builds token manager from validated runtime config.
 func NewTokenManager(cfg config.Config) *TokenManager {
+	audience := strings.TrimSpace(cfg.Application.AppURL)
+	if audience == "" {
+		audience = strings.TrimSpace(cfg.Application.AppName)
+	}
+
 	return &TokenManager{
 		secret:         []byte(cfg.Auth.JWTSecret),
 		issuer:         strings.TrimSpace(cfg.Application.AppName),
+		audience:       audience,
 		accessTTL:      cfg.Auth.JWTAccessTTL,
 		refreshTTL:     cfg.Auth.JWTRefreshTTL,
 		cookieName:     strings.TrimSpace(cfg.Auth.Cookie.Name),
@@ -145,6 +152,7 @@ func (m *TokenManager) newClaims(userID string, tokenType string, ttl time.Durat
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
+			Audience:  jwt.ClaimStrings{m.audience},
 			Subject:   strings.TrimSpace(userID),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
@@ -168,6 +176,7 @@ func (m *TokenManager) parseToken(rawToken string, expectedType string) (Session
 	},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
 		jwt.WithIssuer(m.issuer),
+		jwt.WithAudience(m.audience),
 		jwt.WithExpirationRequired(),
 	)
 	if err != nil {

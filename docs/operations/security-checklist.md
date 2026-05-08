@@ -32,8 +32,7 @@ Checklist ini digunakan sebelum deployment agar kontrol keamanan minimum tervali
 ## 3. Request Protection
 
 - [ ] Batas ukuran request body aktif.
-- [ ] Rate limit global aktif.
-- [ ] Rate limit ketat diterapkan untuk auth dan AI endpoint.
+- [ ] Rate limit diterapkan sesuai class endpoint (auth, AI, community write).
 - [ ] Endpoint upload memvalidasi MIME type dan ukuran file.
 
 ## 4. Input and Query Safety
@@ -52,7 +51,7 @@ Checklist ini digunakan sebelum deployment agar kontrol keamanan minimum tervali
 
 ## 6. Dependency and Build Security
 
-- [ ] Dependency scan dijalankan pada pipeline.
+- [ ] Dependency scan dijalankan via `make security-scan` (govulncheck).
 - [ ] Tidak ada temuan critical/high tanpa risk acceptance tertulis.
 - [ ] Image/container tidak menyertakan secret.
 - [ ] Semua dependency ter-pin dan lockfile tervalidasi.

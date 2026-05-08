@@ -36,6 +36,20 @@ assert_fail ./scripts/openapi.sh unknown-command
 ./scripts/openapi.sh generate >/dev/null
 ./scripts/openapi.sh check >/dev/null
 
+# security-scan.sh must call provided govulncheck binary with target argument.
+fake_vuln_log="$temp_dir/fake-govulncheck.log"
+cat > "$temp_dir/govulncheck" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_VULN_LOG"
+SCRIPT
+chmod +x "$temp_dir/govulncheck"
+
+GOVULNCHECK_BIN="$temp_dir/govulncheck" \
+FAKE_VULN_LOG="$fake_vuln_log" \
+./scripts/security-scan.sh ./internal/... >/dev/null
+
+assert_file_contains "$fake_vuln_log" "./internal/..."
+
 # with-env.sh must load env file before running command.
 env_file="$temp_dir/local.env"
 cat > "$env_file" <<'ENVFILE'

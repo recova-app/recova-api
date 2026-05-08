@@ -85,6 +85,7 @@ Perintah verifikasi baseline:
 | `make test-integration` | scripted checks untuk workflow tooling (mis. migrasi wrapper) |
 | `make migrate-check`    | validasi state migration (versi/dirtiness)                    |
 | `make openapi-check`    | validasi OpenAPI source/generated + drift route runtime       |
+| `make security-scan`    | vulnerability scan dependency Go via govulncheck              |
 
 ## Release Readiness Testing Gate
 

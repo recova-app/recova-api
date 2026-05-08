@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check
+.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan
 
 preflight:
 	@./scripts/preflight.sh
@@ -51,3 +51,6 @@ openapi-generate:
 
 openapi-check:
 	@./scripts/openapi.sh check
+
+security-scan:
+	@./scripts/security-scan.sh ./...

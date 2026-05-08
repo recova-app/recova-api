@@ -14,6 +14,10 @@ if ! command -v migrate >/dev/null 2>&1; then
   echo "[preflight] warning: 'migrate' binary not found (required for migrate-up/migrate-down)"
 fi
 
+if ! command -v govulncheck >/dev/null 2>&1; then
+  echo "[preflight] warning: 'govulncheck' binary not found (security-scan akan install otomatis saat dijalankan)"
+fi
+
 goversion_raw="$(go env GOVERSION)"
 goversion="${goversion_raw#go}"
 major="$(printf '%s' "$goversion" | cut -d. -f1)"

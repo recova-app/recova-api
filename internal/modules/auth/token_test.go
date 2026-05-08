@@ -28,6 +28,9 @@ func TestTokenManager_IssueAndParseAccessToken(t *testing.T) {
 	if claims.Subject != "user-1" {
 		t.Fatalf("unexpected subject: %s", claims.Subject)
 	}
+	if len(claims.Audience) == 0 || claims.Audience[0] != "http://localhost:3000" {
+		t.Fatalf("unexpected audience: %#v", claims.Audience)
+	}
 }
 
 func TestTokenManager_ParseAccessToken_RejectsRefreshToken(t *testing.T) {
@@ -64,6 +67,7 @@ func newTestTokenManager() *TokenManager {
 	cfg := config.Config{
 		Application: config.ApplicationConfig{
 			AppName: "recova-auth-test",
+			AppURL:  "http://localhost:3000",
 		},
 		Auth: config.AuthConfig{
 			JWTSecret:     "test-jwt-secret-1234567890",
