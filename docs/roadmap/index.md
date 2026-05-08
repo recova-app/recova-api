@@ -36,6 +36,19 @@ Halaman ini merangkum prioritas dokumen yang harus tersedia agar perubahan layan
 - [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
 - [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
 
+## Migration Execution and Cutover
+
+- [Migration Execution Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-execution-runbook.md)
+- [Cutover Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/cutover-checklist.md)
+- [Rollback Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/rollback-checklist.md)
+
+## Documentation Governance and Readiness
+
+- [Documentation Quality Audit](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/documentation-quality-audit.md)
+- [Benchmark Parity Report](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/benchmark-parity-report.md)
+- [Implementation Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/implementation-readiness.md)
+- [Go Fiber Implementation Backlog](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/go-fiber-implementation-backlog.md)
+
 ## Related Sections
 
 - [Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)

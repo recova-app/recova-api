@@ -27,6 +27,8 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk security baseline
 
 - [Health and Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/operations/health-readiness.md)
 - [Security Operations Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/operations/security.md)
+- [Data Privacy Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/data-privacy.md)
+- [Data Retention Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/data-retention.md)
 - [Security Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/operations/security-checklist.md)
 - [Observability](/Users/macbookpro/Development/recova-backend-v2/docs/operations/observability.md)
 - [Failure Scenarios](/Users/macbookpro/Development/recova-backend-v2/docs/operations/failure-scenarios.md)
@@ -39,6 +41,7 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk security baseline
 - [Rollback Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/operations/rollback.md)
 - [Post-Deploy Checks](/Users/macbookpro/Development/recova-backend-v2/docs/operations/post-deploy-checks.md)
 - [API Docs Generation](/Users/macbookpro/Development/recova-backend-v2/docs/operations/api-docs-generation.md)
+- [Documentation Sync Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/documentation-sync.md)
 - [Containerization Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/operations/containerization.md)
 - [Local Development Runtime](/Users/macbookpro/Development/recova-backend-v2/docs/operations/local-development.md)
 - [Database Migrations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/database-migrations.md)

@@ -35,6 +35,8 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 - [Go Coding Standards](/Users/macbookpro/Development/recova-backend-v2/docs/standards/go-coding-standards.md)
 - [Error Handling Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/error-handling.md)
 - [Testing Conventions](/Users/macbookpro/Development/recova-backend-v2/docs/standards/testing-conventions.md)
+- [Log Redaction Policy](/Users/macbookpro/Development/recova-backend-v2/docs/standards/log-redaction-policy.md)
+- [Documentation Maintenance Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/documentation-maintenance.md)
 - [Module Documentation Template](/Users/macbookpro/Development/recova-backend-v2/docs/standards/module-documentation-template.md)
 - [GORM Modeling Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/gorm-modeling.md)
 - [Configuration Validation Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/config-validation.md)
