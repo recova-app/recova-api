@@ -401,6 +401,110 @@ RECOVA_PERF_REPORT_PATH="$temp_dir/perf-report.json" \
 
 assert_file_contains "$fake_go_log" "test -count=1 ./test/performance -run TestPerformance_LoadSmoke||$temp_dir/perf-report.json"
 
+# stabilization-gate.sh should orchestrate regression + e2e + performance and write evidence report.
+assert_fail ./scripts/stabilization-gate.sh
+
+fake_stabilization_go_log="$temp_dir/fake-stabilization-go.log"
+cat > "$temp_dir/go-stabilization" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STABILIZATION_GO_LOG"
+exit 0
+SCRIPT
+chmod +x "$temp_dir/go-stabilization"
+
+fake_openapi_script="$temp_dir/openapi-ok.sh"
+cat > "$fake_openapi_script" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_STABILIZATION_OPENAPI_LOG"
+exit 0
+SCRIPT
+chmod +x "$fake_openapi_script"
+
+fake_stabilization_e2e_script="$temp_dir/e2e-stabilization-ok.sh"
+cat > "$fake_stabilization_e2e_script" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "${RECOVA_E2E_REPORT_PATH:-}" >> "$FAKE_STABILIZATION_E2E_LOG"
+report="${RECOVA_E2E_REPORT_PATH:-}"
+mkdir -p "$(dirname "$report")"
+printf '{"status":"passed"}\n' > "$report"
+exit 0
+SCRIPT
+chmod +x "$fake_stabilization_e2e_script"
+
+fake_stabilization_perf_script="$temp_dir/perf-stabilization-ok.sh"
+cat > "$fake_stabilization_perf_script" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "${RECOVA_PERF_REPORT_PATH:-}" >> "$FAKE_STABILIZATION_PERF_LOG"
+report="${RECOVA_PERF_REPORT_PATH:-}"
+mkdir -p "$(dirname "$report")"
+printf '{"status":"passed"}\n' > "$report"
+exit 0
+SCRIPT
+chmod +x "$fake_stabilization_perf_script"
+
+stabilization_artifact_dir="$temp_dir/stabilization-artifacts"
+RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+GO_BIN="$temp_dir/go-stabilization" \
+OPENAPI_SCRIPT="$fake_openapi_script" \
+E2E_SCRIPT="$fake_stabilization_e2e_script" \
+PERFORMANCE_SCRIPT="$fake_stabilization_perf_script" \
+FAKE_STABILIZATION_GO_LOG="$fake_stabilization_go_log" \
+FAKE_STABILIZATION_OPENAPI_LOG="$temp_dir/fake-stabilization-openapi.log" \
+FAKE_STABILIZATION_E2E_LOG="$temp_dir/fake-stabilization-e2e.log" \
+FAKE_STABILIZATION_PERF_LOG="$temp_dir/fake-stabilization-perf.log" \
+STABILIZATION_ARTIFACT_DIR="$stabilization_artifact_dir" \
+STABILIZATION_EXECUTION_ID="stabilization-success" \
+./scripts/stabilization-gate.sh >/dev/null
+
+assert_file_contains "$fake_stabilization_go_log" "test ./..."
+assert_file_contains "$temp_dir/fake-stabilization-openapi.log" "check"
+assert_file_contains "$temp_dir/fake-stabilization-e2e.log" "$stabilization_artifact_dir/stabilization-success-e2e-critical-flows.json"
+assert_file_contains "$temp_dir/fake-stabilization-perf.log" "$stabilization_artifact_dir/stabilization-success-performance-smoke.json"
+assert_file_contains "$stabilization_artifact_dir/stabilization-success-summary.log" "gate pass: performance-smoke"
+assert_file_contains "$stabilization_artifact_dir/stabilization-success-stabilization-report.json" "\"status\": \"passed\""
+
+fake_stabilization_e2e_failed_script="$temp_dir/e2e-stabilization-failed.sh"
+cat > "$fake_stabilization_e2e_failed_script" <<'SCRIPT'
+#!/usr/bin/env sh
+report="${RECOVA_E2E_REPORT_PATH:-}"
+mkdir -p "$(dirname "$report")"
+printf '{"status":"failed"}\n' > "$report"
+exit 0
+SCRIPT
+chmod +x "$fake_stabilization_e2e_failed_script"
+
+assert_fail env \
+  RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+  GO_BIN="$temp_dir/go-stabilization" \
+  OPENAPI_SCRIPT="$fake_openapi_script" \
+  E2E_SCRIPT="$fake_stabilization_e2e_failed_script" \
+  PERFORMANCE_SCRIPT="$fake_stabilization_perf_script" \
+  FAKE_STABILIZATION_GO_LOG="$fake_stabilization_go_log" \
+  FAKE_STABILIZATION_OPENAPI_LOG="$temp_dir/fake-stabilization-openapi.log" \
+  FAKE_STABILIZATION_E2E_LOG="$temp_dir/fake-stabilization-e2e.log" \
+  FAKE_STABILIZATION_PERF_LOG="$temp_dir/fake-stabilization-perf.log" \
+  STABILIZATION_ARTIFACT_DIR="$stabilization_artifact_dir" \
+  STABILIZATION_EXECUTION_ID="stabilization-failed" \
+  ./scripts/stabilization-gate.sh
+
+# rollback-rehearsal.sh should force rollback execution path and write evidence report.
+assert_fail env \
+  RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+  ./scripts/rollback-rehearsal.sh
+
+rollback_rehearsal_artifact_dir="$temp_dir/rollback-rehearsal-artifacts"
+fake_rollback_rehearsal_command_log="$temp_dir/fake-rollback-rehearsal-command.log"
+RECOVA_DB_INTEGRATION_URL="postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable" \
+ROLLBACK_REHEARSAL_COMMAND="printf 'rollback-command-ok\\n' >> \"$fake_rollback_rehearsal_command_log\"" \
+ROLLBACK_REHEARSAL_ARTIFACT_DIR="$rollback_rehearsal_artifact_dir" \
+ROLLBACK_REHEARSAL_EXECUTION_ID="rollback-rehearsal-success" \
+ROLLBACK_REHEARSAL_WAVE="65" \
+./scripts/rollback-rehearsal.sh >/dev/null
+
+assert_file_contains "$fake_rollback_rehearsal_command_log" "rollback-command-ok"
+assert_file_contains "$rollback_rehearsal_artifact_dir/rollback-rehearsal-success-summary.log" "success"
+assert_file_contains "$rollback_rehearsal_artifact_dir/rollback-rehearsal-success-rollback-rehearsal-report.json" "\"status\": \"passed\""
+
 # preflight should pass on current baseline repository.
 ./scripts/preflight.sh >/dev/null
 

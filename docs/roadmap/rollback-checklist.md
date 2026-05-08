@@ -54,6 +54,7 @@ Checklist ini dipakai saat keputusan rollback diambil.
 
 - [ ] root cause sementara terdokumentasi.
 - [ ] timeline rollback dicatat.
+- [ ] evidence rollback rehearsal terbaru tersedia (`artifacts/rollback-rehearsal/**`) dan berstatus pass.
 - [ ] daftar tindakan perbaikan permanen disepakati.
 - [ ] gate tambahan sebelum cutover ulang ditentukan.
 

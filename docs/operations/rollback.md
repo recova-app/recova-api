@@ -108,6 +108,25 @@ Catat bukti operasi:
 - hasil verifikasi,
 - tindakan lanjutan pencegahan.
 
+## Rollback Rehearsal
+
+Rollback rehearsal wajib dijalankan berkala pada environment non-production untuk memvalidasi jalur rollback tetap executable.
+
+Runner lokal/CI:
+
+- `make rollback-rehearsal`
+
+Input penting:
+
+- `RECOVA_DB_INTEGRATION_URL` wajib menunjuk database `*_test`,
+- `ROLLBACK_REHEARSAL_COMMAND` wajib berisi command rollback yang ingin direhearse,
+- `ROLLBACK_REHEARSAL_WAVE` memilih domain wave (`65|66|67|68`).
+
+Output evidence:
+
+- `artifacts/rollback-rehearsal/*-summary.log`
+- `artifacts/rollback-rehearsal/*-rollback-rehearsal-report.json`
+
 ## Related Documents
 
 - [Deployment Workflow](/Users/macbookpro/Development/recova-backend-v2/docs/operations/deployment.md)

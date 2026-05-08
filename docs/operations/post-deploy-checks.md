@@ -62,6 +62,8 @@ Untuk staging berbasis Compose, verifikasi ini dijalankan otomatis lewat `script
 
 Untuk jalur cutover domain bertahap, verifikasi per-wave dieksekusi lewat `scripts/cutover-wave.sh` dengan evidence di `artifacts/cutover/`.
 
+Untuk window stabilisasi pasca-cutover, jalankan `make stabilization-gate` dan simpan evidence di `artifacts/stabilization/`.
+
 ## Observability Checks
 
 Verifikasi sinyal minimum:

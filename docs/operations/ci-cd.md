@@ -74,6 +74,16 @@ Workflow manual cutover wave:
 - workflow ini mengeksekusi `scripts/cutover-wave.sh` dan mengunggah evidence artifact `artifacts/cutover/**`.
 - workflow manual hanya tersedia jika file workflow berada pada default branch.
 
+Workflow manual stabilization + rollback rehearsal:
+
+- `.github/workflows/stabilization-rollback.yml` menggunakan `workflow_dispatch`.
+- workflow ini menyediakan dua lane manual:
+  - `stabilization-gate` untuk menjalankan `make stabilization-gate`,
+  - `rollback-rehearsal` untuk menjalankan `make rollback-rehearsal`.
+- workflow ini mengunggah artifact evidence:
+  - `artifacts/stabilization/**`
+  - `artifacts/rollback-rehearsal/**`
+
 Kontrol concurrency:
 
 - `concurrency.group = ci-${workflow}-${ref}`,
@@ -122,6 +132,11 @@ Kontrol concurrency:
 - menjalankan cutover wave serial (atau wave tunggal) dengan fail-fast gate,
 - menjalankan rollback command opsional saat wave gagal,
 - menyimpan ringkasan dan log per-wave sebagai artifact untuk audit.
+
+`stabilization-rollback` (manual workflow):
+
+- menjalankan gate stabilisasi penuh dan/atau rollback rehearsal,
+- menyimpan evidence terstruktur untuk audit post-cutover.
 
 ## Post-Deploy Verification
 

@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy cutover-wave cutover-all
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal
 
 preflight:
 	@./scripts/preflight.sh
@@ -76,3 +76,9 @@ cutover-wave:
 
 cutover-all:
 	@./scripts/cutover-wave.sh all
+
+stabilization-gate:
+	@./scripts/stabilization-gate.sh
+
+rollback-rehearsal:
+	@./scripts/rollback-rehearsal.sh

@@ -92,11 +92,15 @@ Perintah verifikasi baseline:
 | `make release-validation`   | menjalankan seluruh gate release-validation (E2E + performance smoke) |
 | `make cutover-wave WAVE=64` | gate otomatis cutover per wave (single wave)                          |
 | `make cutover-all`          | gate otomatis cutover serial wave 64-68                               |
+| `make stabilization-gate`   | full regression + openapi + E2E + performance smoke + evidence report |
+| `make rollback-rehearsal`   | rehearsal jalur rollback dengan failure injection terkontrol           |
 
 Default output report:
 
 - `artifacts/release-confidence/e2e-critical-flows.json`
 - `artifacts/release-confidence/performance-smoke.json`
+- `artifacts/stabilization/*-stabilization-report.json`
+- `artifacts/rollback-rehearsal/*-rollback-rehearsal-report.json`
 
 ## Release Readiness Testing Gate
 

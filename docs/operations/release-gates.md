@@ -57,6 +57,12 @@ Wajib lulus:
 - observability signals stabil pada window awal,
 - tidak ada lonjakan error severity tinggi.
 
+Untuk window stabilisasi pasca-cutover domain besar:
+
+- jalankan `make stabilization-gate`,
+- simpan evidence `artifacts/stabilization/**`,
+- pastikan rollback rehearsal terbaru berstatus `passed`.
+
 ## Blocking Conditions
 
 Release harus dibatalkan atau ditahan jika:
@@ -82,6 +88,7 @@ Rollback harus diikuti post-rollback verification:
 - health checks normal,
 - endpoint kritikal normal,
 - error rate kembali ke baseline.
+- evidence rollback rehearsal tersedia pada `artifacts/rollback-rehearsal/**`.
 
 ## Related Documents
 
