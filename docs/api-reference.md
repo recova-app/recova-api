@@ -52,12 +52,12 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | routine   | `GET`    | `/routine/relapses`           | ambil riwayat relapse                         | bearer            | implemented     |
 | journals  | `GET`    | `/journals`                   | ambil daftar jurnal pribadi                   | bearer            | implemented     |
 | journals  | `POST`   | `/journals`                   | buat entri jurnal                             | bearer            | implemented     |
-| community | `GET`    | `/community`                  | ambil daftar postingan komunitas              | gap               | documented      |
-| community | `POST`   | `/community`                  | buat postingan komunitas                      | gap               | documented      |
-| community | `POST`   | `/community/:postId/comments` | tambah komentar pada postingan                | gap               | documented      |
-| community | `POST`   | `/community/:postId/like`     | like postingan                                | gap               | documented      |
-| education | `GET`    | `/education`                  | ambil daftar konten edukasi                   | gap               | documented      |
-| content   | `GET`    | `/content/daily`              | ambil konten harian                           | gap               | documented      |
+| community | `GET`    | `/community`                  | ambil daftar postingan komunitas              | bearer            | implemented     |
+| community | `POST`   | `/community`                  | buat postingan komunitas                      | bearer            | implemented     |
+| community | `POST`   | `/community/:postId/comments` | tambah komentar pada postingan                | bearer            | implemented     |
+| community | `POST`   | `/community/:postId/like`     | toggle suka postingan                         | bearer            | implemented     |
+| education | `GET`    | `/education`                  | ambil daftar konten edukasi                   | bearer            | implemented     |
+| content   | `GET`    | `/content/daily`              | ambil konten harian                           | bearer            | implemented     |
 
 ## Contract Fields Coverage
 

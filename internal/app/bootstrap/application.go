@@ -7,6 +7,9 @@ import (
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
+	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
+	educationmodule "github.com/recova-app/backend-v2/internal/modules/education"
 	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
@@ -40,6 +43,9 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 	)
 	routineService := routinemodule.NewService(routinemodule.NewRepository(dbClient.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(dbClient.Gorm()))
+	communityService := communitymodule.NewService(communitymodule.NewRepository(dbClient.Gorm()))
+	educationService := educationmodule.NewService(educationmodule.NewRepository(dbClient.Gorm()))
+	contentService := contentmodule.NewService(contentmodule.NewRepository(dbClient.Gorm()))
 
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
 		{
@@ -49,10 +55,13 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 			Probe:   dbClient.Ping,
 		},
 	}), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-		AuthService:     authService,
-		UsersService:    usersService,
-		RoutineService:  routineService,
-		JournalsService: journalsService,
+		AuthService:      authService,
+		UsersService:     usersService,
+		RoutineService:   routineService,
+		JournalsService:  journalsService,
+		CommunityService: communityService,
+		EducationService: educationService,
+		ContentService:   contentService,
 	}))
 	if err != nil {
 		_ = dbClient.Close()

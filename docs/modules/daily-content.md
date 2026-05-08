@@ -54,6 +54,7 @@ Constraint minimum:
 ## Service and Business Rules
 
 - pemilihan konten mengikuti boundary tanggal yang terdokumentasi,
+- boundary tanggal layanan menggunakan hari UTC agar deterministik lintas environment runtime,
 - jika stok konten kurang, fallback harus deterministik,
 - status konten harus audit-able saat berubah.
 

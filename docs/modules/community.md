@@ -34,7 +34,7 @@ Route prefix:
 | `GET`  | `/api/v1/community`                  | Bearer     | ambil feed komunitas |
 | `POST` | `/api/v1/community`                  | Bearer     | buat post baru       |
 | `POST` | `/api/v1/community/:postId/comments` | Bearer     | tambah komentar      |
-| `POST` | `/api/v1/community/:postId/like`     | Bearer     | set state like user  |
+| `POST` | `/api/v1/community/:postId/like`     | Bearer     | toggle like/unlike   |
 
 ## Database Model
 
@@ -58,7 +58,7 @@ Constraint minimum:
 
 ## Service and Business Rules
 
-- endpoint like harus idempotent terhadap state akhir,
+- endpoint like bersifat toggle (`like` <-> `unlike`) dan konsisten terhadap state akhir,
 - post/comment yang melanggar kebijakan dapat ditandai atau disembunyikan,
 - rate limit lebih ketat pada endpoint write.
 
@@ -108,7 +108,6 @@ Metrik minimum:
 ## Open Gaps
 
 - batas final panjang konten,
-- kontrak final visibilitas feed untuk non-login,
 - kebijakan delete post/comment final.
 
 ## Related Documents

@@ -11,9 +11,13 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
+	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
+	educationmodule "github.com/recova-app/backend-v2/internal/modules/education"
 	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
@@ -39,10 +43,13 @@ type Server struct {
 
 // ModuleDependencies stores domain services required to register API routes.
 type ModuleDependencies struct {
-	AuthService     *authmodule.Service
-	UsersService    *usersmodule.Service
-	RoutineService  *routinemodule.Service
-	JournalsService *journalsmodule.Service
+	AuthService      *authmodule.Service
+	UsersService     *usersmodule.Service
+	RoutineService   *routinemodule.Service
+	JournalsService  *journalsmodule.Service
+	CommunityService *communitymodule.Service
+	EducationService *educationmodule.Service
+	ContentService   *contentmodule.Service
 }
 
 // ServerOption customizes server runtime assembly.
@@ -221,11 +228,61 @@ func (s *Server) registerRoutes(cfg config.Config) {
 		journalsGroup := apiGroup.Group("/journals")
 		journalsmodule.RegisterRoutes(journalsGroup, s.moduleDeps.AuthService, s.moduleDeps.JournalsService)
 	}
+
+	if s.moduleDeps.CommunityService != nil && s.moduleDeps.AuthService != nil {
+		communityGroup := apiGroup.Group("/community")
+		communitymodule.RegisterRoutes(
+			communityGroup,
+			s.moduleDeps.AuthService,
+			s.moduleDeps.CommunityService,
+			communityWriteLimiter(cfg),
+		)
+	}
+
+	if s.moduleDeps.EducationService != nil && s.moduleDeps.AuthService != nil {
+		educationGroup := apiGroup.Group("/education")
+		educationmodule.RegisterRoutes(educationGroup, s.moduleDeps.AuthService, s.moduleDeps.EducationService)
+	}
+
+	if s.moduleDeps.ContentService != nil && s.moduleDeps.AuthService != nil {
+		contentGroup := apiGroup.Group("/content")
+		contentmodule.RegisterRoutes(contentGroup, s.moduleDeps.AuthService, s.moduleDeps.ContentService)
+	}
 }
 
 func (s *Server) registerFallbackRoutes() {
 	s.app.Use(func(c fiber.Ctx) error {
 		return errs.New(errs.CodeNotFound, "Rute tidak ditemukan", nil, nil)
+	})
+}
+
+func communityWriteLimiter(cfg config.Config) fiber.Handler {
+	window := time.Duration(cfg.Security.RateLimit.WindowMs) * time.Millisecond
+	if window <= 0 {
+		window = time.Minute
+	}
+
+	maxWrite := cfg.Security.RateLimit.AuthMax
+	if maxWrite <= 0 {
+		maxWrite = 1
+	}
+	if cfg.Security.RateLimit.Max > 0 && maxWrite > cfg.Security.RateLimit.Max {
+		maxWrite = cfg.Security.RateLimit.Max
+	}
+
+	return limiter.New(limiter.Config{
+		Max:        maxWrite,
+		Expiration: window,
+		KeyGenerator: func(c fiber.Ctx) string {
+			principal, ok := authmodule.PrincipalFromContext(c)
+			if ok && strings.TrimSpace(principal.UserID) != "" {
+				return strings.TrimSpace(principal.UserID)
+			}
+			return strings.TrimSpace(c.IP())
+		},
+		LimitReached: func(_ fiber.Ctx) error {
+			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan komunitas, coba lagi sebentar", nil, nil)
+		},
 	})
 }
 

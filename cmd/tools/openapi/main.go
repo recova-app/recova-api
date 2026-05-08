@@ -14,6 +14,9 @@ import (
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
+	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
+	educationmodule "github.com/recova-app/backend-v2/internal/modules/education"
 	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
@@ -137,12 +140,18 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	usersService := usersmodule.NewService(usersmodule.NewRepository(nil), cfg.Application.AppEnv, cfg.Application.NodeEnv)
 	routineService := routinemodule.NewService(routinemodule.NewRepository(nil))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(nil))
+	communityService := communitymodule.NewService(communitymodule.NewRepository(nil))
+	educationService := educationmodule.NewService(educationmodule.NewRepository(nil))
+	contentService := contentmodule.NewService(contentmodule.NewRepository(nil))
 
 	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-		AuthService:     authService,
-		UsersService:    usersService,
-		RoutineService:  routineService,
-		JournalsService: journalsService,
+		AuthService:      authService,
+		UsersService:     usersService,
+		RoutineService:   routineService,
+		JournalsService:  journalsService,
+		CommunityService: communityService,
+		EducationService: educationService,
+		ContentService:   contentService,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("build runtime server: %w", err)

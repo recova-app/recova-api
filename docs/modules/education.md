@@ -97,7 +97,6 @@ Metrik minimum:
 
 ## Open Gaps
 
-- keputusan final apakah route education bisa public,
 - strategi pagination awal,
 - kebutuhan final multi-bahasa dan fallback.
 

@@ -393,6 +393,209 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/community:
+    get:
+      tags:
+        - community
+      operationId: getCommunityPosts
+      summary: Mengambil daftar postingan komunitas
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/CommunityCategory'
+      responses:
+        '200':
+          description: Daftar postingan komunitas berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Query kategori tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags:
+        - community
+      operationId: postCommunity
+      summary: Membuat postingan komunitas
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityCreatePostRequest'
+      responses:
+        '201':
+          description: Postingan komunitas berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload postingan tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan write community melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/community/{postId}/comments:
+    post:
+      tags:
+        - community
+      operationId: postCommunityComment
+      summary: Menambahkan komentar ke postingan komunitas
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityCreateCommentRequest'
+      responses:
+        '201':
+          description: Komentar berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Postingan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload komentar tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan write community melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/community/{postId}/like:
+    post:
+      tags:
+        - community
+      operationId: postCommunityLikeToggle
+      summary: Toggle status suka pada postingan komunitas
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status suka postingan berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Postingan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan write community melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/education:
+    get:
+      tags:
+        - education
+      operationId: getEducation
+      summary: Mengambil daftar konten edukasi aktif
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Konten edukasi berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/content/daily:
+    get:
+      tags:
+        - content
+      operationId: getDailyContent
+      summary: Mengambil konten motivasi dan tantangan harian
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Konten harian berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
   securitySchemes:
     BearerAuth:
@@ -541,4 +744,36 @@ components:
           type: string
           minLength: 1
           maxLength: 5000
+    CommunityCategory:
+      type: string
+      enum:
+        - advice
+        - motivation
+        - story
+        - question
+        - assistance
+    CommunityCreatePostRequest:
+      type: object
+      required:
+        - content
+        - category
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        content:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        category:
+          $ref: '#/components/schemas/CommunityCategory'
+    CommunityCreateCommentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
 security: []
