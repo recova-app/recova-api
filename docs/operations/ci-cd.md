@@ -68,6 +68,12 @@ Workflow CI aktif pada:
 - `push` ke `main` dan `develop`,
 - `workflow_dispatch` untuk menjalankan gate staging manual.
 
+Workflow manual cutover wave:
+
+- `.github/workflows/cutover-waves.yml` menggunakan `workflow_dispatch` dengan input wave `64|65|66|67|68|all`.
+- workflow ini mengeksekusi `scripts/cutover-wave.sh` dan mengunggah evidence artifact `artifacts/cutover/**`.
+- workflow manual hanya tersedia jika file workflow berada pada default branch.
+
 Kontrol concurrency:
 
 - `concurrency.group = ci-${workflow}-${ref}`,
@@ -111,6 +117,12 @@ Kontrol concurrency:
 - dieksekusi pada environment `staging` agar approval/protection rule bisa diterapkan dari GitHub Environment,
 - menjalankan `scripts/staging-deploy.sh` untuk memverifikasi jalur deploy Compose + migration dry-run + seed idempotency + integrity + readiness sebelum promote.
 
+`cutover-waves` (manual workflow):
+
+- menjalankan cutover wave serial (atau wave tunggal) dengan fail-fast gate,
+- menjalankan rollback command opsional saat wave gagal,
+- menyimpan ringkasan dan log per-wave sebagai artifact untuk audit.
+
 ## Post-Deploy Verification
 
 Setelah deployment:
@@ -134,3 +146,4 @@ Setelah deployment:
 - [GitHub Actions PostgreSQL Service Containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
 - [Store and Share Data with Workflow Artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data)
 - [actions/setup-go](https://github.com/actions/setup-go)
+- [Triggering a workflow](https://docs.github.com/en/actions/using-workflows/triggering-a-workflow)

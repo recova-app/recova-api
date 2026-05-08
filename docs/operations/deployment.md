@@ -83,6 +83,19 @@ Runner ini mengeksekusi urutan berikut secara deterministik:
 
 Jika salah satu langkah gagal, deployment dianggap gagal dan stack dibersihkan otomatis (kecuali `KEEP_STACK=true`).
 
+## Cutover Wave Runner
+
+Untuk eksekusi cutover domain secara berurutan gunakan:
+
+- `make cutover-wave WAVE=64` untuk satu wave,
+- `make cutover-all` atau `./scripts/cutover-wave.sh all` untuk wave 64-68 serial.
+
+Perilaku runner:
+
+- fail-fast: wave berikutnya tidak berjalan saat wave aktif gagal,
+- optional rollback command saat gagal (`RUN_ROLLBACK_ON_FAILURE=true` + `CUTOVER_ROLLBACK_COMMAND`),
+- evidence otomatis per eksekusi di `artifacts/cutover/` (summary + log per-wave + report E2E wave domain).
+
 ## Database Migration Order
 
 Aturan urutan migrasi:

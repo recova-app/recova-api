@@ -60,6 +60,8 @@ Aturan verifikasi:
 
 Untuk staging berbasis Compose, verifikasi ini dijalankan otomatis lewat `scripts/staging-deploy.sh` sebelum release dipromosikan.
 
+Untuk jalur cutover domain bertahap, verifikasi per-wave dieksekusi lewat `scripts/cutover-wave.sh` dengan evidence di `artifacts/cutover/`.
+
 ## Observability Checks
 
 Verifikasi sinyal minimum:

@@ -1,0 +1,89 @@
+name: Cutover Waves
+
+on:
+  workflow_dispatch:
+    inputs:
+      wave:
+        description: "Wave cutover yang dijalankan"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - "64"
+          - "65"
+          - "66"
+          - "67"
+          - "68"
+      run_staging_deploy:
+        description: "Jalankan staging deploy runner pada wave 64"
+        required: true
+        default: true
+        type: boolean
+      run_rollback_on_failure:
+        description: "Jalankan rollback command jika wave gagal"
+        required: true
+        default: false
+        type: boolean
+      rollback_command:
+        description: "Command rollback (wajib jika run_rollback_on_failure=true)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  cutover:
+    name: Cutover Waves
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    env:
+      ENV_FILE: .env.example
+      COMPOSE_PROJECT_NAME: recova-cutover-ci
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: recova_cutover_ci_test
+      APP_PORT: 3000
+      DB_PORT: 5432
+      API_BASE_URL: http://127.0.0.1:3000
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_cutover_ci_test?sslmode=disable
+      CUTOVER_ARTIFACT_DIR: artifacts/cutover
+      CUTOVER_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install migrate CLI
+        run: |
+          go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Run cutover wave runner
+        env:
+          RUN_STAGING_DEPLOY: ${{ inputs.run_staging_deploy }}
+          RUN_ROLLBACK_ON_FAILURE: ${{ inputs.run_rollback_on_failure }}
+          CUTOVER_ROLLBACK_COMMAND: ${{ inputs.rollback_command }}
+        run: |
+          ./scripts/cutover-wave.sh "${{ inputs.wave }}"
+
+      - name: Upload cutover evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cutover-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cutover
+          if-no-files-found: warn

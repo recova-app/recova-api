@@ -33,6 +33,7 @@ Checklist ini dipakai sebelum, saat, dan sesudah perpindahan trafik domain endpo
 ## C. Cutover Execution
 
 - [ ] aktifkan perpindahan trafik bertahap untuk domain target.
+- [ ] jalankan wave lewat `scripts/cutover-wave.sh` sesuai urutan yang disetujui.
 - [ ] pantau status code distribution pada endpoint inti.
 - [ ] pantau error envelope mismatch antar runtime.
 - [ ] pantau latency P95/P99 terhadap baseline sebelum cutover.
@@ -52,6 +53,7 @@ Checklist ini dipakai sebelum, saat, dan sesudah perpindahan trafik domain endpo
 - [ ] hasil test parity dilampirkan.
 - [ ] ringkasan metrik pasca cutover dicatat.
 - [ ] keputusan owner tercatat bersama alasan teknis.
+- [ ] lampirkan artifact `artifacts/cutover/**` (summary + log per wave + report E2E wave).
 
 ## Escalation Rule
 

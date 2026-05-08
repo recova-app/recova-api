@@ -14,9 +14,19 @@ case "$db_url" in
     ;;
 esac
 
+scope="${RECOVA_E2E_SCOPE:-all}"
+case "$scope" in
+  all|wave64|wave65|wave66|wave67|wave68) ;;
+  *)
+    echo "[e2e-critical] RECOVA_E2E_SCOPE tidak valid: $scope" >&2
+    exit 1
+    ;;
+esac
+
 report_path="${RECOVA_E2E_REPORT_PATH:-artifacts/release-confidence/e2e-critical-flows.json}"
 mkdir -p "$(dirname "$report_path")"
 
 RECOVA_E2E_REPORT_PATH="$report_path" go test -count=1 ./test/e2e -run TestE2E_CriticalFlows
 
+echo "[e2e-critical] scope: $scope"
 echo "[e2e-critical] report: $report_path"

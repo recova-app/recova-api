@@ -44,6 +44,18 @@ Urutan domain disarankan berdasarkan dampak dan ketergantungan:
 
 Domain berikutnya hanya boleh lanjut jika domain sebelumnya lulus gate.
 
+Mapping wave cutover runtime:
+
+- wave 64: platform/health,
+- wave 65: auth/users/onboarding,
+- wave 66: routine/journals/statistics,
+- wave 67: community/content,
+- wave 68: ai coach.
+
+Runner lokal/CI:
+
+- `./scripts/cutover-wave.sh 64|65|66|67|68|all`.
+
 ## Preconditions Before First Cutover
 
 - [Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-matrix.md) tervalidasi untuk domain target,

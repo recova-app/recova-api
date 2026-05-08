@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke staging-deploy cutover-wave cutover-all
 
 preflight:
 	@./scripts/preflight.sh
@@ -70,3 +70,9 @@ compose-smoke:
 
 staging-deploy:
 	@./scripts/staging-deploy.sh
+
+cutover-wave:
+	@./scripts/cutover-wave.sh $(WAVE)
+
+cutover-all:
+	@./scripts/cutover-wave.sh all

@@ -76,20 +76,22 @@ Wajib:
 
 Perintah verifikasi baseline:
 
-| Command                   | Scope                                                                 |
-| ------------------------- | --------------------------------------------------------------------- |
-| `make test`               | unit tests package Go                                                 |
-| `make lint`               | static checks baseline (`go vet ./...`)                               |
-| `make build`              | compile gate untuk binary API                                         |
-| `make preflight`          | validasi dependency command dan struktur minimum project              |
-| `make test-integration`   | scripted checks untuk workflow tooling (mis. migrasi wrapper)         |
-| `make migrate-check`      | validasi state migration (versi/dirtiness)                            |
-| `make openapi-check`      | validasi OpenAPI source/generated + drift route runtime               |
-| `make security-scan`      | vulnerability scan dependency Go via govulncheck                      |
-| `make compose-smoke`      | smoke runtime container (`docker-compose.local.yml`)                  |
-| `make test-e2e`           | E2E critical flow suite + report JSON                                 |
-| `make test-performance`   | load/performance smoke suite + report JSON                            |
-| `make release-validation` | menjalankan seluruh gate release-validation (E2E + performance smoke) |
+| Command                     | Scope                                                                 |
+| --------------------------- | --------------------------------------------------------------------- |
+| `make test`                 | unit tests package Go                                                 |
+| `make lint`                 | static checks baseline (`go vet ./...`)                               |
+| `make build`                | compile gate untuk binary API                                         |
+| `make preflight`            | validasi dependency command dan struktur minimum project              |
+| `make test-integration`     | scripted checks untuk workflow tooling (mis. migrasi wrapper)         |
+| `make migrate-check`        | validasi state migration (versi/dirtiness)                            |
+| `make openapi-check`        | validasi OpenAPI source/generated + drift route runtime               |
+| `make security-scan`        | vulnerability scan dependency Go via govulncheck                      |
+| `make compose-smoke`        | smoke runtime container (`docker-compose.local.yml`)                  |
+| `make test-e2e`             | E2E critical flow suite + report JSON                                 |
+| `make test-performance`     | load/performance smoke suite + report JSON                            |
+| `make release-validation`   | menjalankan seluruh gate release-validation (E2E + performance smoke) |
+| `make cutover-wave WAVE=64` | gate otomatis cutover per wave (single wave)                          |
+| `make cutover-all`          | gate otomatis cutover serial wave 64-68                               |
 
 Default output report:
 

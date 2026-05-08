@@ -26,6 +26,7 @@ type criticalFlowStep struct {
 
 type criticalFlowReport struct {
 	Suite       string             `json:"suite"`
+	Scope       string             `json:"scope"`
 	GeneratedAt string             `json:"generatedAt"`
 	DurationMs  int64              `json:"durationMs"`
 	Status      string             `json:"status"`
@@ -41,10 +42,12 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	steps := make([]criticalFlowStep, 0, 16)
 	start := time.Now()
 	reportStatus := "passed"
+	scope := normalizeE2EScope(os.Getenv("RECOVA_E2E_SCOPE"))
 
 	t.Cleanup(func() {
 		report := criticalFlowReport{
 			Suite:       "critical-flows",
+			Scope:       scope,
 			GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 			DurationMs:  time.Since(start).Milliseconds(),
 			Status:      reportStatus,
@@ -60,6 +63,11 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	runStep := func(name string, fn func() error) {
 		stepIndex := len(steps)
 		steps = append(steps, criticalFlowStep{Name: name, Status: "running"})
+		if !e2eScopeAllowsStep(scope, name) {
+			steps[stepIndex].Status = "skipped"
+			steps[stepIndex].Detail = "excluded by RECOVA_E2E_SCOPE"
+			return
+		}
 		if err := fn(); err != nil {
 			reportStatus = "failed"
 			steps[stepIndex].Status = "failed"
@@ -480,4 +488,66 @@ func writeJSONReport(t testing.TB, path string, payload any) {
 	if err := os.WriteFile(targetPath, encoded, 0o644); err != nil {
 		t.Fatalf("write report: %v", err)
 	}
+}
+
+func normalizeE2EScope(raw string) string {
+	scope := strings.ToLower(strings.TrimSpace(raw))
+	switch scope {
+	case "", "all", "wave64", "wave65", "wave66", "wave67", "wave68":
+		if scope == "" {
+			return "all"
+		}
+		return scope
+	default:
+		return "all"
+	}
+}
+
+func e2eScopeAllowsStep(scope string, stepName string) bool {
+	allowedSteps := map[string]map[string]struct{}{
+		"all": {},
+		"wave64": {
+			"health readiness": {},
+		},
+		"wave65": {
+			"health readiness":                     {},
+			"auth login flow":                      {},
+			"auth refresh token flow":              {},
+			"onboarding and profile":               {},
+			"auth logout and refresh invalidation": {},
+		},
+		"wave66": {
+			"health readiness":                     {},
+			"auth login flow":                      {},
+			"onboarding and profile":               {},
+			"daily checkin and statistics":         {},
+			"journals create/list":                 {},
+			"auth logout and refresh invalidation": {},
+		},
+		"wave67": {
+			"health readiness":                     {},
+			"auth login flow":                      {},
+			"onboarding and profile":               {},
+			"community post/comment/like":          {},
+			"education and daily content read":     {},
+			"auth logout and refresh invalidation": {},
+		},
+		"wave68": {
+			"health readiness":                     {},
+			"auth login flow":                      {},
+			"onboarding and profile":               {},
+			"ai coach safe response and history":   {},
+			"auth logout and refresh invalidation": {},
+		},
+	}
+
+	selected, exists := allowedSteps[scope]
+	if !exists {
+		return true
+	}
+	if scope == "all" {
+		return true
+	}
+	_, ok := selected[stepName]
+	return ok
 }
