@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
 	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
@@ -13,6 +14,7 @@ import (
 	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
+	aiplatform "github.com/recova-app/backend-v2/internal/platform/ai"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	"github.com/recova-app/backend-v2/internal/platform/database"
 )
@@ -46,6 +48,12 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 	communityService := communitymodule.NewService(communitymodule.NewRepository(dbClient.Gorm()))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(dbClient.Gorm()))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(dbClient.Gorm()))
+	aiClient, err := aiplatform.NewClient(cfg.AI)
+	if err != nil {
+		_ = dbClient.Close()
+		return nil, err
+	}
+	aiService := aimodule.NewService(aimodule.NewRepository(dbClient.Gorm()), aiClient)
 
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
 		{
@@ -62,6 +70,7 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 		CommunityService: communityService,
 		EducationService: educationService,
 		ContentService:   contentService,
+		AIService:        aiService,
 	}))
 	if err != nil {
 		_ = dbClient.Close()

@@ -66,6 +66,12 @@ Metadata log minimum:
 - fallback provider opsional hanya jika sudah dikonfigurasi,
 - error detail internal provider tidak boleh dipaparkan ke client.
 
+Implementasi runtime saat ini:
+
+- fallback hanya dijalankan untuk kegagalan `timeout` atau `unavailable`,
+- kegagalan validasi payload respons provider dihentikan sebagai `DOWNSTREAM_ERROR`,
+- request logger hanya mencatat metadata route (tanpa body prompt/jurnal).
+
 ## Incident Triage Matrix
 
 | Scenario                         | Signal                                          | First checks                                             |

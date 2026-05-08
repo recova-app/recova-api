@@ -152,6 +152,9 @@ func (r *Repository) ResetUserDataForTesting(ctx context.Context, userID string)
 		if err := tx.WithContext(ctx).Where("user_id = ?", trimmedUserID).Delete(&models.CommunityPost{}).Error; err != nil {
 			return err
 		}
+		if err := tx.WithContext(ctx).Where("user_id = ?", trimmedUserID).Delete(&models.AIChat{}).Error; err != nil {
+			return err
+		}
 		if err := tx.WithContext(ctx).Where("user_id = ?", trimmedUserID).Delete(&models.Journal{}).Error; err != nil {
 			return err
 		}

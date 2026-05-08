@@ -1,2 +1,2 @@
-// Package ai contains AI coach and supporting module contracts.
+// Package ai contains AI coach module contracts and runtime handlers.
 package ai

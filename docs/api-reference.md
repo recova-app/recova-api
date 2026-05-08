@@ -43,10 +43,10 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | users     | `GET`    | `/users/me`                   | ambil profil pengguna                         | bearer            | implemented     |
 | users     | `PUT`    | `/users/settings`             | update pengaturan profil                      | bearer            | implemented     |
 | users     | `DELETE` | `/users/me/reset-data`        | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
-| ai        | `POST`   | `/ai/ask-coach`               | kirim pesan ke AI Coach                       | gap               | documented      |
-| ai        | `GET`    | `/ai/chat-history`            | ambil riwayat chat AI Coach                   | gap               | documented      |
-| ai        | `GET`    | `/ai/summary`                 | ambil ringkasan check-in                      | gap               | documented      |
-| ai        | `POST`   | `/ai/onboarding-analysis`     | analisis data onboarding                      | gap               | documented      |
+| ai        | `POST`   | `/ai/ask-coach`               | kirim pesan ke AI Coach                       | bearer            | implemented     |
+| ai        | `GET`    | `/ai/chat-history`            | ambil riwayat chat AI Coach                   | bearer            | implemented     |
+| ai        | `GET`    | `/ai/summary`                 | ambil ringkasan check-in                      | bearer            | implemented     |
+| ai        | `POST`   | `/ai/onboarding-analysis`     | analisis data onboarding                      | bearer            | implemented     |
 | routine   | `POST`   | `/routine/checkin`            | check-in harian                               | bearer            | implemented     |
 | routine   | `GET`    | `/routine/statistics`         | ambil statistik pengguna                      | bearer            | implemented     |
 | routine   | `GET`    | `/routine/relapses`           | ambil riwayat relapse                         | bearer            | implemented     |

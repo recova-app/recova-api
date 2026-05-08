@@ -51,6 +51,15 @@ Arah kompatibilitas:
 
 Pemilihan provider dilakukan oleh konfigurasi environment dan tidak mengubah contract endpoint publik.
 
+## Implementation Baseline
+
+Implementasi runtime saat ini:
+
+- OpenAI-compatible: `POST /chat/completions` dengan header `Authorization: Bearer ...`.
+- Gemini API: `POST /models/{model}:generateContent` dengan header `x-goog-api-key`.
+- Timeout dieksekusi via `context.WithTimeout` per request.
+- Fallback hanya dijalankan untuk klasifikasi error `timeout` atau `unavailable`.
+
 ## Environment Contract
 
 Nama variabel minimum:
@@ -114,6 +123,8 @@ Aturan:
 
 ## Source Reference
 
-- [OpenAI API Authentication](https://developers.openai.com/api/reference/overview#authentication)
-- [Gemini API OAuth Quickstart](https://ai.google.dev/gemini-api/docs/oauth)
+- [OpenAI API Authentication](https://platform.openai.com/docs/api-reference/authentication?api-mode=responses)
+- [OpenAI Chat Completions Endpoint](https://platform.openai.com/docs/api-reference/chat/create?lang=curl)
+- [Gemini API Reference](https://ai.google.dev/api)
+- [Gemini Troubleshooting Guide](https://ai.google.dev/gemini-api/docs/troubleshooting)
 - [/Users/macbookpro/Development/bisakerja-api/docs/integrations/model-api.md](/Users/macbookpro/Development/bisakerja-api/docs/integrations/model-api.md)

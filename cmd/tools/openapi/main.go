@@ -13,6 +13,7 @@ import (
 	"time"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
 	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
@@ -20,6 +21,7 @@ import (
 	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
 	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
+	aiplatform "github.com/recova-app/backend-v2/internal/platform/ai"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	contractopenapi "github.com/recova-app/backend-v2/internal/platform/openapi"
 )
@@ -143,6 +145,7 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	communityService := communitymodule.NewService(communitymodule.NewRepository(nil))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(nil))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(nil))
+	aiService := aimodule.NewService(aimodule.NewRepository(nil), &noopAIProvider{})
 
 	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
 		AuthService:      authService,
@@ -152,6 +155,7 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 		CommunityService: communityService,
 		EducationService: educationService,
 		ContentService:   contentService,
+		AIService:        aiService,
 	}))
 	if err != nil {
 		return nil, fmt.Errorf("build runtime server: %w", err)
@@ -278,4 +282,10 @@ type noopGoogleVerifier struct{}
 
 func (v *noopGoogleVerifier) Verify(_ context.Context, _, _ string) (authmodule.GoogleIdentity, error) {
 	return authmodule.GoogleIdentity{}, errors.New("noop verifier")
+}
+
+type noopAIProvider struct{}
+
+func (p *noopAIProvider) Generate(_ context.Context, _ aiplatform.GenerateRequest) (aiplatform.GenerateResponse, error) {
+	return aiplatform.GenerateResponse{}, errors.New("noop provider")
 }

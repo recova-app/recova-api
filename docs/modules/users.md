@@ -105,7 +105,8 @@ Metrik minimum:
 - `nickname` tervalidasi 3-50 karakter,
 - `daily_checkin_time` menerima format `HH:mm` dan disimpan pada kolom `users.check_in_time`,
 - update settings menerima alias legacy (`userWhy`, `checkinTime`) agar tetap kompatibel dengan payload klien lama,
-- endpoint reset-data hanya aktif untuk environment lokal/development dan mengembalikan `403 FORBIDDEN` di environment lain.
+- endpoint reset-data hanya aktif untuk environment lokal/development dan mengembalikan `403 FORBIDDEN` di environment lain,
+- proses reset-data menghapus data user-generated termasuk histori AI (`ai_chats`) milik user tersebut.
 
 ## Related Documents
 

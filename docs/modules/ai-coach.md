@@ -39,7 +39,7 @@ Route prefix:
 
 Entitas utama:
 
-- `ai_chat_messages` atau penyimpanan histori sejenis,
+- `ai_chats` untuk histori percakapan (`role=user|model`, `content`, `created_at`),
 - metadata request AI (`provider`, `model`, `latency`, `status`),
 - relasi riwayat AI ke `user_id`.
 
@@ -58,7 +58,7 @@ Constraint minimum:
 
 - handler wajib memanggil abstraction provider, bukan SDK vendor langsung,
 - timeout request AI wajib eksplisit,
-- retry default konservatif untuk hindari duplikasi side effect,
+- fallback provider optional hanya dipakai untuk failure `timeout/unavailable`,
 - safety filtering dijalankan sebelum respons dikirim.
 
 ## Validation Rules
@@ -70,13 +70,14 @@ Constraint minimum:
 
 ## Error Contract
 
-| Condition              | HTTP        | Error code         |
-| ---------------------- | ----------- | ------------------ |
-| auth invalid/missing   | `401`       | `UNAUTHENTICATED`  |
-| payload invalid        | `422`       | `VALIDATION_ERROR` |
-| provider timeout/error | `502`/`503` | `DOWNSTREAM_ERROR` |
-| akses tidak diizinkan  | `403`       | `FORBIDDEN`        |
-| kegagalan internal     | `500`       | `INTERNAL_ERROR`   |
+| Condition              | HTTP  | Error code            |
+| ---------------------- | ----- | --------------------- |
+| auth invalid/missing   | `401` | `UNAUTHENTICATED`     |
+| payload invalid        | `422` | `VALIDATION_ERROR`    |
+| provider invalid/error | `502` | `DOWNSTREAM_ERROR`    |
+| provider timeout/down  | `503` | `SERVICE_UNAVAILABLE` |
+| akses tidak diizinkan  | `403` | `FORBIDDEN`           |
+| kegagalan internal     | `500` | `INTERNAL_ERROR`      |
 
 ## Observability Contract
 
@@ -108,9 +109,7 @@ Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
 
 ## Open Gaps
 
-- retensi final histori chat,
-- aturan final fallback multi-provider,
-- format final metadata confidence output.
+- retensi final histori chat lintas environment.
 
 ## Related Documents
 
@@ -121,5 +120,7 @@ Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
-- [OpenAI API Overview](https://platform.openai.com/docs/overview)
-- [Gemini API Overview](https://ai.google.dev/gemini-api/docs)
+- [OpenAI API Authentication](https://platform.openai.com/docs/api-reference/authentication?api-mode=responses)
+- [OpenAI Chat Completions Endpoint](https://platform.openai.com/docs/api-reference/chat/create?lang=curl)
+- [Gemini API Reference](https://ai.google.dev/api)
+- [Gemini Generate Content](https://ai.google.dev/api/generate-content)

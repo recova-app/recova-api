@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
+	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
 	contentmodule "github.com/recova-app/backend-v2/internal/modules/content"
@@ -50,6 +51,7 @@ type ModuleDependencies struct {
 	CommunityService *communitymodule.Service
 	EducationService *educationmodule.Service
 	ContentService   *contentmodule.Service
+	AIService        *aimodule.Service
 }
 
 // ServerOption customizes server runtime assembly.
@@ -248,6 +250,11 @@ func (s *Server) registerRoutes(cfg config.Config) {
 		contentGroup := apiGroup.Group("/content")
 		contentmodule.RegisterRoutes(contentGroup, s.moduleDeps.AuthService, s.moduleDeps.ContentService)
 	}
+
+	if s.moduleDeps.AIService != nil && s.moduleDeps.AuthService != nil {
+		aiGroup := apiGroup.Group("/ai")
+		aimodule.RegisterRoutes(aiGroup, s.moduleDeps.AuthService, s.moduleDeps.AIService, aiRequestLimiter(cfg))
+	}
 }
 
 func (s *Server) registerFallbackRoutes() {
@@ -282,6 +289,36 @@ func communityWriteLimiter(cfg config.Config) fiber.Handler {
 		},
 		LimitReached: func(_ fiber.Ctx) error {
 			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan komunitas, coba lagi sebentar", nil, nil)
+		},
+	})
+}
+
+func aiRequestLimiter(cfg config.Config) fiber.Handler {
+	window := time.Duration(cfg.Security.RateLimit.WindowMs) * time.Millisecond
+	if window <= 0 {
+		window = time.Minute
+	}
+
+	maxAI := cfg.Security.RateLimit.AIMax
+	if maxAI <= 0 {
+		maxAI = 1
+	}
+	if cfg.Security.RateLimit.Max > 0 && maxAI > cfg.Security.RateLimit.Max {
+		maxAI = cfg.Security.RateLimit.Max
+	}
+
+	return limiter.New(limiter.Config{
+		Max:        maxAI,
+		Expiration: window,
+		KeyGenerator: func(c fiber.Ctx) string {
+			principal, ok := authmodule.PrincipalFromContext(c)
+			if ok && strings.TrimSpace(principal.UserID) != "" {
+				return strings.TrimSpace(principal.UserID)
+			}
+			return strings.TrimSpace(c.IP())
+		},
+		LimitReached: func(_ fiber.Ctx) error {
+			return errs.New(errs.CodeRateLimited, "Terlalu banyak permintaan AI, coba lagi sebentar", nil, nil)
 		},
 	})
 }
