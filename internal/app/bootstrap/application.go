@@ -6,6 +6,8 @@ import (
 	"log/slog"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	"github.com/recova-app/backend-v2/internal/platform/database"
 )
@@ -24,6 +26,17 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 		return nil, err
 	}
 
+	authService := authmodule.NewService(
+		authmodule.NewRepository(dbClient.Gorm()),
+		&authmodule.GoogleIDTokenVerifier{},
+		authmodule.NewTokenManager(cfg),
+	)
+	usersService := usersmodule.NewService(
+		usersmodule.NewRepository(dbClient.Gorm()),
+		cfg.Application.AppEnv,
+		cfg.Application.NodeEnv,
+	)
+
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
 		{
 			Name:    "database",
@@ -31,6 +44,9 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 			Message: "Koneksi database tidak sehat",
 			Probe:   dbClient.Ping,
 		},
+	}), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
+		AuthService:  authService,
+		UsersService: usersService,
 	}))
 	if err != nil {
 		_ = dbClient.Close()

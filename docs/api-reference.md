@@ -36,11 +36,13 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 
 | Domain    | Method   | Path                          | Summary                                       | Auth requirement  | Contract status |
 | --------- | -------- | ----------------------------- | --------------------------------------------- | ----------------- | --------------- |
-| auth      | `POST`   | `/auth/google`                | login/registrasi via Google token             | gap               | documented      |
-| auth      | `POST`   | `/auth/onboarding`            | simpan onboarding awal pengguna               | gap               | documented      |
-| users     | `GET`    | `/users/me`                   | ambil profil pengguna                         | gap               | documented      |
-| users     | `PUT`    | `/users/settings`             | update pengaturan profil                      | gap               | documented      |
-| users     | `DELETE` | `/users/me/reset-data`        | reset data pengguna untuk development/testing | dev-only (stated) | documented      |
+| auth      | `POST`   | `/auth/google`                | login/registrasi via Google token             | public            | implemented     |
+| auth      | `POST`   | `/auth/onboarding`            | simpan onboarding awal pengguna               | bearer            | implemented     |
+| auth      | `POST`   | `/auth/refresh`               | rotasi refresh token dan perbarui sesi akses  | cookie            | implemented     |
+| auth      | `POST`   | `/auth/logout`                | akhiri sesi aktif pengguna                    | bearer            | implemented     |
+| users     | `GET`    | `/users/me`                   | ambil profil pengguna                         | bearer            | implemented     |
+| users     | `PUT`    | `/users/settings`             | update pengaturan profil                      | bearer            | implemented     |
+| users     | `DELETE` | `/users/me/reset-data`        | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
 | ai        | `POST`   | `/ai/ask-coach`               | kirim pesan ke AI Coach                       | gap               | documented      |
 | ai        | `GET`    | `/ai/chat-history`            | ambil riwayat chat AI Coach                   | gap               | documented      |
 | ai        | `GET`    | `/ai/summary`                 | ambil ringkasan check-in                      | gap               | documented      |

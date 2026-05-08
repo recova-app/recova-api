@@ -45,6 +45,7 @@ Aturan:
 - request harus datang dari user terautentikasi,
 - semua field wajib divalidasi sebelum disimpan,
 - data onboarding tidak boleh menerima `user_id` dari client sebagai sumber kebenaran.
+- payload kompatibilitas juga menerima alias legacy `userWhy`, `checkinTime`, dan `dependencyLevel`.
 
 ## Onboarding Completion State
 
@@ -85,11 +86,12 @@ Batas privasi:
 - jangan tulis `recovery_reason` mentah ke log,
 - jangan expose field sensitif di error payload.
 
-## Open Gaps
+## Implementation Notes
 
-- kebijakan unik final untuk `nickname`,
-- bentuk response detail setelah completion,
-- kebutuhan analitik onboarding non-personal.
+- onboarding disimpan dengan membuat baris baru `profiles` untuk `user_id` terkait,
+- submit onboarding ulang dengan payload identik diperlakukan idempotent (`COMPLETED -> COMPLETED`),
+- submit onboarding ulang dengan payload berbeda dipetakan ke `409 CONFLICT`,
+- perubahan data profil setelah onboarding selesai harus melalui endpoint users settings.
 
 ## Related Documents
 

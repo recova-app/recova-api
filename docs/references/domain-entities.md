@@ -20,6 +20,7 @@ Dokumen ini merinci entitas domain dan keterkaitannya dengan modul aplikasi.
 | Entity             | Module owner       | Description                                 |
 | ------------------ | ------------------ | ------------------------------------------- |
 | `User`             | auth/users         | identitas akun pengguna                     |
+| `AuthRefreshToken` | auth               | state refresh token ter-rotasi dan revokasi |
 | `Profile`          | users              | data profil dan onboarding pengguna         |
 | `CheckIn`          | routine            | catatan check-in harian                     |
 | `Streak`           | routine/statistics | data streak aktif dan histori               |
@@ -37,6 +38,7 @@ Dokumen ini merinci entitas domain dan keterkaitannya dengan modul aplikasi.
 | Entity             | Table                  |
 | ------------------ | ---------------------- |
 | `User`             | `users`                |
+| `AuthRefreshToken` | `auth_refresh_tokens`  |
 | `Profile`          | `profiles`             |
 | `CheckIn`          | `check_ins`            |
 | `Streak`           | `streaks`              |
@@ -67,7 +69,7 @@ Dokumen ini merinci entitas domain dan keterkaitannya dengan modul aplikasi.
 
 | Module    | Required entities                                    |
 | --------- | ---------------------------------------------------- |
-| auth      | User, Profile                                        |
+| auth      | User, AuthRefreshToken                               |
 | users     | User, Profile                                        |
 | routine   | User, CheckIn, Streak                                |
 | journals  | User, JournalEntry                                   |

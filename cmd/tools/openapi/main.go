@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	contractopenapi "github.com/recova-app/backend-v2/internal/platform/openapi"
 )
@@ -123,7 +126,18 @@ func runCheck() error {
 }
 
 func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
-	srv, err := apphttp.NewServer(testRuntimeConfig(), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	cfg := testRuntimeConfig()
+	authService := authmodule.NewService(
+		authmodule.NewRepository(nil),
+		&noopGoogleVerifier{},
+		authmodule.NewTokenManager(cfg),
+	)
+	usersService := usersmodule.NewService(usersmodule.NewRepository(nil), cfg.Application.AppEnv, cfg.Application.NodeEnv)
+
+	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
+		AuthService:  authService,
+		UsersService: usersService,
+	}))
 	if err != nil {
 		return nil, fmt.Errorf("build runtime server: %w", err)
 	}
@@ -137,8 +151,20 @@ func testRuntimeConfig() config.Config {
 		Application: config.ApplicationConfig{
 			AppName:   "recova-openapi-check",
 			AppEnv:    "test",
+			NodeEnv:   "test",
 			Port:      "3000",
 			APIPrefix: "/api/v1",
+		},
+		Auth: config.AuthConfig{
+			JWTSecret:     "openapi-check-jwt-secret-123456",
+			JWTAccessTTL:  15 * time.Minute,
+			JWTRefreshTTL: 24 * time.Hour,
+			GoogleClient:  "openapi-check-google-client-id",
+			Cookie: config.CookieConfig{
+				Name:     "recova_refresh_openapi",
+				Secure:   false,
+				SameSite: "lax",
+			},
 		},
 		Security: config.SecurityConfig{
 			CORSOrigins:      []string{"http://localhost:5173"},
@@ -211,7 +237,7 @@ func renderRouteInventory(routeSet map[contractopenapi.RouteKey]struct{}) string
 	builder.WriteString("\n## Drift Check Use\n\n")
 	builder.WriteString("Gunakan file ini untuk validasi sinkronisasi route runtime dan kontrak OpenAPI pada proses review maupun CI.\n\n")
 	builder.WriteString("## Known Gap\n\n")
-	builder.WriteString("Route domain `/api/v1/**` selain health belum diregistrasikan di runtime saat ini. Kontrak endpoint domain akan ditambah bertahap bersamaan implementasi modul.\n\n")
+	builder.WriteString("Inventaris route ini disinkronkan otomatis dari runtime. Perbedaan terhadap kontrak OpenAPI diperlakukan sebagai drift dan harus diperbaiki sebelum merge.\n\n")
 	builder.WriteString("## Related Documents\n\n")
 	builder.WriteString("- [OpenAPI Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/openapi.md)\n")
 	builder.WriteString("- [API Reference](/Users/macbookpro/Development/recova-backend-v2/docs/api-reference.md)\n")
@@ -231,4 +257,10 @@ func inferModule(path string) string {
 	default:
 		return "platform"
 	}
+}
+
+type noopGoogleVerifier struct{}
+
+func (v *noopGoogleVerifier) Verify(_ context.Context, _, _ string) (authmodule.GoogleIdentity, error) {
+	return authmodule.GoogleIdentity{}, errors.New("noop verifier")
 }

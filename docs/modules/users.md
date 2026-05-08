@@ -39,8 +39,8 @@ Route prefix:
 Entitas utama:
 
 - `users`,
-- `user_profiles` (nickname, recovery reason, check-in time),
-- audit table untuk perubahan profil (bila diaktifkan).
+- `profiles` (state completion onboarding + jawaban onboarding),
+- `auth_refresh_tokens` (ikut dibersihkan pada reset data development).
 
 Constraint minimum:
 
@@ -100,11 +100,12 @@ Metrik minimum:
 - test guard reset-data non-development,
 - contract test error envelope users routes.
 
-## Open Gaps
+## Implementation Notes
 
-- batas final panjang `nickname`,
-- format final `daily_checkin_time`,
-- detail retention audit profile changes.
+- `nickname` tervalidasi 3-50 karakter,
+- `daily_checkin_time` menerima format `HH:mm` dan disimpan pada kolom `users.check_in_time`,
+- update settings menerima alias legacy (`userWhy`, `checkinTime`) agar tetap kompatibel dengan payload klien lama,
+- endpoint reset-data hanya aktif untuk environment lokal/development dan mengembalikan `403 FORBIDDEN` di environment lain.
 
 ## Related Documents
 

@@ -43,8 +43,7 @@ Route prefix:
 Entitas utama:
 
 - `users` (identitas akun),
-- `sessions` atau tabel sejenis untuk state sesi,
-- `refresh_tokens` (token hash + expiry + revoked state bila dipakai).
+- `auth_refresh_tokens` (hash refresh token, expiry, revoked state, dan riwayat rotasi token).
 
 Constraint minimum:
 
@@ -106,11 +105,14 @@ Metrik minimum:
 - integration test revocation/logout idempotent,
 - contract test error envelope endpoint auth.
 
-## Open Gaps
+## Implementation Notes
 
-- nilai final TTL access/refresh token,
-- batas sesi multi-device,
-- strategi denylist access token saat incident response.
+- access token diterbitkan sebagai JWT `HS256` berumur pendek dengan claim `iss`, `sub`, `exp`, `iat`, dan `token_type=access`,
+- refresh token diterbitkan sebagai JWT `HS256` dengan claim `token_type=refresh`,
+- refresh token disimpan persisten sebagai hash SHA-256 pada tabel `auth_refresh_tokens`,
+- rotasi refresh token dilakukan setiap refresh sukses (`old token revoked` -> `new token inserted`),
+- logout tetap idempotent walaupun cookie refresh tidak tersedia,
+- endpoint `/api/v1/auth/onboarding` diproteksi bearer token dan tidak menerima override `user_id` dari body.
 
 ## Related Documents
 
@@ -123,4 +125,5 @@ Metrik minimum:
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
 - [Google Backend Auth Verification](https://developers.google.com/identity/sign-in/web/backend-auth)
 - [JWT Best Current Practices](https://www.rfc-editor.org/rfc/rfc8725)
-- [Fiber JWT Middleware](https://docs.gofiber.io/contrib/v3_jwt_v1.x.x/jwt/)
+- [Google ID Token Validation for Go](https://pkg.go.dev/google.golang.org/api/idtoken)
+- [Go JWT Package](https://pkg.go.dev/github.com/golang-jwt/jwt/v5)

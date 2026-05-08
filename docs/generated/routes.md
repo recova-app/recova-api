@@ -21,16 +21,23 @@ Dokumen ini adalah inventaris route aktif berdasarkan runtime Go Fiber saat ini.
 
 | Metric        | Value        |
 | ------------- | ------------ |
-| Total routes  | 2            |
+| Total routes  | 9            |
 | API prefix    | `/api/v1`    |
 | Last verified | `2026-05-08` |
 
 ## Registered Routes
 
-| Method | Path            | Module   |
-| ------ | --------------- | -------- |
-| `GET`  | `/health/live`  | `health` |
-| `GET`  | `/health/ready` | `health` |
+| Method   | Path                          | Module   |
+| -------- | ----------------------------- | -------- |
+| `DELETE` | `/api/v1/users/me/reset-data` | `api-v1` |
+| `GET`    | `/api/v1/users/me`            | `api-v1` |
+| `GET`    | `/health/live`                | `health` |
+| `GET`    | `/health/ready`               | `health` |
+| `POST`   | `/api/v1/auth/google`         | `api-v1` |
+| `POST`   | `/api/v1/auth/logout`         | `api-v1` |
+| `POST`   | `/api/v1/auth/onboarding`     | `api-v1` |
+| `POST`   | `/api/v1/auth/refresh`        | `api-v1` |
+| `PUT`    | `/api/v1/users/settings`      | `api-v1` |
 
 ## Drift Check Use
 
@@ -38,7 +45,7 @@ Gunakan file ini untuk validasi sinkronisasi route runtime dan kontrak OpenAPI p
 
 ## Known Gap
 
-Route domain `/api/v1/**` selain health belum diregistrasikan di runtime saat ini. Kontrak endpoint domain akan ditambah bertahap bersamaan implementasi modul.
+Inventaris route ini disinkronkan otomatis dari runtime. Perbedaan terhadap kontrak OpenAPI diperlakukan sebagai drift dan harus diperbaiki sebelum merge.
 
 ## Related Documents
 

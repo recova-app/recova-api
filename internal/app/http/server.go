@@ -13,6 +13,8 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/helmet"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
+	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 	"github.com/recova-app/backend-v2/internal/shared/response"
@@ -30,6 +32,13 @@ type Server struct {
 	logger           *slog.Logger
 	readinessChecks  []ReadinessCheck
 	readinessTimeout time.Duration
+	moduleDeps       ModuleDependencies
+}
+
+// ModuleDependencies stores domain services required to register API routes.
+type ModuleDependencies struct {
+	AuthService  *authmodule.Service
+	UsersService *usersmodule.Service
 }
 
 // ServerOption customizes server runtime assembly.
@@ -53,6 +62,13 @@ func WithReadinessChecks(checks []ReadinessCheck) ServerOption {
 		if len(cloned) > 0 {
 			s.readinessChecks = cloned
 		}
+	}
+}
+
+// WithModuleDependencies configures runtime domain service dependencies for route registration.
+func WithModuleDependencies(deps ModuleDependencies) ServerOption {
+	return func(s *Server) {
+		s.moduleDeps = deps
 	}
 }
 
@@ -178,8 +194,19 @@ func (s *Server) registerRoutes(cfg config.Config) {
 		return c.Status(fiber.StatusOK).JSON(payload)
 	})
 
-	// API group baseline disiapkan sebagai titik registrasi modul domain.
-	_ = s.app.Group(strings.TrimSpace(cfg.Application.APIPrefix))
+	apiGroup := s.app.Group(strings.TrimSpace(cfg.Application.APIPrefix))
+	if s.moduleDeps.AuthService != nil {
+		authGroup := apiGroup.Group("/auth")
+		authmodule.RegisterCoreRoutes(authGroup, s.moduleDeps.AuthService)
+		if s.moduleDeps.UsersService != nil {
+			usersmodule.RegisterOnboardingRoute(authGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
+		}
+	}
+
+	if s.moduleDeps.UsersService != nil && s.moduleDeps.AuthService != nil {
+		usersGroup := apiGroup.Group("/users")
+		usersmodule.RegisterUserRoutes(usersGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
+	}
 }
 
 func (s *Server) registerFallbackRoutes() {

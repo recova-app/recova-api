@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Recova Backend API
-  version: 0.1.0
-  description: Kontrak API baseline untuk runtime Go Fiber Recova Backend.
+  version: 0.2.0
+  description: Kontrak API publik runtime Go Fiber Recova Backend.
 servers:
   - url: /
     description: Base URL runtime service
@@ -60,23 +60,215 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                not_ready:
-                  value:
-                    success: false
-                    message: Layanan belum siap
-                    data: null
-                    error:
-                      code: SERVICE_UNAVAILABLE
-                      details:
-                        status: not_ready
-                        checks:
-                          database:
-                            status: down
-                            healthy: false
-                            message: Koneksi database tidak sehat
-                      requestId: req_123
+  /api/v1/auth/google:
+    post:
+      tags:
+        - auth
+      operationId: postAuthGoogle
+      summary: Login atau registrasi pengguna via Google token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthGoogleLoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token Google tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/auth/onboarding:
+    post:
+      tags:
+        - onboarding
+      operationId: postAuthOnboarding
+      summary: Menyimpan data onboarding awal pengguna
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OnboardingRequest'
+      responses:
+        '201':
+          description: Data onboarding berhasil disimpan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Onboarding sudah selesai dengan data berbeda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload onboarding tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - auth
+      operationId: postAuthRefresh
+      summary: Merotasi refresh token dan menerbitkan access token baru
+      security:
+        - RefreshCookieAuth: []
+      responses:
+        '200':
+          description: Sesi berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Refresh token tidak valid atau kadaluarsa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - auth
+      operationId: postAuthLogout
+      summary: Mengakhiri sesi pengguna saat ini
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/users/me:
+    get:
+      tags:
+        - users
+      operationId: getUsersMe
+      summary: Mengambil profil pengguna saat ini
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profil pengguna berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Pengguna tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/users/settings:
+    put:
+      tags:
+        - users
+      operationId: putUsersSettings
+      summary: Memperbarui pengaturan profil pengguna
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettingsUpdateRequest'
+      responses:
+        '200':
+          description: Pengaturan pengguna berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload update tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/users/me/reset-data:
+    delete:
+      tags:
+        - users
+      operationId: deleteUsersMeResetData
+      summary: Mereset data pengguna untuk kebutuhan development
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Data pengguna berhasil direset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Endpoint reset tidak diizinkan pada environment ini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RefreshCookieAuth:
+      type: apiKey
+      in: cookie
+      name: recova_refresh
   schemas:
     SuccessEnvelope:
       type: object
@@ -133,5 +325,59 @@ components:
                 additionalProperties: true
             - type: 'null'
         requestId:
+          type: string
+    AuthGoogleLoginRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 1
+    OnboardingRequest:
+      type: object
+      required:
+        - nickname
+        - recovery_reason
+        - daily_checkin_time
+      properties:
+        nickname:
+          type: string
+          minLength: 3
+          maxLength: 50
+        recovery_reason:
+          type: string
+          minLength: 3
+        daily_checkin_time:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):([0-5]\\d)$'
+        answers:
+          type: object
+          additionalProperties: true
+        dependency_level:
+          type: string
+        userWhy:
+          type: string
+        checkinTime:
+          type: string
+        dependencyLevel:
+          type: string
+    UserSettingsUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        nickname:
+          type: string
+          minLength: 3
+          maxLength: 50
+        recovery_reason:
+          type: string
+          minLength: 3
+        daily_checkin_time:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):([0-5]\\d)$'
+        userWhy:
+          type: string
+        checkinTime:
           type: string
 security: []
