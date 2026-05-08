@@ -32,6 +32,11 @@ Halaman ini menjadi entry point dokumentasi per modul domain agar boundary fungs
 - [Streaks Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/streaks.md)
 - [Statistics Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/statistics.md)
 - [Journals Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/journals.md)
+- [Community Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community.md)
+- [Community Moderation Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community-moderation.md)
+- [Education Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/education.md)
+- [Daily Content Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/daily-content.md)
+- [AI Coach Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/ai-coach.md)
 
 ## Related Sections
 

@@ -22,6 +22,11 @@ Halaman ini adalah titik masuk dokumentasi untuk dependency eksternal yang dipak
 - database dependency,
 - kebijakan error mapping dependency eksternal.
 
+## Core Integration Documents
+
+- [AI Provider Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/ai-provider.md)
+- [Scraper Flow Integration](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/scraper-flow.md)
+
 ## Related Sections
 
 - [API](/Users/macbookpro/Development/recova-backend-v2/docs/api/index.md)

@@ -33,6 +33,7 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 
 - [Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-strategy.md)
 - [Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-matrix.md)
+- [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
 
 ## Related Sections
 

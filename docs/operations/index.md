@@ -27,6 +27,8 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk observability, in
 - [Health and Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/operations/health-readiness.md)
 - [Database Migrations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/database-migrations.md)
 - [Database Seeding](/Users/macbookpro/Development/recova-backend-v2/docs/operations/database-seeding.md)
+- [AI Safety Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/ai-safety.md)
+- [Environment Matrix and Runtime Profiles](/Users/macbookpro/Development/recova-backend-v2/docs/operations/environments.md)
 
 ## Related Sections
 

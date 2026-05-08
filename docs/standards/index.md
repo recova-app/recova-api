@@ -32,5 +32,6 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 - [API Versioning Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/api-versioning.md)
 - [Error Taxonomy](/Users/macbookpro/Development/recova-backend-v2/docs/standards/error-taxonomy.md)
 - [GORM Modeling Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/gorm-modeling.md)
+- [Configuration Validation Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/config-validation.md)
 - [Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
 - [Decisions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/index.md)

@@ -33,8 +33,10 @@ Rangkuman capability diambil dari [references/README.md](/Users/macbookpro/Devel
 
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
 - [Authentication and Trust Boundaries](/Users/macbookpro/Development/recova-backend-v2/docs/overview/authentication-and-trust-boundaries.md)
+- [Data Flow Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview/data-flow.md)
 - [API](/Users/macbookpro/Development/recova-backend-v2/docs/api/index.md)
 - [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)
+- [Environment Configuration](/Users/macbookpro/Development/recova-backend-v2/docs/environment.md)
 - [Modules](/Users/macbookpro/Development/recova-backend-v2/docs/modules/index.md)
 - [Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/index.md)
 - [Standards](/Users/macbookpro/Development/recova-backend-v2/docs/standards/index.md)
