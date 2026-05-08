@@ -259,6 +259,140 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/routine/checkin:
+    post:
+      tags:
+        - routine
+      operationId: postRoutineCheckin
+      summary: Menyimpan check-in harian pengguna
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutineCheckInRequest'
+      responses:
+        '200':
+          description: Check-in harian berhasil disimpan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Pengguna sudah check-in pada hari UTC yang sama
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload check-in tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/routine/statistics:
+    get:
+      tags:
+        - routine
+      operationId: getRoutineStatistics
+      summary: Mengambil statistik check-in pengguna
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Statistik rutin berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/routine/relapses:
+    get:
+      tags:
+        - routine
+      operationId: getRoutineRelapses
+      summary: Mengambil riwayat relapse pengguna
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Riwayat relapse berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/journals:
+    get:
+      tags:
+        - journals
+      operationId: getJournals
+      summary: Mengambil daftar jurnal milik pengguna
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Daftar jurnal berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags:
+        - journals
+      operationId: postJournals
+      summary: Membuat entri jurnal pengguna
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JournalCreateRequest'
+      responses:
+        '201':
+          description: Entri jurnal berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload jurnal tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
   securitySchemes:
     BearerAuth:
@@ -380,4 +514,31 @@ components:
           type: string
         checkinTime:
           type: string
+    RoutineCheckInRequest:
+      type: object
+      required:
+        - mood
+        - isSuccessful
+      properties:
+        mood:
+          type: string
+          minLength: 1
+          maxLength: 50
+        isSuccessful:
+          type: boolean
+        commitment:
+          type: string
+          maxLength: 2000
+        content:
+          type: string
+          maxLength: 2000
+    JournalCreateRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
 security: []

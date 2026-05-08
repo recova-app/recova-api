@@ -55,6 +55,7 @@ Constraint minimum:
 
 - konten jurnal diperlakukan sebagai data sensitif,
 - create/list menjaga urutan hasil konsisten,
+- timestamp jurnal disajikan dalam UTC,
 - operasi penghapusan atau reset data harus audit-able jika diaktifkan.
 
 ## Validation Rules

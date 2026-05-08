@@ -14,6 +14,8 @@ import (
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
+	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
@@ -37,8 +39,10 @@ type Server struct {
 
 // ModuleDependencies stores domain services required to register API routes.
 type ModuleDependencies struct {
-	AuthService  *authmodule.Service
-	UsersService *usersmodule.Service
+	AuthService     *authmodule.Service
+	UsersService    *usersmodule.Service
+	RoutineService  *routinemodule.Service
+	JournalsService *journalsmodule.Service
 }
 
 // ServerOption customizes server runtime assembly.
@@ -206,6 +210,16 @@ func (s *Server) registerRoutes(cfg config.Config) {
 	if s.moduleDeps.UsersService != nil && s.moduleDeps.AuthService != nil {
 		usersGroup := apiGroup.Group("/users")
 		usersmodule.RegisterUserRoutes(usersGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
+	}
+
+	if s.moduleDeps.RoutineService != nil && s.moduleDeps.AuthService != nil {
+		routineGroup := apiGroup.Group("/routine")
+		routinemodule.RegisterRoutes(routineGroup, s.moduleDeps.AuthService, s.moduleDeps.RoutineService)
+	}
+
+	if s.moduleDeps.JournalsService != nil && s.moduleDeps.AuthService != nil {
+		journalsGroup := apiGroup.Group("/journals")
+		journalsmodule.RegisterRoutes(journalsGroup, s.moduleDeps.AuthService, s.moduleDeps.JournalsService)
 	}
 }
 

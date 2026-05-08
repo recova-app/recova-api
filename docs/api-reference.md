@@ -47,11 +47,11 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | ai        | `GET`    | `/ai/chat-history`            | ambil riwayat chat AI Coach                   | gap               | documented      |
 | ai        | `GET`    | `/ai/summary`                 | ambil ringkasan check-in                      | gap               | documented      |
 | ai        | `POST`   | `/ai/onboarding-analysis`     | analisis data onboarding                      | gap               | documented      |
-| routine   | `POST`   | `/routine/checkin`            | check-in harian                               | gap               | documented      |
-| routine   | `GET`    | `/routine/statistics`         | ambil statistik pengguna                      | gap               | documented      |
-| routine   | `GET`    | `/routine/relapses`           | ambil riwayat relapse                         | gap               | documented      |
-| journals  | `GET`    | `/journals`                   | ambil daftar jurnal pribadi                   | gap               | documented      |
-| journals  | `POST`   | `/journals`                   | buat entri jurnal                             | gap               | documented      |
+| routine   | `POST`   | `/routine/checkin`            | check-in harian                               | bearer            | implemented     |
+| routine   | `GET`    | `/routine/statistics`         | ambil statistik pengguna                      | bearer            | implemented     |
+| routine   | `GET`    | `/routine/relapses`           | ambil riwayat relapse                         | bearer            | implemented     |
+| journals  | `GET`    | `/journals`                   | ambil daftar jurnal pribadi                   | bearer            | implemented     |
+| journals  | `POST`   | `/journals`                   | buat entri jurnal                             | bearer            | implemented     |
 | community | `GET`    | `/community`                  | ambil daftar postingan komunitas              | gap               | documented      |
 | community | `POST`   | `/community`                  | buat postingan komunitas                      | gap               | documented      |
 | community | `POST`   | `/community/:postId/comments` | tambah komentar pada postingan                | gap               | documented      |

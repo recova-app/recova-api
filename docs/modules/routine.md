@@ -55,8 +55,8 @@ Constraint minimum:
 
 ## Service and Business Rules
 
-- boundary harian mengikuti timezone pengguna,
-- duplicate check-in pada hari sama harus idempotent sesuai kontrak,
+- boundary harian mengikuti tanggal UTC,
+- duplicate check-in pada hari UTC yang sama dikembalikan sebagai `CONFLICT` (`409`),
 - race condition check-in paralel harus ditangani aman.
 
 ## Validation Rules
@@ -103,9 +103,7 @@ Metrik minimum:
 
 ## Open Gaps
 
-- default timezone fallback final,
-- perilaku final duplicate check-in (reject atau update terbatas),
-- definisi final payload relapse.
+- enrichment payload relapse untuk kebutuhan analytics masa depan.
 
 ## Related Documents
 

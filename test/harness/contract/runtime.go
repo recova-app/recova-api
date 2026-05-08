@@ -11,6 +11,8 @@ import (
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
+	journalsmodule "github.com/recova-app/backend-v2/internal/modules/journals"
+	routinemodule "github.com/recova-app/backend-v2/internal/modules/routine"
 	usersmodule "github.com/recova-app/backend-v2/internal/modules/users"
 	"github.com/recova-app/backend-v2/internal/platform/config"
 )
@@ -54,10 +56,14 @@ func BuildServer(t testing.TB) *apphttp.Server {
 		authmodule.NewTokenManager(cfg),
 	)
 	usersService := usersmodule.NewService(usersmodule.NewRepository(nil), cfg.Application.AppEnv, cfg.Application.NodeEnv)
+	routineService := routinemodule.NewService(routinemodule.NewRepository(nil))
+	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(nil))
 
 	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-		AuthService:  authService,
-		UsersService: usersService,
+		AuthService:     authService,
+		UsersService:    usersService,
+		RoutineService:  routineService,
+		JournalsService: journalsService,
 	}))
 	if err != nil {
 		t.Fatalf("build contract test server: %v", err)

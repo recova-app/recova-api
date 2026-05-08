@@ -21,7 +21,7 @@ This document lists active routes from the current Go Fiber runtime.
 
 | Metric        | Value        |
 | ------------- | ------------ |
-| Total routes  | 9            |
+| Total routes  | 14           |
 | API prefix    | `/api/v1`    |
 | Last verified | `2026-05-08` |
 
@@ -30,6 +30,9 @@ This document lists active routes from the current Go Fiber runtime.
 | Method   | Path                          | Module   |
 | -------- | ----------------------------- | -------- |
 | `DELETE` | `/api/v1/users/me/reset-data` | `api-v1` |
+| `GET`    | `/api/v1/journals`            | `api-v1` |
+| `GET`    | `/api/v1/routine/relapses`    | `api-v1` |
+| `GET`    | `/api/v1/routine/statistics`  | `api-v1` |
 | `GET`    | `/api/v1/users/me`            | `api-v1` |
 | `GET`    | `/health/live`                | `health` |
 | `GET`    | `/health/ready`               | `health` |
@@ -37,6 +40,8 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST`   | `/api/v1/auth/logout`         | `api-v1` |
 | `POST`   | `/api/v1/auth/onboarding`     | `api-v1` |
 | `POST`   | `/api/v1/auth/refresh`        | `api-v1` |
+| `POST`   | `/api/v1/journals`            | `api-v1` |
+| `POST`   | `/api/v1/routine/checkin`     | `api-v1` |
 | `PUT`    | `/api/v1/users/settings`      | `api-v1` |
 
 ## Drift Check Use

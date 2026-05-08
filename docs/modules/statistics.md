@@ -38,9 +38,10 @@ Field opsional masa depan:
 ## Computation Rules
 
 - statistik dibaca dari sumber data check-in dan streak yang konsisten,
-- `total_checkins` menghitung event check-in valid non-duplicate,
+- `total_checkins` menghitung check-in sukses valid non-duplicate,
 - semua angka statistik harus non-negatif,
 - data null pada pengguna baru harus dimap ke nilai nol yang aman.
+- boundary hitung harian memakai UTC.
 
 ## Freshness Rules
 

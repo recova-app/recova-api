@@ -30,9 +30,8 @@ Dokumen ini mendefinisikan aturan streak untuk menjaga konsistensi hasil statist
 
 ## Timezone and Date Boundary
 
-- streak dihitung dari `local_date` pengguna,
-- perubahan timezone tidak boleh menyebabkan loncatan streak tak terjelaskan,
-- aturan migrasi timezone harus terdokumentasi bila fitur timezone change diaktifkan.
+- streak dihitung dari `check_in_date` berbasis UTC,
+- perubahan timezone client tidak mengubah boundary streak karena sumber kebenaran waktu berada di UTC.
 
 ## Duplicate and Late Event Handling
 

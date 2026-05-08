@@ -39,25 +39,21 @@ Field minimum:
 
 Kunci idempotency:
 
-- satu check-in per pengguna per tanggal lokal.
+- satu check-in per pengguna per tanggal UTC.
 
 Perilaku duplicate:
 
-- duplicate request hari yang sama harus dipetakan konsisten:
-  - opsi A: `CONFLICT` jika check-in sudah ada,
-  - opsi B: update terbatas field check-in pada hari yang sama.
-
-Pilihan implementasi akhir wajib konsisten di API reference dan tests.
+- duplicate request pada hari UTC yang sama dikembalikan sebagai `CONFLICT` (`409`).
 
 ## Timezone Rules
 
-- tanggal check-in dihitung dari timezone profil pengguna,
-- data input waktu dari client tidak boleh langsung dipercaya tanpa normalisasi,
-- simpan timestamp server dalam UTC dan simpan `local_date` ter-normalisasi.
+- seluruh perhitungan hari check-in menggunakan tanggal UTC,
+- data input waktu dari client tidak menjadi sumber utama boundary harian,
+- simpan timestamp server dalam UTC.
 
 ## Storage Integrity Rules
 
-- gunakan constraint unik `(user_id, local_date)`,
+- gunakan constraint unik `(user_id, check_in_date)`,
 - gunakan transaksi saat write check-in + update streak/state terkait,
 - error constraint duplicate dipetakan ke respons bisnis yang eksplisit.
 
