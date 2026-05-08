@@ -19,9 +19,10 @@ Dokumen ini mendefinisikan aturan sumber kontrak OpenAPI, tata kelola perubahan,
 
 Kontrak OpenAPI kanonik disimpan di repository:
 
-- `docs/generated/openapi.yaml` atau `docs/generated/openapi.json`
+- source spec: `api/openapi/openapi.yaml`
+- generated artifact: `docs/generated/openapi.yaml`
 
-Hanya satu artefak yang menjadi source of truth pada satu waktu. Format YAML atau JSON dipilih sesuai tooling aktif tim.
+Source spec menjadi input utama review dan perubahan kontrak. Artefak generated wajib sinkron dengan source spec pada commit yang sama.
 
 ## OpenAPI Version Policy
 
@@ -77,6 +78,15 @@ Sinyal drift minimal:
 - path/method ada di runtime tapi tidak ada di OpenAPI,
 - path/method ada di OpenAPI tapi tidak terpasang di runtime,
 - schema response utama berubah tanpa update kontrak.
+
+## Required Commands
+
+Perintah standar yang wajib tersedia:
+
+- `make openapi-generate`: validasi source spec, sinkronisasi artefak generated, dan refresh route inventory.
+- `make openapi-check`: validasi source+generated spec dan deteksi drift runtime route vs OpenAPI paths.
+
+Perintah check harus dipakai sebagai gate pada local review dan CI.
 
 ## Review Gate
 

@@ -29,6 +29,13 @@ trap 'rm -rf "$temp_dir"' EXIT
 # with-env.sh must fail when command missing.
 assert_fail ./scripts/with-env.sh
 
+# openapi.sh must fail for unsupported command.
+assert_fail ./scripts/openapi.sh unknown-command
+
+# openapi generate/check must pass on repository baseline.
+./scripts/openapi.sh generate >/dev/null
+./scripts/openapi.sh check >/dev/null
+
 # with-env.sh must load env file before running command.
 env_file="$temp_dir/local.env"
 cat > "$env_file" <<'ENVFILE'

@@ -19,7 +19,8 @@ Dokumen ini menetapkan proses generasi dokumentasi API yang deterministik dan am
 
 Artefak minimal:
 
-- `docs/generated/openapi.yaml` atau `docs/generated/openapi.json`,
+- source spec: `api/openapi/openapi.yaml`,
+- generated spec: `docs/generated/openapi.yaml`,
 - `docs/generated/routes.md`.
 
 ## Security Rule
@@ -36,12 +37,22 @@ Gunakan konfigurasi minimal non-sensitive untuk proses build/generate.
 
 ```text
 1) Load safe environment profile
-2) Build route registry or contract source
-3) Generate OpenAPI artifact
-4) Generate route inventory
-5) Run contract lint/validation
-6) Compare generated files against repository state
+2) Validate source OpenAPI spec
+3) Sync source spec -> generated spec
+4) Build route registry dari runtime Go Fiber
+5) Generate route inventory
+6) Run contract lint/validation + drift check
+7) Compare generated files against repository state
 ```
+
+## Standard Commands
+
+Gunakan command berikut:
+
+- `make openapi-generate`
+- `make openapi-check`
+
+Command dijalankan via wrapper `scripts/openapi.sh` yang memanggil `go run ./cmd/tools/openapi`.
 
 ## Contract Drift Verification
 

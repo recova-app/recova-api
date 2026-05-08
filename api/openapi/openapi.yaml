@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: Recova Backend API
+  version: 0.1.0
+  description: Kontrak API baseline untuk runtime Go Fiber Recova Backend.
+servers:
+  - url: /
+    description: Base URL runtime service
+paths:
+  /health/live:
+    get:
+      tags:
+        - health
+      operationId: getHealthLive
+      summary: Memeriksa status liveness layanan
+      responses:
+        '200':
+          description: Layanan aktif
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: Layanan aktif
+                    data:
+                      status: ok
+                    meta: null
+  /health/ready:
+    get:
+      tags:
+        - health
+      operationId: getHealthReady
+      summary: Memeriksa readiness dependency layanan
+      responses:
+        '200':
+          description: Layanan siap menerima request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+              examples:
+                ready:
+                  value:
+                    success: true
+                    message: Layanan siap
+                    data:
+                      status: ready
+                      checks:
+                        database:
+                          status: ok
+                          healthy: true
+                          message: Koneksi database sehat
+                    meta: null
+        '503':
+          description: Layanan belum siap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                not_ready:
+                  value:
+                    success: false
+                    message: Layanan belum siap
+                    data: null
+                    error:
+                      code: SERVICE_UNAVAILABLE
+                      details:
+                        status: not_ready
+                        checks:
+                          database:
+                            status: down
+                            healthy: false
+                            message: Koneksi database tidak sehat
+                      requestId: req_123
+components:
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        meta:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+    ErrorEnvelope:
+      type: object
+      required:
+        - success
+        - message
+        - data
+        - error
+      properties:
+        success:
+          type: boolean
+          const: false
+        message:
+          type: string
+        data:
+          type: 'null'
+        error:
+          $ref: '#/components/schemas/ErrorPayload'
+    ErrorPayload:
+      type: object
+      required:
+        - code
+        - requestId
+      properties:
+        code:
+          type: string
+        details:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+              items:
+                type: object
+                additionalProperties: true
+            - type: 'null'
+        requestId:
+          type: string
+security: []
