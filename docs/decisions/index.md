@@ -22,6 +22,10 @@ Halaman ini menampung daftar keputusan teknis yang bersifat arsitektural dan ber
 - keputusan keamanan dan observability baseline,
 - status keputusan: draft, active, deprecated.
 
+## Active Decision Drafts
+
+- [ADR 0001 Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0001-migration-strategy.md)
+
 ## Related Sections
 
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
