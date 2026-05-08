@@ -2,6 +2,7 @@
 package http
 
 import (
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,11 +14,13 @@ import (
 
 // TestNewServer_BaseHealthRoutes_ReturnOK ensures baseline health routes are registered.
 func TestNewServer_BaseHealthRoutes_ReturnOK(t *testing.T) {
-	cfg := config.AppConfig{
-		AppName:   "recova-test",
-		AppEnv:    "test",
-		Port:      "3000",
-		APIPrefix: "/api/v1",
+	cfg := config.Config{
+		Application: config.ApplicationConfig{
+			AppName:   "recova-test",
+			AppEnv:    "test",
+			Port:      "3000",
+			APIPrefix: "/api/v1",
+		},
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -41,6 +44,21 @@ func TestNewServer_BaseHealthRoutes_ReturnOK(t *testing.T) {
 
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("unexpected status code: %d", resp.StatusCode)
+			}
+
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("failed reading response body: %v", err)
+			}
+
+			var payload map[string]any
+			if err := json.Unmarshal(bodyBytes, &payload); err != nil {
+				t.Fatalf("failed parsing response payload: %v", err)
+			}
+
+			success, ok := payload["success"].(bool)
+			if !ok || !success {
+				t.Fatalf("expected success envelope, got: %v", payload)
 			}
 		})
 	}

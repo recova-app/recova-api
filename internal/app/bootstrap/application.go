@@ -16,7 +16,7 @@ type Application struct {
 }
 
 // NewApplication constructs an executable application instance from runtime dependencies.
-func NewApplication(cfg config.AppConfig, logger *slog.Logger) (*Application, error) {
+func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error) {
 	server := apphttp.NewServer(cfg, logger)
 
 	return &Application{

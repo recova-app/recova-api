@@ -27,7 +27,7 @@ Standar ini mengatur bagaimana konfigurasi environment divalidasi sebelum servic
 1. Env required wajib ada dan non-empty.
 2. Enum env wajib hanya menerima nilai yang diizinkan.
 3. Numeric env wajib lolos parsing dan rentang valid.
-4. Duration/TTL env wajib lolos format yang disetujui.
+4. Duration/TTL env wajib lolos format yang disetujui (`time.ParseDuration` + dukungan `d` untuk hari bila dipakai pada kontrak env).
 5. URL env wajib valid secara sintaks.
 6. Secret env wajib panjang minimum sesuai kebijakan internal.
 

@@ -51,6 +51,7 @@ Semua error akhirnya harus dipetakan ke code API standar:
 | unique constraint violation  | `CONFLICT`            | `409`       | map dari error SQLSTATE terkait uniqueness |
 | rate limiter reject          | `RATE_LIMITED`        | `429`       | sertakan retry hint bila tersedia          |
 | dependency timeout/error     | `DOWNSTREAM_ERROR`    | `502`       | provider eksternal gagal                   |
+| `context.DeadlineExceeded`   | `DOWNSTREAM_ERROR`    | `502`       | timeout dependency atau upstream           |
 | database unavailable         | `SERVICE_UNAVAILABLE` | `503`       | dependency inti tidak siap                 |
 | panic/unhandled unknown      | `INTERNAL_ERROR`      | `500`       | log internal lengkap, response aman        |
 

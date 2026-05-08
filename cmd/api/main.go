@@ -21,6 +21,7 @@ func main() {
 	}
 
 	logger := platformlogger.New(cfg)
+	logger.Info("konfigurasi berhasil dimuat", "config", cfg.RedactedSummary())
 	app, err := bootstrap.NewApplication(cfg, logger)
 	if err != nil {
 		logger.Error("gagal bootstrap aplikasi", "error", err)

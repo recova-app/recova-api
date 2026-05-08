@@ -47,13 +47,13 @@ Prinsip inti:
 
 ## Database Variables
 
-| Variable                         | Required | Example value                         | Notes                  |
-| -------------------------------- | -------- | ------------------------------------- | ---------------------- |
-| `DATABASE_URL`                   | Yes      | `postgresql://user:pass@host:5432/db` | koneksi utama aplikasi |
-| `DATABASE_MAX_OPEN_CONNS`        | Yes      | `25`                                  | batas koneksi terbuka  |
-| `DATABASE_MAX_IDLE_CONNS`        | Yes      | `10`                                  | batas koneksi idle     |
-| `DATABASE_CONN_MAX_LIFETIME_SEC` | Yes      | `300`                                 | umur maksimum koneksi  |
-| `DATABASE_SSL_MODE`              | Yes      | `disable` / `require` / `verify-full` | mode SSL PostgreSQL    |
+| Variable                         | Required | Example value                                       | Notes                  |
+| -------------------------------- | -------- | --------------------------------------------------- | ---------------------- |
+| `DATABASE_URL`                   | Yes      | `postgresql://user:pass@host:5432/db`               | koneksi utama aplikasi |
+| `DATABASE_MAX_OPEN_CONNS`        | Yes      | `25`                                                | batas koneksi terbuka  |
+| `DATABASE_MAX_IDLE_CONNS`        | Yes      | `10`                                                | batas koneksi idle     |
+| `DATABASE_CONN_MAX_LIFETIME_SEC` | Yes      | `300`                                               | umur maksimum koneksi  |
+| `DATABASE_SSL_MODE`              | Yes      | `disable` / `require` / `verify-ca` / `verify-full` | mode SSL PostgreSQL    |
 
 Jika deployment memisahkan URL direct migration, definisikan juga:
 
@@ -61,16 +61,16 @@ Jika deployment memisahkan URL direct migration, definisikan juga:
 
 ## Authentication Variables
 
-| Variable                | Required | Example value                       | Notes                                     |
-| ----------------------- | -------- | ----------------------------------- | ----------------------------------------- |
-| `JWT_SECRET`            | Yes      | `replace-with-strong-secret`        | secret signing access token               |
-| `JWT_ACCESS_TTL`        | Yes      | `15m`                               | masa berlaku access token                 |
-| `JWT_REFRESH_TTL`       | Yes      | `7d`                                | masa berlaku refresh token                |
-| `GOOGLE_CLIENT_ID`      | Yes      | `123456.apps.googleusercontent.com` | validasi token Google OAuth               |
-| `AUTH_COOKIE_NAME`      | Yes      | `recova_refresh`                    | nama cookie refresh                       |
-| `AUTH_COOKIE_SECURE`    | Yes      | `false` (local), `true` (prod)      | cookie secure wajib true di production    |
-| `AUTH_COOKIE_SAME_SITE` | Yes      | `lax`                               | gunakan `none` hanya dengan secure cookie |
-| `AUTH_COOKIE_DOMAIN`    | No       | `recova.app`                        | opsional sesuai topology domain           |
+| Variable                | Required | Example value                       | Notes                                                |
+| ----------------------- | -------- | ----------------------------------- | ---------------------------------------------------- |
+| `JWT_SECRET`            | Yes      | `replace-with-strong-secret`        | secret signing access token                          |
+| `JWT_ACCESS_TTL`        | Yes      | `15m`                               | masa berlaku access token (format durasi Go)         |
+| `JWT_REFRESH_TTL`       | Yes      | `7d`                                | masa berlaku refresh token (`d` untuk hari didukung) |
+| `GOOGLE_CLIENT_ID`      | Yes      | `123456.apps.googleusercontent.com` | validasi token Google OAuth                          |
+| `AUTH_COOKIE_NAME`      | Yes      | `recova_refresh`                    | nama cookie refresh                                  |
+| `AUTH_COOKIE_SECURE`    | Yes      | `false` (local), `true` (prod)      | cookie secure wajib true di production               |
+| `AUTH_COOKIE_SAME_SITE` | Yes      | `lax`                               | gunakan `none` hanya dengan secure cookie            |
+| `AUTH_COOKIE_DOMAIN`    | No       | `recova.app`                        | opsional sesuai topology domain                      |
 
 ## AI Variables
 
@@ -120,6 +120,7 @@ Kompatibilitas nilai lama pada source saat ini:
 - string kosong dianggap invalid untuk env required,
 - nilai enum di luar daftar valid harus ditolak,
 - parsing numeric/duration invalid harus menghentikan startup.
+- format duration mengikuti `time.ParseDuration` Go dan mendukung suffix `d` (hari) untuk kebutuhan token TTL.
 
 ## Related Documents
 

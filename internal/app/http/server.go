@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/recova-app/backend-v2/internal/platform/config"
+	"github.com/recova-app/backend-v2/internal/shared/response"
 )
 
 // Server wraps the Fiber application lifecycle.
@@ -19,16 +20,16 @@ type Server struct {
 }
 
 // NewServer creates an HTTP server instance using the runtime configuration.
-func NewServer(cfg config.AppConfig, logger *slog.Logger) *Server {
+func NewServer(cfg config.Config, logger *slog.Logger) *Server {
 	app := fiber.New(fiber.Config{
-		AppName: cfg.AppName,
+		AppName: cfg.Application.AppName,
 	})
 
 	registerBaseRoutes(app)
 
 	return &Server{
 		app:    app,
-		addr:   fmt.Sprintf(":%s", cfg.Port),
+		addr:   fmt.Sprintf(":%s", cfg.Application.Port),
 		logger: logger,
 	}
 }
@@ -65,14 +66,12 @@ func (s *Server) Start(ctx context.Context) error {
 // registerBaseRoutes registers baseline runtime routes required for local checks.
 func registerBaseRoutes(app *fiber.App) {
 	app.Get("/health/live", func(c fiber.Ctx) error {
-		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"status": "ok",
-		})
+		payload := response.Success("Layanan aktif", fiber.Map{"status": "ok"}, nil)
+		return c.Status(fiber.StatusOK).JSON(payload)
 	})
 
 	app.Get("/health/ready", func(c fiber.Ctx) error {
-		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"status": "ok",
-		})
+		payload := response.Success("Layanan siap", fiber.Map{"status": "ok"}, nil)
+		return c.Status(fiber.StatusOK).JSON(payload)
 	})
 }
