@@ -119,7 +119,8 @@ Migrasi eksekusi dinyatakan selesai jika:
 - semua domain publik sudah cutover,
 - seluruh gate domain berstatus pass,
 - rollback rehearsal terakhir lulus,
-- runtime lama tidak lagi dibutuhkan pada jalur request publik.
+- runtime lama tidak lagi dibutuhkan pada jalur request publik,
+- gate decommission runtime legacy lulus (`make runtime-decommission`).
 
 ## Related Documents
 

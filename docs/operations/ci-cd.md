@@ -84,6 +84,19 @@ Workflow manual stabilization + rollback rehearsal:
   - `artifacts/stabilization/**`
   - `artifacts/rollback-rehearsal/**`
 
+Workflow decommission + maintenance:
+
+- `.github/workflows/decommission-maintenance.yml` menyediakan:
+  - workflow manual (`workflow_dispatch`) untuk runtime decommission gate,
+  - workflow terjadwal mingguan (`on.schedule`) untuk maintenance review.
+- workflow ini mengeksekusi:
+  - `make runtime-decommission` (manual, opsional),
+  - `make post-migration-maintenance` (manual atau schedule).
+- workflow ini mengunggah artifact evidence:
+  - `artifacts/decommission/**`
+  - `artifacts/maintenance/**`
+    dengan `retention-days` eksplisit.
+
 Kontrol concurrency:
 
 - `concurrency.group = ci-${workflow}-${ref}`,

@@ -1,105 +1,55 @@
 ---
-title: Recova Backend Current Express Baseline
-description: Baseline perilaku backend saat ini berdasarkan sumber yang tersedia untuk menjaga konsistensi kontrak sebelum perubahan lanjutan.
+title: Recova Backend Legacy Express Baseline
+description: Catatan historis runtime Express sebagai arsip referensi setelah runtime publik dipindahkan ke Go Fiber.
 owner: backend-owner
 reviewers:
   - engineering-lead
   - platform-docs-maintainer
-doc_status: draft
+doc_status: deprecated
 source_repo: recova-backend-v2
 source_path: docs/roadmap/express-baseline.md
 last_reviewed: 2026-05-08
 ---
 
-# Recova Backend Current Express Baseline
+# Recova Backend Legacy Express Baseline
 
-Dokumen ini merangkum perilaku layanan backend saat ini berdasarkan sumber yang telah tersedia. Tujuannya adalah menyediakan baseline kontrak teknis agar perubahan berikutnya tetap dapat ditelusuri dan diverifikasi.
+Dokumen ini hanya menyimpan baseline historis runtime lama untuk kebutuhan audit dan perbandingan kontrak.
 
-## Source Coverage
+## Lifecycle Status
 
-| Source                                                                                       | Cakupan                                                                                               |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md) | Deskripsi fitur, endpoint publik, variabel environment, alur runtime, Docker, dan script operasional. |
+- Status dokumen: `deprecated`.
+- Runtime publik aktif: Go Fiber.
+- Baseline ini tidak boleh dipakai sebagai acuan deploy runtime aktif.
 
-Semua isi pada halaman ini ditarik dari sumber di atas. Jika detail belum ada di sumber, bagian tersebut dicatat sebagai gap.
+## Historical Snapshot
 
-## Service Runtime Baseline
+Ringkasan runtime lama (historis):
 
-- Runtime aplikasi menggunakan Node.js.
-- Framework HTTP menggunakan Express.js.
-- Bahasa utama menggunakan TypeScript.
-- Persistence utama menggunakan PostgreSQL.
-- ORM yang didokumentasikan adalah Prisma.
-- Prefix endpoint publik berada di `/api/v1`.
+- Language: Node.js + TypeScript.
+- HTTP framework: Express.
+- ORM: Prisma.
+- Prefix endpoint publik: `/api/v1`.
 
-## Public Capability Baseline
+## Archived Sources
 
-Capability aktif yang sudah dideklarasikan:
+Artefak historis runtime lama disimpan pada:
 
-- autentikasi pengguna berbasis Google OAuth dan JWT,
-- manajemen profil dan onboarding,
-- check-in harian dan pelacakan streak,
-- jurnal pribadi,
-- statistik pengguna,
-- komunitas (post, komentar, like),
-- konten edukasi,
-- AI Coach,
-- konten harian (motivasi dan tantangan).
+- direktori `references/`,
+- artifact hasil decommission pada `artifacts/decommission/**`.
 
-## API Surface Baseline
+## Usage Rules
 
-Seluruh endpoint publik berada di bawah prefix `/api/v1` dengan grup berikut:
-
-- `/auth`
-- `/users`
-- `/ai`
-- `/routine`
-- `/journals`
-- `/community`
-- `/education`
-- `/content`
-
-Rincian endpoint per grup dicatat pada [Feature Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/feature-inventory.md).
-
-## Runtime Operation Baseline
-
-Perilaku runtime yang sudah terdokumentasi:
-
-- mode development lokal menjalankan `npm run dev`,
-- mode production menjalankan build lalu start,
-- tersedia workflow migrasi database,
-- tersedia workflow seeding data,
-- tersedia workflow container untuk development dan production.
-
-Rincian kontrak runtime dicatat pada [Current Runtime Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/current-runtime-inventory.md).
-
-## Data and Integration Baseline
-
-- Integrasi autentikasi eksternal: Google OAuth.
-- Integrasi AI: Google Gemini sebagai layanan utama dan OpenAI sebagai alternatif opsional.
-- Kontrak koneksi database menggunakan `DATABASE_URL` untuk PostgreSQL.
-
-## Known Gaps
-
-Area berikut belum dapat dipastikan dari sumber saat ini dan memerlukan source tambahan:
-
-- daftar status code dan kontrak error per endpoint,
-- skema request/response rinci per endpoint,
-- detail middleware aktif (authz, validation, rate limit, logging),
-- aturan session/token lifecycle rinci,
-- kebijakan observability operasional (metrics, tracing, structured log schema),
-- kontrak deployment non-Docker (jika ada),
-- detail non-functional requirement (SLO, timeout, retry policy).
-
-## Change Control Rule
-
-Saat sumber utama berubah, halaman ini wajib diperbarui bersama dokumen inventaris fitur dan runtime agar baseline tetap sinkron.
+- gunakan dokumen ini hanya untuk:
+  - investigasi historis,
+  - audit transisi runtime,
+  - komparasi kontrak lama vs runtime aktif.
+- gunakan [Current Runtime Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/current-runtime-inventory.md) untuk keputusan operasional saat ini.
 
 ## Related Documents
 
-- [Recova Backend Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
-- [Feature Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/feature-inventory.md)
 - [Current Runtime Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/current-runtime-inventory.md)
+- [Migration Execution Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-execution-runbook.md)
+- [Runtime Decommission Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/operations/runtime-decommission.md)
 
 ## Source Reference
 

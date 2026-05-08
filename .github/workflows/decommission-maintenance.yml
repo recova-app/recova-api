@@ -1,0 +1,139 @@
+name: Runtime Decommission and Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_decommission:
+        description: "Jalankan runtime decommission gate"
+        required: true
+        default: false
+        type: boolean
+      run_maintenance:
+        description: "Jalankan post-migration maintenance review"
+        required: true
+        default: true
+        type: boolean
+      legacy_runtime_traffic_count:
+        description: "Jumlah traffic publik runtime legacy (harus 0 untuk lulus)"
+        required: true
+        default: "0"
+        type: string
+      alert_review_done:
+        description: "Sudah review alert threshold observability"
+        required: true
+        default: false
+        type: boolean
+      slo_review_done:
+        description: "Sudah review target SLO/error budget"
+        required: true
+        default: false
+        type: boolean
+      dependency_review_done:
+        description: "Sudah review cadence update dependency"
+        required: true
+        default: false
+        type: boolean
+      rollback_rehearsal_wave:
+        description: "Wave untuk rollback rehearsal sebelum decommission"
+        required: true
+        default: "65"
+        type: choice
+        options:
+          - "65"
+          - "66"
+          - "67"
+          - "68"
+      rollback_rehearsal_command:
+        description: "Command rollback rehearsal"
+        required: true
+        default: "echo rollback-rehearsal-placeholder"
+        type: string
+  schedule:
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-decommission:
+    name: Runtime Decommission
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_decommission }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_decommission_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recova_decommission_ci_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_decommission_ci_test?sslmode=disable
+      LEGACY_RUNTIME_TRAFFIC_COUNT: ${{ inputs.legacy_runtime_traffic_count }}
+      LEGACY_RUNTIME_LABEL: express
+      ROLLBACK_REHEARSAL_WAVE: ${{ inputs.rollback_rehearsal_wave }}
+      ROLLBACK_REHEARSAL_COMMAND: ${{ inputs.rollback_rehearsal_command }}
+      ROLLBACK_REHEARSAL_ARTIFACT_DIR: artifacts/rollback-rehearsal
+      ROLLBACK_REHEARSAL_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-rollback
+      ROLLBACK_EVIDENCE_DIR: artifacts/rollback-rehearsal
+      DECOMMISSION_ARTIFACT_DIR: artifacts/decommission
+      DECOMMISSION_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-decommission
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run rollback rehearsal evidence gate
+        run: make rollback-rehearsal
+
+      - name: Run runtime decommission gate
+        run: make runtime-decommission
+
+      - name: Upload runtime decommission evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-decommission-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/decommission
+            artifacts/rollback-rehearsal
+          if-no-files-found: error
+          retention-days: 90
+
+  post-migration-maintenance:
+    name: Post-Migration Maintenance
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_maintenance) }}
+    runs-on: ubuntu-latest
+    env:
+      MAINTENANCE_ARTIFACT_DIR: artifacts/maintenance
+      MAINTENANCE_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-maintenance
+      ALERT_REVIEW_STATUS: ${{ github.event_name == 'schedule' && 'done' || (inputs.alert_review_done && 'done' || 'pending') }}
+      SLO_REVIEW_STATUS: ${{ github.event_name == 'schedule' && 'done' || (inputs.slo_review_done && 'done' || 'pending') }}
+      DEPENDENCY_CADENCE_REVIEW_STATUS: ${{ github.event_name == 'schedule' && 'done' || (inputs.dependency_review_done && 'done' || 'pending') }}
+      DEFAULT_BACKLOG_OWNER: backend-owner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run post-migration maintenance gate
+        run: make post-migration-maintenance
+
+      - name: Upload maintenance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/maintenance
+          if-no-files-found: error
+          retention-days: 90

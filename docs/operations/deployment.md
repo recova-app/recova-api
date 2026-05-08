@@ -122,6 +122,22 @@ Setelah deploy, minimal lakukan:
 
 Daftar lengkap ada di [Post-Deploy Checks](/Users/macbookpro/Development/recova-backend-v2/docs/operations/post-deploy-checks.md).
 
+## Runtime Decommission Gate
+
+Setelah runtime aktif stabil dan rollback rehearsal tervalidasi, jalankan gate decommission runtime legacy:
+
+- `make runtime-decommission`
+
+Gate ini memverifikasi:
+
+- traffic publik runtime legacy sudah nol,
+- evidence rollback rehearsal tersedia dalam window retention,
+- arsip konfigurasi legacy berhasil disimpan.
+
+Evidence output default disimpan pada:
+
+- `artifacts/decommission/**`.
+
 ## Deployment Evidence
 
 Setiap deploy harus punya bukti:
@@ -146,6 +162,7 @@ Setiap deploy harus punya bukti:
 - [Database Migrations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/database-migrations.md)
 - [Rollback Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/operations/rollback.md)
 - [Post-Deploy Checks](/Users/macbookpro/Development/recova-backend-v2/docs/operations/post-deploy-checks.md)
+- [Runtime Decommission](/Users/macbookpro/Development/recova-backend-v2/docs/operations/runtime-decommission.md)
 
 ## Source Reference
 

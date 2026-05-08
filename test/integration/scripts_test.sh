@@ -505,6 +505,91 @@ assert_file_contains "$fake_rollback_rehearsal_command_log" "rollback-command-ok
 assert_file_contains "$rollback_rehearsal_artifact_dir/rollback-rehearsal-success-summary.log" "success"
 assert_file_contains "$rollback_rehearsal_artifact_dir/rollback-rehearsal-success-rollback-rehearsal-report.json" "\"status\": \"passed\""
 
+# runtime-decommission.sh should enforce zero legacy traffic and rollback evidence retention checks.
+assert_fail ./scripts/runtime-decommission.sh
+assert_fail env \
+  LEGACY_RUNTIME_TRAFFIC_COUNT="1" \
+  ROLLBACK_EVIDENCE_DIR="$rollback_rehearsal_artifact_dir" \
+  ./scripts/runtime-decommission.sh
+
+runtime_truth_file="$temp_dir/runtime-source-of-truth.md"
+cat > "$runtime_truth_file" <<'DOC'
+---
+title: Runtime Source
+last_reviewed: 2026-05-08
+---
+
+Current runtime: Go Fiber
+DOC
+
+legacy_archive_dir="$temp_dir/legacy-runtime"
+mkdir -p "$legacy_archive_dir"
+printf 'legacy-config\n' > "$legacy_archive_dir/runtime.env"
+
+legacy_traffic_evidence="$temp_dir/legacy-traffic.log"
+printf 'legacy_public_traffic=0\n' > "$legacy_traffic_evidence"
+
+decommission_artifact_dir="$temp_dir/decommission-artifacts"
+LEGACY_RUNTIME_TRAFFIC_COUNT="0" \
+LEGACY_RUNTIME_TRAFFIC_EVIDENCE_FILE="$legacy_traffic_evidence" \
+LEGACY_ARCHIVE_PATHS="$legacy_archive_dir" \
+ROLLBACK_EVIDENCE_DIR="$rollback_rehearsal_artifact_dir" \
+ROLLBACK_RETENTION_DAYS="90" \
+RUNTIME_SOURCE_OF_TRUTH_FILE="$runtime_truth_file" \
+RUNTIME_SOURCE_OF_TRUTH_KEYWORD="Go" \
+DECOMMISSION_ARTIFACT_DIR="$decommission_artifact_dir" \
+DECOMMISSION_EXECUTION_ID="decommission-success" \
+./scripts/runtime-decommission.sh >/dev/null
+
+assert_file_contains "$decommission_artifact_dir/decommission-success-summary.log" "success"
+assert_file_contains "$decommission_artifact_dir/decommission-success-decommission-report.json" "\"status\": \"passed\""
+assert_file_contains "$decommission_artifact_dir/decommission-success-decommission-report.json" "\"legacyTrafficCount\": 0"
+[ -f "$decommission_artifact_dir/decommission-success-express-archive.tar.gz" ] || {
+  echo "expected legacy archive artifact to exist" >&2
+  exit 1
+}
+
+# post-migration-maintenance.sh should require completed review checks and emit backlog with owner/priority.
+assert_fail ./scripts/post-migration-maintenance.sh
+
+maintenance_docs_root="$temp_dir/maintenance-docs"
+mkdir -p "$maintenance_docs_root/operations" "$maintenance_docs_root/modules"
+cat > "$maintenance_docs_root/operations/security.md" <<'DOC'
+---
+title: Security Ops
+last_reviewed: 2020-01-01
+---
+DOC
+cat > "$maintenance_docs_root/modules/routine.md" <<'DOC'
+---
+title: Routine Module
+last_reviewed: 2020-01-01
+---
+DOC
+cat > "$maintenance_docs_root/modules/users.md" <<'DOC'
+---
+title: Users Module
+last_reviewed: 2099-01-01
+---
+DOC
+
+maintenance_artifact_dir="$temp_dir/maintenance-artifacts"
+ALERT_REVIEW_STATUS="done" \
+SLO_REVIEW_STATUS="done" \
+DEPENDENCY_CADENCE_REVIEW_STATUS="done" \
+DOCS_ROOT="$maintenance_docs_root" \
+MAINTENANCE_ARTIFACT_DIR="$maintenance_artifact_dir" \
+MAINTENANCE_EXECUTION_ID="maintenance-success" \
+DEFAULT_BACKLOG_OWNER="ops-owner" \
+DEFAULT_BACKLOG_DUE_DATE="2026-06-01" \
+./scripts/post-migration-maintenance.sh >/dev/null
+
+assert_file_contains "$maintenance_artifact_dir/maintenance-success-summary.log" "success"
+assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-report.json" "\"status\": \"passed\""
+assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-report.json" "\"staleDocsTotal\": 2"
+assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-backlog.md" "| MNT-001 |"
+assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-backlog.md" "| ops-owner | high |"
+
 # preflight should pass on current baseline repository.
 ./scripts/preflight.sh >/dev/null
 

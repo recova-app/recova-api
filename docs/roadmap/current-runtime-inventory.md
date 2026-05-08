@@ -1,6 +1,6 @@
 ---
 title: Recova Backend Current Runtime Inventory
-description: Inventaris kontrak runtime backend saat ini yang mencakup konfigurasi environment, script operasional, database workflow, dan workflow container.
+description: Inventaris runtime aktif backend Recova mencakup command operasional, workflow migrasi, quality gate, dan artefak deployment pada jalur Go Fiber.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -13,108 +13,81 @@ last_reviewed: 2026-05-08
 
 # Recova Backend Current Runtime Inventory
 
-Dokumen ini mencatat kontrak runtime backend yang saat ini sudah tersedia dari sumber resmi layanan, agar operasi dan verifikasi perilaku dapat dilakukan secara konsisten.
+Dokumen ini mencatat kontrak runtime yang aktif pada repository saat ini agar operasi dan verifikasi berjalan konsisten.
 
-## Environment Variable Inventory
+## Runtime Baseline
 
-### Application
+- Language: Go.
+- HTTP framework: Fiber.
+- Data store: PostgreSQL.
+- ORM: GORM.
+- API prefix: `/api/v1`.
 
-| Variable   | Tujuan                                    |
-| ---------- | ----------------------------------------- |
-| `PORT`     | Menentukan port layanan HTTP.             |
-| `NODE_ENV` | Menentukan mode runtime aplikasi.         |
-| `DOCS_URL` | Menentukan URL dokumentasi API eksternal. |
+## Local Runtime Commands
 
-### Authentication
-
-| Variable           | Tujuan                                         |
-| ------------------ | ---------------------------------------------- |
-| `JWT_SECRET`       | Kunci rahasia untuk penandatanganan token JWT. |
-| `GOOGLE_CLIENT_ID` | Client ID untuk login Google OAuth.            |
-
-### AI Integration
-
-| Variable          | Tujuan                                        |
-| ----------------- | --------------------------------------------- |
-| `GEMINI_API_KEY`  | Kunci API untuk layanan Gemini.               |
-| `GEMINI_MODEL`    | Nama model Gemini yang dipakai.               |
-| `OPENAI_API_KEY`  | Kunci API untuk layanan OpenAI (opsional).    |
-| `OPENAI_MODEL`    | Nama model OpenAI yang dipakai.               |
-| `OPENAI_BASE_URL` | Base URL API OpenAI atau endpoint kompatibel. |
-
-### Database
-
-| Variable            | Tujuan                                        |
-| ------------------- | --------------------------------------------- |
-| `DATABASE_USER`     | Username PostgreSQL untuk workflow container. |
-| `DATABASE_PASSWORD` | Password PostgreSQL.                          |
-| `DATABASE_NAME`     | Nama database utama layanan.                  |
-| `DATABASE_URL`      | URL koneksi PostgreSQL layanan.               |
-
-## Runtime Execution Modes
-
-| Mode        | Command                          | Catatan                                           |
-| ----------- | -------------------------------- | ------------------------------------------------- |
-| Development | `npm run dev`                    | Menjalankan server development dengan hot reload. |
-| Production  | `npm run build` lalu `npm start` | Menjalankan hasil build untuk runtime production. |
+| Mode                     | Command      | Catatan                                                                   |
+| ------------------------ | ------------ | ------------------------------------------------------------------------- |
+| Run API lokal            | `make run`   | Memuat env via `scripts/with-env.sh` lalu menjalankan `go run ./cmd/api`. |
+| Build binary             | `make build` | Output binary: `./bin/recova-api`.                                        |
+| Quality lint             | `make lint`  | Menjalankan `go vet ./...`.                                               |
+| Unit + integration tests | `make test`  | Menjalankan `go test ./...`.                                              |
 
 ## Database Workflow Inventory
 
-| Workflow              | Command              | Tujuan                                                  |
-| --------------------- | -------------------- | ------------------------------------------------------- |
-| Migrate (development) | `npm run db:migrate` | Menjalankan migrasi schema pada konteks development.    |
-| Deploy migration      | `npm run db:deploy`  | Menerapkan migrasi pada konteks deployment/production.  |
-| Reset database        | `npm run db:reset`   | Reset database lalu migrasi ulang.                      |
-| Push schema           | `npm run db:push`    | Sinkronisasi schema ORM ke database tanpa migrasi file. |
-| Seed data             | `npm run db:seed`    | Mengisi data awal untuk development/testing.            |
-| DB studio             | `npm run db:studio`  | Membuka studio manajemen data ORM.                      |
+| Workflow                | Command                          | Tujuan                                  |
+| ----------------------- | -------------------------------- | --------------------------------------- |
+| Apply migration         | `make migrate-up`                | Menerapkan migration SQL terbaru.       |
+| Rollback migration      | `make migrate-down`              | Rollback satu langkah migration.        |
+| Migration status        | `make migrate-status`            | Melihat version migration aktif.        |
+| Migration health check  | `make migrate-check`             | Validasi migration version tidak dirty. |
+| Force migration version | `make migrate-force VERSION=<n>` | Recovery migration state terkontrol.    |
+| Seed baseline data      | `make seed`                      | Menjalankan seed non-secret idempotent. |
 
-## Engineering Script Inventory
+## Contract and Release Validation Inventory
 
-| Area                    | Command               |
-| ----------------------- | --------------------- |
-| Build                   | `npm run build`       |
-| Lint                    | `npm run lint`        |
-| Lint fix                | `npm run lint:fix`    |
-| Format                  | `npm run format`      |
-| Post-install generation | `npm run postinstall` |
+| Gate                      | Command                           | Output evidence                                         |
+| ------------------------- | --------------------------------- | ------------------------------------------------------- | --- | --- | --- | ----- | ----------------------- |
+| OpenAPI drift check       | `make openapi-check`              | Validasi route dan contract source.                     |
+| Script integration checks | `make test-integration`           | Validasi runner shell operasional.                      |
+| E2E critical flows        | `make test-e2e`                   | `artifacts/release-confidence/e2e-critical-flows.json`. |
+| Performance smoke         | `make test-performance`           | `artifacts/release-confidence/performance-smoke.json`.  |
+| Cutover verification      | `make cutover-wave WAVE=<64       | 65                                                      | 66  | 67  | 68  | all>` | `artifacts/cutover/**`. |
+| Stabilization gate        | `make stabilization-gate`         | `artifacts/stabilization/**`.                           |
+| Rollback rehearsal        | `make rollback-rehearsal`         | `artifacts/rollback-rehearsal/**`.                      |
+| Runtime decommission      | `make runtime-decommission`       | `artifacts/decommission/**`.                            |
+| Maintenance review        | `make post-migration-maintenance` | `artifacts/maintenance/**`.                             |
 
 ## Container Workflow Inventory
 
-| Environment | Command                                                  | Catatan                                             |
-| ----------- | -------------------------------------------------------- | --------------------------------------------------- |
-| Development | `docker-compose -f docker-compose.dev.yml up -d --build` | Menggunakan konfigurasi development dan hot reload. |
-| Production  | `docker-compose -f docker-compose.yml up -d --build`     | Menggunakan konfigurasi production.                 |
+| Workflow            | Command               | Catatan                                              |
+| ------------------- | --------------------- | ---------------------------------------------------- |
+| Compose smoke       | `make compose-smoke`  | Validasi startup stack `api` + `db`.                 |
+| Staging deploy gate | `make staging-deploy` | Migration dry-run, seed idempotency, readiness gate. |
 
-Artefak container yang disebutkan pada sumber:
+## Active CI/CD Workflow Inventory
 
-- `Dockerfile`
-- `Dockerfile.dev`
-- `docker-compose.yml`
-- `docker-compose.dev.yml`
+| Workflow file                                    | Purpose                                                                 |
+| ------------------------------------------------ | ----------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`                       | quality, DB, security, compose smoke, image build, staging deploy gate. |
+| `.github/workflows/cutover-waves.yml`            | cutover wave manual + evidence artifact.                                |
+| `.github/workflows/stabilization-rollback.yml`   | stabilization gate dan rollback rehearsal manual.                       |
+| `.github/workflows/decommission-maintenance.yml` | runtime decommission gate + maintenance review cadence.                 |
 
-## Operational Baseline
+## Legacy Runtime Status
 
-- Aplikasi mendefinisikan endpoint di bawah prefix `/api/v1`.
-- Data seeding tersedia untuk mendukung development dan testing.
-- Workflow container tersedia untuk development dan production.
-
-## Known Gaps
-
-- kebijakan secret management pada environment production,
-- kontrak health/readiness endpoint,
-- kebijakan logging terstruktur dan retensi log,
-- kebijakan metrics dan tracing,
-- SLA startup/shutdown serta timeout service,
-- kontrak backup/restore database,
-- kontrol keamanan runtime (CORS policy, rate limit policy, abuse control).
+- Runtime lama berbasis Express tidak lagi menjadi runtime publik aktif.
+- Artefak referensi runtime lama dipertahankan sebagai arsip pada direktori `references/`.
+- Baseline historis runtime lama dicatat pada [Legacy Express Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/express-baseline.md).
 
 ## Related Documents
 
-- [Current Express Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/express-baseline.md)
-- [Feature Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/feature-inventory.md)
-- [Recova Backend Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
+- [Deployment Workflow](/Users/macbookpro/Development/recova-backend-v2/docs/operations/deployment.md)
+- [Release Gates](/Users/macbookpro/Development/recova-backend-v2/docs/operations/release-gates.md)
+- [Migration Execution Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-execution-runbook.md)
+- [Documentation Maintenance Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/documentation-maintenance.md)
 
 ## Source Reference
 
-- [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
+- [Makefile](/Users/macbookpro/Development/recova-backend-v2/Makefile)
+- [scripts/](/Users/macbookpro/Development/recova-backend-v2/scripts)
+- [CI workflow](/Users/macbookpro/Development/recova-backend-v2/.github/workflows/ci.yml)

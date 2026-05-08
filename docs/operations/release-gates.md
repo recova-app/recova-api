@@ -63,6 +63,17 @@ Untuk window stabilisasi pasca-cutover domain besar:
 - simpan evidence `artifacts/stabilization/**`,
 - pastikan rollback rehearsal terbaru berstatus `passed`.
 
+Setelah stabilisasi pass, jalankan gate decommission runtime legacy:
+
+- `make runtime-decommission`,
+- simpan evidence `artifacts/decommission/**`.
+
+Untuk maintenance berkelanjutan pasca decommission:
+
+- jalankan `make post-migration-maintenance`,
+- simpan evidence `artifacts/maintenance/**`,
+- pastikan backlog maintenance berisi owner + priority.
+
 ## Blocking Conditions
 
 Release harus dibatalkan atau ditahan jika:
@@ -89,6 +100,7 @@ Rollback harus diikuti post-rollback verification:
 - endpoint kritikal normal,
 - error rate kembali ke baseline.
 - evidence rollback rehearsal tersedia pada `artifacts/rollback-rehearsal/**`.
+- evidence runtime decommission tersedia pada `artifacts/decommission/**`.
 
 ## Related Documents
 

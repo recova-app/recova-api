@@ -46,6 +46,8 @@ Aturan tambahan:
 | Auth/security               | `docs/operations/security.md`, `docs/modules/auth.md`, standar terkait                                           |
 | Database/schema             | `docs/database.md`, `docs/operations/database-migrations.md`                                                     |
 | Deployment/runtime          | `docs/operations/deployment.md`, `docs/operations/rollback.md`, post-deploy checks                               |
+| Runtime decommission        | `docs/operations/runtime-decommission.md`, `docs/roadmap/current-runtime-inventory.md`, legacy baseline docs     |
+| Post-migration maintenance  | `docs/operations/post-migration-maintenance.md`, `docs/standards/documentation-maintenance.md`                   |
 | Privacy/logging             | `docs/operations/data-privacy.md`, `docs/operations/data-retention.md`, `docs/standards/log-redaction-policy.md` |
 | Release validation evidence | `docs/generated/release-confidence-report.md` atau artefak report release validation yang ekuivalen              |
 
@@ -59,6 +61,7 @@ PR review wajib memeriksa:
 - apakah contoh payload aman dari data sensitif.
 - apakah perubahan file/config memiliki test companion atau exception rationale.
 - apakah report release confidence (E2E + performance smoke) terlampir untuk release candidate.
+- apakah evidence decommission/maintenance terbaru tersedia bila runtime legacy sudah ditutup.
 
 ## OpenAPI and Route Inventory Cadence
 

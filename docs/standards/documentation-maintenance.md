@@ -68,6 +68,18 @@ Prioritas eksekusi:
 3. medium
 4. low
 
+## Maintenance Automation Gate
+
+Untuk menjaga cadence review tetap konsisten, jalankan gate maintenance:
+
+- `make post-migration-maintenance`
+
+Gate ini menghasilkan evidence:
+
+- report freshness dokumen,
+- backlog maintenance dengan owner + priority,
+- ringkasan review alert/SLO/dependency cadence.
+
 ## Standalone Quality Rule
 
 Dokumen pemeliharaan wajib memastikan:
