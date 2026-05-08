@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down
+.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed
 
 preflight:
 	@./scripts/preflight.sh
@@ -33,3 +33,15 @@ migrate-up:
 
 migrate-down:
 	@./scripts/migrate.sh down 1
+
+migrate-status:
+	@./scripts/migrate.sh status
+
+migrate-check:
+	@./scripts/migrate.sh check
+
+migrate-force:
+	@./scripts/migrate.sh force $(VERSION)
+
+seed:
+	@./scripts/seed.sh

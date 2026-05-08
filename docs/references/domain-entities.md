@@ -32,6 +32,23 @@ Dokumen ini merinci entitas domain dan keterkaitannya dengan modul aplikasi.
 | `DailyChallenge`   | content            | konten tantangan harian                     |
 | `AiCoachChat`      | ai                 | histori percakapan pengguna dengan AI Coach |
 
+## Entity to Table Mapping
+
+| Entity             | Table                  |
+| ------------------ | ---------------------- |
+| `User`             | `users`                |
+| `Profile`          | `profiles`             |
+| `CheckIn`          | `check_ins`            |
+| `Streak`           | `streaks`              |
+| `JournalEntry`     | `journals`             |
+| `CommunityPost`    | `community_posts`      |
+| `CommunityComment` | `community_comments`   |
+| `CommunityLike`    | `community_post_likes` |
+| `EducationContent` | `education_contents`   |
+| `DailyMotivation`  | `daily_motivations`    |
+| `DailyChallenge`   | `daily_challenges`     |
+| `AiCoachChat`      | `ai_chats`             |
+
 ## Relationship Summary
 
 | Parent        | Child            | Cardinality |

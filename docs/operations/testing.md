@@ -83,6 +83,7 @@ Perintah verifikasi baseline:
 | `make build`            | compile gate untuk binary API                                 |
 | `make preflight`        | validasi dependency command dan struktur minimum project      |
 | `make test-integration` | scripted checks untuk workflow tooling (mis. migrasi wrapper) |
+| `make migrate-check`    | validasi state migration (versi/dirtiness)                    |
 
 ## Release Readiness Testing Gate
 

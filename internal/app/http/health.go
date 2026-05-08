@@ -9,22 +9,25 @@ import (
 type dependencyMode string
 
 const (
-	dependencyModeRequired    dependencyMode = "required"
-	dependencyModePlaceholder dependencyMode = "placeholder"
+	// ReadinessModeRequired marks dependency as blocking for readiness success.
+	ReadinessModeRequired dependencyMode = "required"
+	// ReadinessModePlaceholder marks dependency as non-blocking placeholder.
+	ReadinessModePlaceholder dependencyMode = "placeholder"
 )
 
-type dependencyCheck struct {
+// ReadinessCheck defines one readiness dependency probe.
+type ReadinessCheck struct {
 	Name    string
 	Mode    dependencyMode
 	Message string
 	Probe   func(ctx context.Context) error
 }
 
-func defaultReadinessChecks() []dependencyCheck {
-	return []dependencyCheck{
+func defaultReadinessChecks() []ReadinessCheck {
+	return []ReadinessCheck{
 		{
 			Name:    "database",
-			Mode:    dependencyModePlaceholder,
+			Mode:    ReadinessModePlaceholder,
 			Message: "Probe database belum aktif; akan diikat saat koneksi database siap.",
 			Probe: func(_ context.Context) error {
 				return nil
@@ -56,7 +59,7 @@ func (s *Server) evaluateReadiness(parent context.Context) (map[string]any, bool
 		message := strings.TrimSpace(check.Message)
 
 		switch {
-		case check.Mode == dependencyModePlaceholder:
+		case check.Mode == ReadinessModePlaceholder:
 			status = "placeholder"
 		case err != nil:
 			status = "down"
@@ -76,7 +79,7 @@ func (s *Server) evaluateReadiness(parent context.Context) (map[string]any, bool
 
 		checks[name] = map[string]any{
 			"status":  status,
-			"healthy": err == nil || check.Mode == dependencyModePlaceholder,
+			"healthy": err == nil || check.Mode == ReadinessModePlaceholder,
 			"message": message,
 		}
 	}

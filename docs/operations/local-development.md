@@ -66,6 +66,9 @@ Perintah standar pengembangan lokal:
 | `make run`              | menjalankan API lokal dari `cmd/api`                              |
 | `make migrate-up`       | apply migration menggunakan wrapper script                        |
 | `make migrate-down`     | rollback migration (default 1 langkah) menggunakan wrapper script |
+| `make migrate-status`   | menampilkan versi migration saat ini                              |
+| `make migrate-check`    | validasi state migration tidak dirty                              |
+| `make seed`             | menjalankan seed reference data minimal                           |
 
 Catatan build:
 

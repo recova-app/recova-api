@@ -74,6 +74,22 @@ Urutan minimum:
 3. seed fixture data non-produksi bila diperlukan,
 4. verifikasi integrity constraints.
 
+## Baseline Seed Runner
+
+Seed reference default disimpan di:
+
+- `migrations/seeds/000001_baseline_seed.sql`
+
+Eksekusi lokal:
+
+- `make seed`
+
+Aturan runner:
+
+- membutuhkan `DATABASE_URL`,
+- menjalankan `psql` dengan `ON_ERROR_STOP=1`,
+- script seed wajib idempotent (`ON CONFLICT DO NOTHING` untuk data referensi).
+
 ## Security and Privacy Rules
 
 - dilarang menaruh secret/token/API key di seed file,

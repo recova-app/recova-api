@@ -33,7 +33,8 @@ Dokumen ini mendefinisikan kontrak endpoint kesehatan layanan untuk observabilit
 
 - status `200`
 - body sukses berisi status readiness dan ringkasan `checks`
-- setiap dependency wajib berstatus `ok` atau `placeholder`
+- setiap dependency bertipe `required` wajib berstatus `ok`
+- dependency `placeholder` boleh muncul untuk dependency non-aktif yang sudah punya kontrak
 
 ### Readiness Failure
 
@@ -47,6 +48,10 @@ Dokumen ini mendefinisikan kontrak endpoint kesehatan layanan untuk observabilit
 - readiness boleh memuat dependency bertipe `placeholder` untuk dependency yang kontraknya sudah dikunci tetapi integrasi runtime belum diaktifkan.
 - dependency `placeholder` tidak memblokir status `200` selama dependency bertipe `required` tidak gagal.
 - saat dependency siap diintegrasikan, statusnya harus dipindahkan menjadi `required` dan diverifikasi oleh test.
+
+Default dependency runtime saat ini:
+
+- `database` bertipe `required`.
 
 ## Implementation Rules
 

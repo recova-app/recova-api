@@ -28,12 +28,36 @@ type Server struct {
 	app              *fiber.App
 	addr             string
 	logger           *slog.Logger
-	readinessChecks  []dependencyCheck
+	readinessChecks  []ReadinessCheck
 	readinessTimeout time.Duration
 }
 
+// ServerOption customizes server runtime assembly.
+type ServerOption func(*Server)
+
+// WithReadinessChecks overrides default readiness checks with explicit dependencies.
+func WithReadinessChecks(checks []ReadinessCheck) ServerOption {
+	return func(s *Server) {
+		if len(checks) == 0 {
+			return
+		}
+
+		cloned := make([]ReadinessCheck, 0, len(checks))
+		for _, check := range checks {
+			if strings.TrimSpace(check.Name) == "" || check.Probe == nil {
+				continue
+			}
+			cloned = append(cloned, check)
+		}
+
+		if len(cloned) > 0 {
+			s.readinessChecks = cloned
+		}
+	}
+}
+
 // NewServer creates an HTTP server instance using the runtime configuration.
-func NewServer(cfg config.Config, logger *slog.Logger) (*Server, error) {
+func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*Server, error) {
 	bodyLimit, err := parseBodyLimitBytes(cfg.Security.RequestBodyLimit)
 	if err != nil {
 		return nil, fmt.Errorf("request body limit tidak valid: %w", err)
@@ -44,6 +68,12 @@ func NewServer(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		logger:           logger,
 		readinessChecks:  defaultReadinessChecks(),
 		readinessTimeout: time.Duration(cfg.Observability.HealthCheckTimeoutMs) * time.Millisecond,
+	}
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		opt(srv)
 	}
 
 	app := fiber.New(fiber.Config{

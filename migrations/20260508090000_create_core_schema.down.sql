@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS ai_chats;
+DROP TABLE IF EXISTS daily_challenges;
+DROP TABLE IF EXISTS daily_motivations;
+DROP TABLE IF EXISTS education_contents;
+DROP TABLE IF EXISTS community_post_likes;
+DROP TABLE IF EXISTS community_comments;
+DROP TABLE IF EXISTS community_posts;
+DROP TABLE IF EXISTS journals;
+DROP TABLE IF EXISTS check_ins;
+DROP TABLE IF EXISTS streaks;
+DROP TABLE IF EXISTS profiles;
+DROP TABLE IF EXISTS users;

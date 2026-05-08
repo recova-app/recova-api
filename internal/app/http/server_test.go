@@ -75,10 +75,10 @@ func TestNewServer_NotFound_UsesStandardErrorEnvelope(t *testing.T) {
 // TestNewServer_RecoverMiddleware_MapsPanicToInternalError ensures panic is recovered and mapped safely.
 func TestNewServer_RecoverMiddleware_MapsPanicToInternalError(t *testing.T) {
 	srv := buildTestServer(t)
-	srv.readinessChecks = []dependencyCheck{
+	srv.readinessChecks = []ReadinessCheck{
 		{
 			Name: "database",
-			Mode: dependencyModeRequired,
+			Mode: ReadinessModeRequired,
 			Probe: func(_ context.Context) error {
 				panic("boom")
 			},
@@ -124,10 +124,10 @@ func TestNewServer_RequestIDAndSecurityHeaders(t *testing.T) {
 // TestNewServer_ReadinessFailure_ReturnsServiceUnavailable ensures failed required dependency returns 503.
 func TestNewServer_ReadinessFailure_ReturnsServiceUnavailable(t *testing.T) {
 	srv := buildTestServer(t)
-	srv.readinessChecks = []dependencyCheck{
+	srv.readinessChecks = []ReadinessCheck{
 		{
 			Name:  "database",
-			Mode:  dependencyModeRequired,
+			Mode:  ReadinessModeRequired,
 			Probe: func(_ context.Context) error { return errors.New("dial failed") },
 		},
 	}

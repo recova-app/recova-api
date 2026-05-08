@@ -30,6 +30,14 @@ Migration runner:
 - source migration berbasis filesystem repository,
 - target database PostgreSQL.
 
+Wrapper command lokal:
+
+- `make migrate-up`,
+- `make migrate-down`,
+- `make migrate-status`,
+- `make migrate-check`,
+- `make migrate-force VERSION=<version>`.
+
 ## File Naming Convention
 
 Gunakan format timestamp + deskripsi singkat:
@@ -59,8 +67,9 @@ Aturan:
 1. buat pasangan migration `up` dan `down`.
 2. jalankan `up` ke database development.
 3. verifikasi schema hasil perubahan.
-4. jalankan `down` untuk memastikan rollback valid.
-5. jalankan `up` ulang untuk memastikan jalur deploy normal.
+4. jalankan `status/check` untuk memastikan versi migration bersih (non-dirty).
+5. jalankan `down` untuk memastikan rollback valid.
+6. jalankan `up` ulang untuk memastikan jalur deploy normal.
 
 ### CI Validation
 

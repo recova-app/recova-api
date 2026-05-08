@@ -63,6 +63,39 @@ Content (Education / Daily Motivation / Daily Challenge)
   -> disajikan ke User melalui API read flows
 ```
 
+## Current Schema Baseline
+
+Skema baseline SQL saat ini berada di migration:
+
+- `migrations/20260508090000_create_core_schema.up.sql`
+
+Tabel inti:
+
+| Table                  | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `users`                | identitas akun pengguna           |
+| `profiles`             | data onboarding/profile pengguna  |
+| `streaks`              | histori streak pengguna           |
+| `check_ins`            | catatan check-in harian           |
+| `journals`             | jurnal pengguna                   |
+| `community_posts`      | posting komunitas                 |
+| `community_comments`   | komentar komunitas                |
+| `community_post_likes` | relasi like per pengguna-per-post |
+| `education_contents`   | konten edukasi aplikasi           |
+| `daily_motivations`    | konten motivasi harian            |
+| `daily_challenges`     | konten tantangan harian           |
+| `ai_chats`             | histori chat AI per pengguna      |
+
+Constraint/index baseline:
+
+- unique: `users.google_id`, `users.email`, `profiles.user_id`,
+- unique: `check_ins(user_id, check_in_date)`,
+- unique: `journals.check_in_id`,
+- unique: `daily_motivations.content`, `daily_challenges.content`,
+- FK seluruh child entity ke `users.id`,
+- index agregasi utama: `ai_chats(user_id, created_at)`,
+- index komunitas: `community_comments(user_id, post_id)` dan `community_post_likes(post_id)`.
+
 ## Data Sensitivity Baseline
 
 Klasifikasi detail ada di:
@@ -92,9 +125,8 @@ Klasifikasi detail ada di:
 
 Area yang belum punya source rinci dan butuh pendalaman:
 
-- skema kolom per entitas,
 - kebijakan retensi kuantitatif per entitas,
-- strategi indexing per query hot path,
+- strategi indexing lanjutan untuk query hot path ber-volume tinggi,
 - aturan data lifecycle untuk konten dinamis.
 
 ## Related Documents

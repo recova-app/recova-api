@@ -40,7 +40,7 @@ Dependensi utama readiness:
 
 - koneksi database,
 - dependensi wajib runtime lain yang ditetapkan sebagai readiness dependency.
-- dependency placeholder untuk integrasi yang belum diaktifkan.
+- dependency placeholder hanya dipakai bila dependency kontrak sudah ditentukan tetapi integrasi runtime belum aktif.
 
 ## Authentication and Authorization
 
@@ -53,6 +53,7 @@ Dependensi utama readiness:
 - liveness hanya memverifikasi proses dapat merespons,
 - readiness memverifikasi dependency kritis bertipe `required`,
 - dependency bertipe `placeholder` dilaporkan di ringkasan checks tanpa memblokir readiness sukses,
+- koneksi database berada pada mode `required` sebagai gate readiness utama runtime,
 - timeout readiness harus terukur dan konsisten,
 - status readiness gagal memblokir promote release.
 
