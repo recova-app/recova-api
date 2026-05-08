@@ -20,10 +20,12 @@ Dokumen ini menetapkan urutan eksekusi request di backend agar kontrak API stabi
 ```text
 HTTP Request
   -> Request ID middleware
+  -> Recover middleware
+  -> Request logger middleware
   -> Security headers
   -> CORS gate
-  -> Recover middleware
-  -> Rate limiter
+  -> Route matching
+  -> Rate limiter (jika aktif)
   -> Auth middleware (jika endpoint protected)
   -> Request validation
   -> Handler
@@ -57,15 +59,16 @@ panic
 
 ## Middleware Contract
 
-| Middleware       | Tujuan                            | Output minimum                               |
-| ---------------- | --------------------------------- | -------------------------------------------- |
-| Request ID       | korelasi request lintas log       | `x-request-id` tersedia                      |
-| Security headers | baseline hardening HTTP           | header keamanan terpasang                    |
-| CORS             | kontrol origin browser            | request lintas origin tervalidasi            |
-| Recover          | mencegah crash process saat panic | panic terkonversi ke error aman              |
-| Rate limiter     | proteksi abuse/traffic burst      | error `429` dengan envelope standar          |
-| Auth             | verifikasi identitas              | principal terpasang untuk endpoint protected |
-| Validation       | validasi params/query/body        | payload valid sebelum handler                |
+| Middleware       | Tujuan                            | Output minimum                                 |
+| ---------------- | --------------------------------- | ---------------------------------------------- |
+| Request ID       | korelasi request lintas log       | `x-request-id` tersedia                        |
+| Recover          | mencegah crash process saat panic | panic terkonversi ke error aman                |
+| Request logger   | observability request-level       | method/path/status/latency/request id tercatat |
+| Security headers | baseline hardening HTTP           | header keamanan terpasang                      |
+| CORS             | kontrol origin browser            | request lintas origin tervalidasi              |
+| Rate limiter     | proteksi abuse/traffic burst      | error `429` dengan envelope standar jika aktif |
+| Auth             | verifikasi identitas              | principal terpasang untuk endpoint protected   |
+| Validation       | validasi params/query/body        | payload valid sebelum handler                  |
 
 ## Handler/Service/Repository Contract
 
@@ -94,6 +97,7 @@ Standar detail ada di [Error Taxonomy](/Users/macbookpro/Development/recova-back
 ## Observability Contract
 
 - Semua log request/error wajib membawa request id.
+- Runtime wajib menerapkan body size limit global pada level app config.
 - Jalur error harus menyimpan klasifikasi error yang konsisten.
 - Health endpoint harus terpisah dari route bisnis.
 - Error response ke klien harus aman, tidak mengandung stack trace/raw DB/raw provider payload.
@@ -108,4 +112,8 @@ Standar detail ada di [Error Taxonomy](/Users/macbookpro/Development/recova-back
 
 - [Fiber v3 Documentation](https://docs.gofiber.io/)
 - [Fiber Error Handling Guide](https://docs.gofiber.io/guide/error-handling)
+- [Fiber RequestID Middleware](https://docs.gofiber.io/middleware/requestid/)
+- [Fiber Recover Middleware](https://docs.gofiber.io/middleware/recover/)
+- [Fiber CORS Middleware](https://docs.gofiber.io/middleware/cors/)
+- [Fiber Helmet Middleware](https://docs.gofiber.io/middleware/helmet/)
 - [OpenTelemetry Go Documentation](https://opentelemetry.io/docs/languages/go/)

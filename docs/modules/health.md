@@ -40,6 +40,7 @@ Dependensi utama readiness:
 
 - koneksi database,
 - dependensi wajib runtime lain yang ditetapkan sebagai readiness dependency.
+- dependency placeholder untuk integrasi yang belum diaktifkan.
 
 ## Authentication and Authorization
 
@@ -50,7 +51,8 @@ Dependensi utama readiness:
 ## Service and Business Rules
 
 - liveness hanya memverifikasi proses dapat merespons,
-- readiness memverifikasi dependency kritis,
+- readiness memverifikasi dependency kritis bertipe `required`,
+- dependency bertipe `placeholder` dilaporkan di ringkasan checks tanpa memblokir readiness sukses,
 - timeout readiness harus terukur dan konsisten,
 - status readiness gagal memblokir promote release.
 
@@ -62,11 +64,11 @@ Dependensi utama readiness:
 
 ## Error Contract
 
-| Condition                  | HTTP  | Error code            |
-| -------------------------- | ----- | --------------------- |
-| liveness gagal             | `503` | `SERVICE_UNAVAILABLE` |
-| readiness dependency gagal | `503` | `SERVICE_UNAVAILABLE` |
-| kegagalan internal handler | `500` | `INTERNAL_ERROR`      |
+| Condition                             | HTTP  | Error code            |
+| ------------------------------------- | ----- | --------------------- |
+| liveness gagal                        | `503` | `SERVICE_UNAVAILABLE` |
+| readiness dependency `required` gagal | `503` | `SERVICE_UNAVAILABLE` |
+| kegagalan internal handler            | `500` | `INTERNAL_ERROR`      |
 
 ## Observability Contract
 
@@ -93,7 +95,7 @@ Metrik minimum:
 ## Open Gaps
 
 - daftar final dependency readiness wajib,
-- format final payload details dependency,
+- format final payload details dependency untuk setiap status (`ok`, `placeholder`, `down`),
 - strategi pembatasan akses health endpoint di production.
 
 ## Related Documents

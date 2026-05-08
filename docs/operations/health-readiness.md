@@ -20,7 +20,7 @@ Dokumen ini mendefinisikan kontrak endpoint kesehatan layanan untuk observabilit
 | Method | Path            | Tujuan                                          | Dependency check                     |
 | ------ | --------------- | ----------------------------------------------- | ------------------------------------ |
 | `GET`  | `/health/live`  | memastikan proses aktif dan bisa merespons HTTP | tidak memeriksa dependency eksternal |
-| `GET`  | `/health/ready` | memastikan layanan siap menerima trafik         | wajib memeriksa koneksi database     |
+| `GET`  | `/health/ready` | memastikan layanan siap menerima trafik         | memeriksa readiness dependency aktif |
 
 ## Response Behavior
 
@@ -32,13 +32,21 @@ Dokumen ini mendefinisikan kontrak endpoint kesehatan layanan untuk observabilit
 ### Readiness Success
 
 - status `200`
-- dependency utama berstatus sehat
+- body sukses berisi status readiness dan ringkasan `checks`
+- setiap dependency wajib berstatus `ok` atau `placeholder`
 
 ### Readiness Failure
 
 - status `503`
 - body error aman dan tidak membocorkan detail sensitif
+- `error.details` berisi ringkasan check dependency yang gagal
 - reason operasional dicatat di log internal dengan request id
+
+## Placeholder Dependency Rule
+
+- readiness boleh memuat dependency bertipe `placeholder` untuk dependency yang kontraknya sudah dikunci tetapi integrasi runtime belum diaktifkan.
+- dependency `placeholder` tidak memblokir status `200` selama dependency bertipe `required` tidak gagal.
+- saat dependency siap diintegrasikan, statusnya harus dipindahkan menjadi `required` dan diverifikasi oleh test.
 
 ## Implementation Rules
 
@@ -81,5 +89,7 @@ Jika `/health/ready` gagal:
 ## Source Reference
 
 - [Fiber v3 Documentation](https://docs.gofiber.io/)
+- [Fiber Health Check Middleware](https://docs.gofiber.io/middleware/healthcheck/)
 - [PostgreSQL Current Documentation](https://www.postgresql.org/docs/current/index.html)
+- [Go Context Package](https://pkg.go.dev/context)
 - [OpenTelemetry Go Documentation](https://opentelemetry.io/docs/languages/go/)

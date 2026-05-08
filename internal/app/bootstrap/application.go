@@ -17,7 +17,10 @@ type Application struct {
 
 // NewApplication constructs an executable application instance from runtime dependencies.
 func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error) {
-	server := apphttp.NewServer(cfg, logger)
+	server, err := apphttp.NewServer(cfg, logger)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Application{
 		server: server,
