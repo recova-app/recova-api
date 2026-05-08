@@ -72,6 +72,18 @@ Wajib:
 - data sensitif harus disamarkan,
 - fixture harus versioned dan repeatable.
 
+## Baseline Verification Commands
+
+Perintah verifikasi baseline:
+
+| Command                 | Scope                                                         |
+| ----------------------- | ------------------------------------------------------------- |
+| `make test`             | unit tests package Go                                         |
+| `make lint`             | static checks baseline (`go vet ./...`)                       |
+| `make build`            | compile gate untuk binary API                                 |
+| `make preflight`        | validasi dependency command dan struktur minimum project      |
+| `make test-integration` | scripted checks untuk workflow tooling (mis. migrasi wrapper) |
+
 ## Release Readiness Testing Gate
 
 Sebelum rilis:

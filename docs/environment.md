@@ -37,6 +37,7 @@ Prinsip inti:
 
 | Variable     | Required | Example value             | Notes                                             |
 | ------------ | -------- | ------------------------- | ------------------------------------------------- |
+| `APP_NAME`   | Yes      | `recova-backend-v2`       | identitas service untuk startup log dan telemetry |
 | `APP_ENV`    | Yes      | `local`                   | allowed: `local`, `test`, `staging`, `production` |
 | `NODE_ENV`   | Yes      | `development`             | mode runtime standar ecosystem                    |
 | `PORT`       | Yes      | `3000`                    | port HTTP service                                 |

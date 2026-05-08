@@ -58,6 +58,7 @@ Dokumen ini menetapkan layout repository target untuk backend Go agar modul doma
 |-- migrations/
 |-- deployments/
 |-- scripts/
+|-- bin/ (generated local build artifact, ignored by git)
 |-- test/
 |   |-- unit/
 |   |-- integration/
@@ -77,6 +78,7 @@ Dokumen ini menetapkan layout repository target untuk backend Go agar modul doma
 | `api/openapi`       | kontrak OpenAPI sumber kebenaran API                            |
 | `migrations`        | SQL migration files up/down                                     |
 | `deployments`       | artefak deploy (container/manifest)                             |
+| `bin`               | output binary lokal hasil command build                         |
 | `test`              | test suite unit/integration/contract                            |
 
 ## Module Anatomy

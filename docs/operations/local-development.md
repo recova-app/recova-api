@@ -51,6 +51,27 @@ Komponen minimum:
 - seed data hanya data sintetis,
 - jangan gunakan database production/staging untuk local verification.
 
+## Local Bootstrap Commands
+
+Perintah standar pengembangan lokal:
+
+| Command                 | Purpose                                                           |
+| ----------------------- | ----------------------------------------------------------------- |
+| `make preflight`        | validasi dependency tooling dan baseline struktur project         |
+| `make fmt`              | format seluruh file Go dengan `gofmt`                             |
+| `make lint`             | static analysis baseline via `go vet ./...`                       |
+| `make test`             | menjalankan unit test package Go                                  |
+| `make test-integration` | menjalankan scripted integration checks untuk tooling workflow    |
+| `make build`            | build binary API ke `./bin/recova-api`                            |
+| `make run`              | menjalankan API lokal dari `cmd/api`                              |
+| `make migrate-up`       | apply migration menggunakan wrapper script                        |
+| `make migrate-down`     | rollback migration (default 1 langkah) menggunakan wrapper script |
+
+Catatan build:
+
+- layout repository menggunakan direktori `api/` untuk kontrak OpenAPI;
+- karena itu build artifact diarahkan eksplisit ke `./bin/recova-api` agar tidak bentrok dengan direktori `api/`.
+
 ## Local Verification Baseline
 
 Setiap perubahan utama lokal harus memverifikasi:
@@ -80,3 +101,4 @@ Setiap perubahan utama lokal harus memverifikasi:
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
 - [PostgreSQL Current Documentation](https://www.postgresql.org/docs/current/)
 - [Docker Multi-stage Builds](https://docs.docker.com/build/building/multi-stage/)
+- [Go Toolchains](https://go.dev/doc/toolchain)

@@ -1,0 +1,10 @@
+# Build outputs
+/bin/
+
+# Environment overrides
+.env
+.env.local
+.env.test
+
+# macOS
+.DS_Store
