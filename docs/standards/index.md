@@ -25,5 +25,8 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 ## Related Documents
 
 - [Information Architecture Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/information-architecture.md)
+- [Documentation Metadata Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/metadata-standard.md)
+- [Freshness and Lifecycle Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/freshness-and-lifecycle.md)
+- [Review Process Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/review-process.md)
 - [Documentation Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview.md)
 - [Decisions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/index.md)
