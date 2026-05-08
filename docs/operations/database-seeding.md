@@ -1,0 +1,100 @@
+---
+title: Database Seeding
+description: Standar seeding database untuk data referensi, fixture pengujian, dan data bootstrap development secara aman dan repeatable.
+owner: backend-owner
+reviewers:
+  - engineering-lead
+  - platform-docs-maintainer
+doc_status: draft
+source_repo: recova-backend-v2
+source_path: docs/operations/database-seeding.md
+last_reviewed: 2026-05-08
+---
+
+# Database Seeding
+
+Dokumen ini menetapkan standar seeding agar data awal environment dapat direproduksi tanpa merusak kontrak data aplikasi.
+
+## Seeding Objectives
+
+- menyediakan data bootstrap untuk development,
+- menyediakan fixture deterministik untuk integration testing,
+- memisahkan data referensi dari data skenario uji,
+- mencegah data sensitif masuk seed.
+
+## Data Classes
+
+### Reference Data
+
+Contoh:
+
+- konten edukasi default,
+- daily motivations,
+- daily challenges.
+
+Aturan:
+
+- boleh disimpan di repository,
+- harus versioned,
+- perubahan harus dicatat pada dokumen modul terkait.
+
+### Development Fixture Data
+
+Contoh:
+
+- akun pengguna uji,
+- profile dan check-in simulasi,
+- journals dan interaksi komunitas untuk debugging lokal.
+
+Aturan:
+
+- hanya untuk lingkungan development/test,
+- dilarang berisi kredensial nyata,
+- gunakan value sintetis yang jelas bukan data produksi.
+
+## Environment Rules
+
+- development: seeding diperbolehkan,
+- test/integration: seeding wajib deterministik,
+- staging: hanya data referensi minimal,
+- production: seeding manual dibatasi untuk reference bootstrap yang terdokumentasi.
+
+## Idempotency and Re-run Policy
+
+- seeding harus aman dijalankan ulang,
+- gunakan natural key atau unique key untuk mencegah duplikasi,
+- operasi update harus bersifat targeted, bukan truncate massal tanpa kontrol.
+
+## Execution Order
+
+Urutan minimum:
+
+1. jalankan migration schema,
+2. seed reference data,
+3. seed fixture data non-produksi bila diperlukan,
+4. verifikasi integrity constraints.
+
+## Security and Privacy Rules
+
+- dilarang menaruh secret/token/API key di seed file,
+- journal/chat simulasi tidak boleh berisi data personal nyata,
+- hash password fixture bila skenario email/password diaktifkan,
+- log seeding tidak boleh menampilkan payload sensitif penuh.
+
+## Verification Checklist
+
+- seluruh seed script dapat dijalankan ulang tanpa duplikasi,
+- foreign key integrity valid,
+- data referensi aktif tersedia untuk endpoint read,
+- tidak ada data rahasia atau kredensial produksi.
+
+## Related Documents
+
+- [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)
+- [Database Migrations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/database-migrations.md)
+- [Domain Entities Reference](/Users/macbookpro/Development/recova-backend-v2/docs/references/domain-entities.md)
+
+## Source Reference
+
+- [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
+- [PostgreSQL Current Documentation](https://www.postgresql.org/docs/current/index.html)

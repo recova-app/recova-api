@@ -29,6 +29,8 @@ Halaman ini menampung daftar keputusan teknis yang bersifat arsitektural dan ber
 - [ADR 0003 HTTP Framework Fiber](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0003-http-framework-fiber.md)
 - [ADR 0004 ORM GORM PostgreSQL](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0004-orm-gorm-postgresql.md)
 - [ADR 0005 Database Migration Tool](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0005-database-migration-tool.md)
+- [ADR 0006 GORM Model Conventions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0006-gorm-model-conventions.md)
+- [ADR 0007 Auth Token Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/adr-0007-auth-token-strategy.md)
 
 ## Related Sections
 

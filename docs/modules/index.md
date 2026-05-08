@@ -22,6 +22,17 @@ Halaman ini menjadi entry point dokumentasi per modul domain agar boundary fungs
 - kontrak modul ke data layer,
 - daftar gap dokumentasi per modul.
 
+## Core Module Documents
+
+- [Auth Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/auth.md)
+- [Users Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/users.md)
+- [Onboarding Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/onboarding.md)
+- [Routine Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/routine.md)
+- [Check-Ins Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/check-ins.md)
+- [Streaks Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/streaks.md)
+- [Statistics Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/statistics.md)
+- [Journals Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/journals.md)
+
 ## Related Sections
 
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
