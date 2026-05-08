@@ -34,8 +34,9 @@ Cocok untuk parity environment.
 Komponen minimum:
 
 - service backend via container,
-- PostgreSQL via service terpisah atau endpoint eksternal dev,
-- volume terpisah untuk data non-persisten development bila diperlukan.
+- PostgreSQL via service terpisah di compose,
+- volume data lokal terpisah,
+- file runtime compose: `docker-compose.local.yml`.
 
 ## Environment Rules
 
@@ -69,6 +70,7 @@ Perintah standar pengembangan lokal:
 | `make migrate-status`   | menampilkan versi migration saat ini                              |
 | `make migrate-check`    | validasi state migration tidak dirty                              |
 | `make seed`             | menjalankan seed reference data minimal                           |
+| `make compose-smoke`    | smoke test compose lokal (`api` + `db`) dengan cleanup otomatis   |
 
 Catatan build:
 
@@ -79,6 +81,7 @@ Catatan env local:
 
 - target `make run`, `make migrate-*`, dan `make seed` auto-load env dari `.env` melalui `scripts/with-env.sh`,
 - jika ingin memakai file env lain, gunakan `ENV_FILE=<path> make <target>`.
+- compose smoke default memakai `ENV_FILE=.env.example`; override bisa lewat `ENV_FILE=<path> make compose-smoke`.
 
 ## Local Verification Baseline
 

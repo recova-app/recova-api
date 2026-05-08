@@ -86,6 +86,7 @@ Perintah verifikasi baseline:
 | `make migrate-check`    | validasi state migration (versi/dirtiness)                    |
 | `make openapi-check`    | validasi OpenAPI source/generated + drift route runtime       |
 | `make security-scan`    | vulnerability scan dependency Go via govulncheck              |
+| `make compose-smoke`    | smoke runtime container (`docker-compose.local.yml`)          |
 
 ## Release Readiness Testing Gate
 

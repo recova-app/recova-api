@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-recova_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - recova-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-recova_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${APP_VERSION:-local}
+        VCS_REF: ${VCS_REF:-local}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: recova-backend-v2:${APP_VERSION:-local}
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-recova_db}?sslmode=disable
+      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-recova_db}?sslmode=disable
+      DATABASE_SSL_MODE: disable
+      APP_ENV: ${APP_ENV:-local}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${PORT:-3000}/health/live >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  recova-postgres-data:
+    driver: local

@@ -32,6 +32,9 @@ assert_fail ./scripts/with-env.sh
 # openapi.sh must fail for unsupported command.
 assert_fail ./scripts/openapi.sh unknown-command
 
+# compose-smoke.sh must fail for missing compose file.
+assert_fail env COMPOSE_FILE="$temp_dir/not-found.yml" ./scripts/compose-smoke.sh
+
 # openapi generate/check must pass on repository baseline.
 ./scripts/openapi.sh generate >/dev/null
 ./scripts/openapi.sh check >/dev/null
@@ -49,6 +52,25 @@ FAKE_VULN_LOG="$fake_vuln_log" \
 ./scripts/security-scan.sh ./internal/... >/dev/null
 
 assert_file_contains "$fake_vuln_log" "./internal/..."
+
+# compose-smoke.sh must call docker compose up/ps/down with expected flags.
+fake_docker_log="$temp_dir/fake-docker.log"
+cat > "$temp_dir/docker" <<'SCRIPT'
+#!/usr/bin/env sh
+printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
+exit 0
+SCRIPT
+chmod +x "$temp_dir/docker"
+
+DOCKER_BIN="$temp_dir/docker" \
+FAKE_DOCKER_LOG="$fake_docker_log" \
+ENV_FILE=".env.example" \
+COMPOSE_PROJECT_NAME="recova-script-test" \
+./scripts/compose-smoke.sh >/dev/null
+
+assert_file_contains "$fake_docker_log" "compose --env-file .env.example -f docker-compose.local.yml -p recova-script-test up --build --wait --wait-timeout 120"
+assert_file_contains "$fake_docker_log" "compose --env-file .env.example -f docker-compose.local.yml -p recova-script-test ps"
+assert_file_contains "$fake_docker_log" "compose --env-file .env.example -f docker-compose.local.yml -p recova-script-test down -v"
 
 # with-env.sh must load env file before running command.
 env_file="$temp_dir/local.env"

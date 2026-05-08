@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan
+.PHONY: preflight fmt lint test test-integration build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check security-scan compose-smoke
 
 preflight:
 	@./scripts/preflight.sh
@@ -54,3 +54,6 @@ openapi-check:
 
 security-scan:
 	@./scripts/security-scan.sh ./...
+
+compose-smoke:
+	@./scripts/compose-smoke.sh

@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+.vscode
+.idea
+bin
+docs
+tasks
+references
+test
+coverage*
+*.log

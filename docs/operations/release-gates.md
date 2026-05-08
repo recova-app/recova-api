@@ -31,6 +31,7 @@ Wajib lulus:
 - integration tests database,
 - migration up/down verification,
 - contract compatibility tests,
+- compose runtime smoke (`api` + `db`) lulus,
 - security checklist terisi dan disetujui.
 
 ## Gate C - Pre-Deploy
@@ -40,6 +41,7 @@ Wajib lulus:
 - build image sukses,
 - vulnerability scan sesuai policy,
 - deployment plan dan rollback path tersedia,
+- gate environment staging melewati approval/protection yang ditetapkan,
 - release sign-off engineering + platform.
 
 ## Gate D - Post-Deploy
