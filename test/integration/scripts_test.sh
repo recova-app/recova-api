@@ -58,6 +58,10 @@ assert_fail env COMPOSE_FILE="$temp_dir/not-found.yml" ./scripts/compose-smoke.s
 ./scripts/openapi.sh check >/dev/null
 ./scripts/scalar.sh check >/dev/null
 ./scripts/module-consistency.sh check >/dev/null
+./scripts/module-consistency.sh structure >/dev/null
+./scripts/module-consistency.sh contract >/dev/null
+./scripts/module-consistency.sh openapi >/dev/null
+./scripts/module-consistency.sh full-check >/dev/null
 
 # security-scan.sh must call provided govulncheck binary with target argument.
 fake_vuln_log="$temp_dir/fake-govulncheck.log"

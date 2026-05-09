@@ -45,6 +45,7 @@ Aturan tambahan:
 | Endpoint/contract API                 | `docs/api-reference.md`, `docs/generated/routes.md`, `docs/generated/openapi.yaml`, dokumen modul terkait                                               |
 | API docs presentation                 | `scalar.config.json`, `docs/api-reference.md`, `docs/operations/api-docs-generation.md`                                                                 |
 | Module structure/contract consistency | `docs/standards/module-structure-consistency.md`, `docs/standards/module-contract-consistency.md`, `docs/roadmap/internal-modules-consistency-audit.md` |
+| Module consistency cleanup backlog    | `docs/roadmap/module-consistency-cleanup-backlog.md`, dokumen standar/audit konsistensi terkait                                                         |
 | Auth/security                         | `docs/operations/security.md`, `docs/modules/auth.md`, standar terkait                                                                                  |
 | Database/schema                       | `docs/database.md`, `docs/operations/database-migrations.md`                                                                                            |
 | Deployment/runtime                    | `docs/operations/deployment.md`, `docs/operations/rollback.md`, post-deploy checks                                                                      |
@@ -64,6 +65,7 @@ PR review wajib memeriksa:
 - apakah `scalar.config.json` masih sinkron dengan halaman docs yang dipakai dan artefak OpenAPI generated.
 - apakah perubahan file/config memiliki test companion atau exception rationale.
 - apakah `make module-consistency-check` tetap lulus saat mengubah layer/module anatomy.
+- apakah backlog cleanup konsistensi module tetap sinkron dengan status exception/gap aktual.
 - apakah report release confidence (E2E + performance smoke) terlampir untuk release candidate.
 - apakah evidence decommission/maintenance terbaru tersedia bila runtime legacy sudah ditutup.
 
@@ -99,6 +101,7 @@ Debt `critical` dan `high` wajib diselesaikan sebelum rilis mayor.
 - [ ] route inventory/OpenAPI sinkron dengan kontrak runtime.
 - [ ] `scalar.config.json` sinkron dengan docs pages + artefak OpenAPI generated.
 - [ ] `make module-consistency-check` lulus atau exception rationale terdokumentasi.
+- [ ] `make module-consistency-full-check` lulus untuk cleanup behavior-preserving lintas module.
 - [ ] tidak ada konten sensitif mentah pada contoh log/payload.
 - [ ] action item documentation debt tercatat bila ada gap.
 - [ ] evidence release confidence terbaru tersedia untuk candidate rilis.

@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/verification-matrix.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Verification Matrix
@@ -49,6 +49,7 @@ Contract tests wajib memverifikasi:
 Gate tambahan lintas module:
 
 - `make module-consistency-check` untuk anatomy module, companion tests, dan boundary layer.
+- `make module-consistency-full-check` untuk baseline behavior-preserving cleanup (termasuk OpenAPI drift check).
 
 ## Migration Readiness Checks
 

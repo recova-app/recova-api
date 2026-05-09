@@ -87,6 +87,7 @@ Gate konsistensi lintas module:
 - [OpenAPI Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/openapi.md)
 - [Observability](/Users/macbookpro/Development/recova-backend-v2/docs/operations/observability.md)
 - [Testing Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/operations/testing.md)
+- [Module Consistency Cleanup Backlog](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/module-consistency-cleanup-backlog.md)
 
 ## Source Reference
 
