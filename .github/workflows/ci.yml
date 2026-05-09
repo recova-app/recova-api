@@ -48,7 +48,7 @@ jobs:
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
-            echo "File belum gofmt:" >&2
+            echo "File not gofmt-formatted yet:" >&2
             echo "$unformatted" >&2
             exit 1
           fi

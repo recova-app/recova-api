@@ -1,3 +1,3 @@
 # Deployment Artifacts
 
-Direktori ini menyimpan artefak deploy (container, manifest, atau runtime config) yang dibutuhkan pipeline.
+This directory stores deployment artifacts (containers, manifests, or runtime config) required by the pipeline.

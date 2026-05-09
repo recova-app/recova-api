@@ -14,20 +14,20 @@ default_due_date="${DEFAULT_BACKLOG_DUE_DATE:-$(date -u +%Y-%m-%d)}"
 
 case "$security_cadence_days" in
   ''|*[!0-9]*)
-    echo "[post-migration-maintenance] SECURITY_DOC_CADENCE_DAYS harus numerik: $security_cadence_days" >&2
+    echo "[post-migration-maintenance] SECURITY_DOC_CADENCE_DAYS must be numeric: $security_cadence_days" >&2
     exit 1
     ;;
 esac
 
 case "$general_cadence_days" in
   ''|*[!0-9]*)
-    echo "[post-migration-maintenance] GENERAL_DOC_CADENCE_DAYS harus numerik: $general_cadence_days" >&2
+    echo "[post-migration-maintenance] GENERAL_DOC_CADENCE_DAYS must be numeric: $general_cadence_days" >&2
     exit 1
     ;;
 esac
 
 if [ ! -d "$docs_root" ]; then
-  echo "[post-migration-maintenance] docs root tidak ditemukan: $docs_root" >&2
+  echo "[post-migration-maintenance] docs root not found: $docs_root" >&2
   exit 1
 fi
 
@@ -46,7 +46,7 @@ validate_review_status() {
   case "$value" in
     done) ;;
     *)
-      echo "[post-migration-maintenance] ${label} wajib bernilai 'done' (aktual: ${value})" >&2
+      echo "[post-migration-maintenance] ${label} must be 'done' (actual: ${value})" >&2
       exit 1
       ;;
   esac
@@ -138,12 +138,12 @@ cat >"$backlog_file" <<EOF
 
 | ID | Item | Owner | Priority | Status | Due Date |
 | --- | --- | --- | --- | --- | --- |
-| MNT-001 | Review dan update dokumen stale berisiko tinggi (${stale_high_risk} item) | ${default_owner} | high | todo | ${default_due_date} |
-| MNT-002 | Review dan update dokumen stale kategori umum (${stale_general} item) | ${default_owner} | medium | todo | ${default_due_date} |
-| MNT-003 | Review threshold alert observability pasca cutover | ${default_owner} | high | todo | ${default_due_date} |
-| MNT-004 | Review target SLO dan error budget pasca cutover | ${default_owner} | high | todo | ${default_due_date} |
-| MNT-005 | Review cadence update dependency dan patch security | ${default_owner} | medium | todo | ${default_due_date} |
-| MNT-006 | Prioritasi optimasi lanjutan berdasarkan evidence stabilisasi | ${default_owner} | medium | todo | ${default_due_date} |
+| MNT-001 | Review and update stale high-risk documents (${stale_high_risk} item) | ${default_owner} | high | todo | ${default_due_date} |
+| MNT-002 | Review and update stale general-category documents (${stale_general} item) | ${default_owner} | medium | todo | ${default_due_date} |
+| MNT-003 | Review observability alert thresholds after cutover | ${default_owner} | high | todo | ${default_due_date} |
+| MNT-004 | Review SLO targets and error budget after cutover | ${default_owner} | high | todo | ${default_due_date} |
+| MNT-005 | Review dependency update cadence and security patching | ${default_owner} | medium | todo | ${default_due_date} |
+| MNT-006 | Prioritize follow-up optimizations based on stabilization evidence | ${default_owner} | medium | todo | ${default_due_date} |
 
 ## Evidence
 

@@ -14,7 +14,7 @@ func TestService_GetCatalog_Success(t *testing.T) {
 	repo := &fakeAchievementsRepo{
 		user: models.User{ID: "user-1"},
 		achievements: []models.Achievement{
-			{ID: "a-1", Code: "streak_7_days", Title: "7 Hari", Description: "desc", Category: categoryStreakMilestone, Threshold: 7, IsActive: true},
+			{ID: "a-1", Code: "streak_7_days", Title: "7 Days", Description: "desc", Category: categoryStreakMilestone, Threshold: 7, IsActive: true},
 		},
 	}
 	service := NewService(repo)
@@ -77,7 +77,7 @@ func TestService_GetUnlocked_Success(t *testing.T) {
 		unlockedRows: []unlockedListRow{
 			{
 				Code:          "streak_7_days",
-				Title:         "7 Hari",
+				Title:         "7 Days",
 				Description:   "desc",
 				Category:      categoryStreakMilestone,
 				Threshold:     7,

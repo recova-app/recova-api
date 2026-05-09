@@ -14,27 +14,27 @@ runtime_source_of_truth_file="${RUNTIME_SOURCE_OF_TRUTH_FILE:-docs/roadmap/curre
 runtime_keyword="${RUNTIME_SOURCE_OF_TRUTH_KEYWORD:-Go}"
 
 if [ -z "$legacy_traffic_count" ]; then
-  echo "[runtime-decommission] LEGACY_RUNTIME_TRAFFIC_COUNT wajib diisi" >&2
+  echo "[runtime-decommission] LEGACY_RUNTIME_TRAFFIC_COUNT must be provided" >&2
   exit 1
 fi
 
 case "$legacy_traffic_count" in
   *[!0-9]*)
-    echo "[runtime-decommission] LEGACY_RUNTIME_TRAFFIC_COUNT harus numerik: $legacy_traffic_count" >&2
+    echo "[runtime-decommission] LEGACY_RUNTIME_TRAFFIC_COUNT must be numeric: $legacy_traffic_count" >&2
     exit 1
     ;;
 esac
 
 case "$rollback_retention_days" in
   ''|*[!0-9]*)
-    echo "[runtime-decommission] ROLLBACK_RETENTION_DAYS harus numerik: $rollback_retention_days" >&2
+    echo "[runtime-decommission] ROLLBACK_RETENTION_DAYS must be numeric: $rollback_retention_days" >&2
     exit 1
     ;;
 esac
 
 case "$rollback_min_reports" in
   ''|*[!0-9]*)
-    echo "[runtime-decommission] ROLLBACK_MIN_REPORTS harus numerik: $rollback_min_reports" >&2
+    echo "[runtime-decommission] ROLLBACK_MIN_REPORTS must be numeric: $rollback_min_reports" >&2
     exit 1
     ;;
 esac
@@ -50,27 +50,27 @@ if [ "$rollback_retention_days" -lt 1 ]; then
 fi
 
 if [ "$legacy_traffic_count" -ne 0 ]; then
-  echo "[runtime-decommission] traffic runtime legacy belum nol: $legacy_traffic_count" >&2
+  echo "[runtime-decommission] traffic runtime legacy not zero yet: $legacy_traffic_count" >&2
   exit 1
 fi
 
 if [ -n "$legacy_traffic_evidence_file" ] && [ ! -f "$legacy_traffic_evidence_file" ]; then
-  echo "[runtime-decommission] file evidence traffic tidak ditemukan: $legacy_traffic_evidence_file" >&2
+  echo "[runtime-decommission] file evidence traffic not found: $legacy_traffic_evidence_file" >&2
   exit 1
 fi
 
 if [ ! -d "$rollback_evidence_dir" ]; then
-  echo "[runtime-decommission] direktori rollback evidence tidak ditemukan: $rollback_evidence_dir" >&2
+  echo "[runtime-decommission] directory rollback evidence not found: $rollback_evidence_dir" >&2
   exit 1
 fi
 
 if [ ! -f "$runtime_source_of_truth_file" ]; then
-  echo "[runtime-decommission] source of truth runtime tidak ditemukan: $runtime_source_of_truth_file" >&2
+  echo "[runtime-decommission] source of truth runtime not found: $runtime_source_of_truth_file" >&2
   exit 1
 fi
 
 if ! grep -F -- "$runtime_keyword" "$runtime_source_of_truth_file" >/dev/null 2>&1; then
-  echo "[runtime-decommission] source of truth runtime belum memuat keyword '$runtime_keyword'" >&2
+  echo "[runtime-decommission] source of truth runtime does not include yet keyword '$runtime_keyword'" >&2
   exit 1
 fi
 
@@ -86,7 +86,7 @@ log() {
 
 rollback_reports_count="$(find "$rollback_evidence_dir" -maxdepth 1 -type f -name '*-rollback-rehearsal-report.json' | wc -l | tr -d '[:space:]')"
 if [ "$rollback_reports_count" -lt "$rollback_min_reports" ]; then
-  echo "[runtime-decommission] rollback evidence kurang: minimal $rollback_min_reports, aktual $rollback_reports_count" >&2
+  echo "[runtime-decommission] rollback evidence insufficient: minimum $rollback_min_reports, actual $rollback_reports_count" >&2
   exit 1
 fi
 
@@ -95,28 +95,28 @@ for report in "$rollback_evidence_dir"/*-rollback-rehearsal-report.json; do
     continue
   fi
   if ! grep -E '"status"[[:space:]]*:[[:space:]]*"passed"' "$report" >/dev/null 2>&1; then
-    echo "[runtime-decommission] rollback report tidak berstatus passed: $report" >&2
+    echo "[runtime-decommission] rollback report not in status passed: $report" >&2
     exit 1
   fi
 done
 
 recent_rollback_reports_count="$(find "$rollback_evidence_dir" -maxdepth 1 -type f -name '*-rollback-rehearsal-report.json' -mtime "-$rollback_retention_days" | wc -l | tr -d '[:space:]')"
 if [ "$recent_rollback_reports_count" -lt 1 ]; then
-  echo "[runtime-decommission] tidak ada rollback evidence dalam window retention $rollback_retention_days hari" >&2
+  echo "[runtime-decommission] no rollback evidence within retention window $rollback_retention_days days" >&2
   exit 1
 fi
 
 archive_candidates=""
 for candidate in $legacy_archive_paths; do
   if [ ! -e "$candidate" ]; then
-    echo "[runtime-decommission] path arsip tidak ditemukan: $candidate" >&2
+    echo "[runtime-decommission] archive path not found: $candidate" >&2
     exit 1
   fi
   archive_candidates="$archive_candidates $candidate"
 done
 
 if ! tar -czf "$archive_file" $archive_candidates >/dev/null 2>&1; then
-  echo "[runtime-decommission] gagal membuat arsip legacy runtime" >&2
+  echo "[runtime-decommission] failed to create archive legacy runtime" >&2
   exit 1
 fi
 

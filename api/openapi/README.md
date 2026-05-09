@@ -1,13 +1,13 @@
 # OpenAPI Source
 
-Direktori ini menyimpan source contract OpenAPI yang menjadi acuan endpoint publik.
+This directory stores the OpenAPI source contract used as the public endpoint reference.
 
-## File Utama
+## Main Files
 
-- `api/openapi/openapi.yaml`: source contract kanonik.
-- `docs/generated/openapi.yaml`: artefak generated yang wajib sinkron.
+- `api/openapi/openapi.yaml`: canonical source contract.
+- `docs/generated/openapi.yaml`: generated artifact that must remain synchronized.
 
-## Perintah Standar
+## Standard Commands
 
-- `make openapi-generate`: validasi source spec dan sinkronisasi artefak generated.
-- `make openapi-check`: validasi source+generated spec dan cek drift route runtime.
+- `make openapi-generate`: validate source spec and synchronize generated artifact.
+- `make openapi-check`: validate source+generated spec and check runtime route drift.

@@ -23,14 +23,14 @@ func TestService_CreateJournalSuccess(t *testing.T) {
 		createRow: models.Journal{
 			ID:        "journal-1",
 			UserID:    "user-1",
-			Content:   "catatan hari ini",
+			Content:   "today's note",
 			CreatedAt: time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC),
 		},
 	}
 	svc := NewService(repo)
 
 	payload, err := svc.CreateJournal(context.Background(), "user-1", CreateJournalRequest{
-		Content: "catatan hari ini",
+		Content: "today's note",
 	})
 	if err != nil {
 		t.Fatalf("create journal: %v", err)
@@ -44,8 +44,8 @@ func TestService_ListJournalsSuccess(t *testing.T) {
 	repo := &fakeJournalsRepo{
 		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
 		listRows: []models.Journal{
-			{ID: "journal-1", UserID: "user-1", Content: "satu", CreatedAt: time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)},
-			{ID: "journal-2", UserID: "user-1", Content: "dua", CreatedAt: time.Date(2026, 5, 7, 10, 0, 0, 0, time.UTC)},
+			{ID: "journal-1", UserID: "user-1", Content: "one", CreatedAt: time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)},
+			{ID: "journal-2", UserID: "user-1", Content: "two", CreatedAt: time.Date(2026, 5, 7, 10, 0, 0, 0, time.UTC)},
 		},
 	}
 	svc := NewService(repo)

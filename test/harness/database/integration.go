@@ -20,10 +20,10 @@ func RequireDatabaseURLFromEnv(t testing.TB, envKey string) string {
 
 	databaseURL := strings.TrimSpace(os.Getenv(strings.TrimSpace(envKey)))
 	if databaseURL == "" {
-		t.Skipf("%s tidak diatur", envKey)
+		t.Skipf("%s is not configured", envKey)
 	}
 	if !strings.Contains(databaseURL, "_test") {
-		t.Skipf("%s wajib mengarah ke database *_test", envKey)
+		t.Skipf("%s must point to a *_test database", envKey)
 	}
 
 	return databaseURL

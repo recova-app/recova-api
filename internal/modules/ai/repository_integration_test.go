@@ -37,9 +37,9 @@ func TestIntegration_Repository_ListRecentChats_UserScopedAndAscending(t *testin
 
 	baseTime := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
 	if err := repo.CreateChatMessages(ctx, []models.AIChat{
-		{UserID: userA.ID, Role: "user", Content: "pesan-a1", CreatedAt: baseTime.Add(1 * time.Minute)},
-		{UserID: userA.ID, Role: "model", Content: "pesan-a2", CreatedAt: baseTime.Add(2 * time.Minute)},
-		{UserID: userB.ID, Role: "user", Content: "pesan-b1", CreatedAt: baseTime.Add(3 * time.Minute)},
+		{UserID: userA.ID, Role: "user", Content: "message-a1", CreatedAt: baseTime.Add(1 * time.Minute)},
+		{UserID: userA.ID, Role: "model", Content: "message-a2", CreatedAt: baseTime.Add(2 * time.Minute)},
+		{UserID: userB.ID, Role: "user", Content: "message-b1", CreatedAt: baseTime.Add(3 * time.Minute)},
 	}); err != nil {
 		t.Fatalf("create chat rows: %v", err)
 	}

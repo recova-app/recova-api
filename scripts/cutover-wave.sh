@@ -21,8 +21,8 @@ case "$wave_input" in
     waves="$wave_input"
     ;;
   *)
-    echo "[cutover-wave] wave tidak valid: $wave_input" >&2
-    echo "[cutover-wave] gunakan: 64|65|66|67|68|all" >&2
+    echo "[cutover-wave] wave invalid: $wave_input" >&2
+    echo "[cutover-wave] use: 64|65|66|67|68|all" >&2
     exit 1
     ;;
 esac
@@ -30,7 +30,7 @@ esac
 case "$run_staging_deploy" in
   true|false|auto) ;;
   *)
-    echo "[cutover-wave] RUN_STAGING_DEPLOY tidak valid: $run_staging_deploy (gunakan true|false|auto)" >&2
+    echo "[cutover-wave] RUN_STAGING_DEPLOY invalid: $run_staging_deploy (use true|false|auto)" >&2
     exit 1
     ;;
 esac
@@ -38,33 +38,33 @@ esac
 case "$run_rollback_on_failure" in
   true|false) ;;
   *)
-    echo "[cutover-wave] RUN_ROLLBACK_ON_FAILURE tidak valid: $run_rollback_on_failure (gunakan true|false)" >&2
+    echo "[cutover-wave] RUN_ROLLBACK_ON_FAILURE invalid: $run_rollback_on_failure (use true|false)" >&2
     exit 1
     ;;
 esac
 
 if [ "$run_rollback_on_failure" = "true" ] && [ -z "$rollback_command" ]; then
-  echo "[cutover-wave] CUTOVER_ROLLBACK_COMMAND wajib diisi saat RUN_ROLLBACK_ON_FAILURE=true" >&2
+  echo "[cutover-wave] CUTOVER_ROLLBACK_COMMAND must be provided when RUN_ROLLBACK_ON_FAILURE=true" >&2
   exit 1
 fi
 
 if ! command -v "$go_bin" >/dev/null 2>&1; then
-  echo "[cutover-wave] go command tidak ditemukan: $go_bin" >&2
+  echo "[cutover-wave] go command not found: $go_bin" >&2
   exit 1
 fi
 
 if ! command -v "$curl_bin" >/dev/null 2>&1; then
-  echo "[cutover-wave] curl command tidak ditemukan: $curl_bin" >&2
+  echo "[cutover-wave] curl command not found: $curl_bin" >&2
   exit 1
 fi
 
 if [ ! -f "$staging_deploy_script" ]; then
-  echo "[cutover-wave] staging deploy script tidak ditemukan: $staging_deploy_script" >&2
+  echo "[cutover-wave] staging deploy script not found: $staging_deploy_script" >&2
   exit 1
 fi
 
 if [ ! -f "$e2e_script" ]; then
-  echo "[cutover-wave] e2e script tidak ditemukan: $e2e_script" >&2
+  echo "[cutover-wave] e2e script not found: $e2e_script" >&2
   exit 1
 fi
 
@@ -82,13 +82,13 @@ log() {
 require_e2e_db_url() {
   db_url="${RECOVA_DB_INTEGRATION_URL:-}"
   if [ -z "$db_url" ]; then
-    echo "[cutover-wave] RECOVA_DB_INTEGRATION_URL wajib diisi untuk wave domain" >&2
+    echo "[cutover-wave] RECOVA_DB_INTEGRATION_URL must be provided for wave domain" >&2
     exit 1
   fi
   case "$db_url" in
     *_test*) ;;
     *)
-      echo "[cutover-wave] RECOVA_DB_INTEGRATION_URL wajib mengarah ke database *_test" >&2
+      echo "[cutover-wave] RECOVA_DB_INTEGRATION_URL must point to database *_test" >&2
       exit 1
       ;;
   esac
@@ -124,7 +124,7 @@ run_wave_logic() {
       RECOVA_E2E_SCOPE="wave68" RECOVA_E2E_REPORT_PATH="$(wave_report_file "$wave")" "$e2e_script" || return 1
       ;;
     *)
-      echo "[cutover-wave] wave tidak dikenal: $wave" >&2
+      echo "[cutover-wave] unknown wave: $wave" >&2
       exit 1
       ;;
   esac

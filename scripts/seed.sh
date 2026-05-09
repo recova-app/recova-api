@@ -6,17 +6,17 @@ database_url="${DATABASE_URL:-}"
 psql_bin="${PSQL_BIN:-psql}"
 
 if [ -z "$database_url" ]; then
-  echo "DATABASE_URL wajib diisi" >&2
+  echo "DATABASE_URL must be provided" >&2
   exit 1
 fi
 
 if [ ! -f "$seed_file" ]; then
-  echo "seed file tidak ditemukan: $seed_file" >&2
+  echo "seed file not found: $seed_file" >&2
   exit 1
 fi
 
 if ! command -v "$psql_bin" >/dev/null 2>&1; then
-  echo "psql binary tidak ditemukan: $psql_bin" >&2
+  echo "psql binary not found: $psql_bin" >&2
   exit 1
 fi
 

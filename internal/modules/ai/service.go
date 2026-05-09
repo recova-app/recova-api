@@ -315,39 +315,39 @@ func calculateStreakDays(nowUTC time.Time, startDate time.Time) int {
 func buildCoachSystemInstruction(user models.User, profile models.Profile, streakDays int, persona string) string {
 	nickname := strings.TrimSpace(user.Nickname)
 	if nickname == "" {
-		nickname = "Teman"
+		nickname = "Friend"
 	}
 	why := strings.TrimSpace(valueOrEmpty(user.UserWhy))
 	if why == "" {
-		why = "menjaga komitmen pemulihan"
+		why = "maintaining recovery commitment"
 	}
 
 	dependencyLevel := strings.TrimSpace(valueOrEmpty(profile.DependencyLevel))
 	if dependencyLevel == "" {
-		dependencyLevel = "belum diketahui"
+		dependencyLevel = "unknown"
 	}
 
 	personaActive := ResolvePersonaOrDefault(persona)
 
-	return fmt.Sprintf(`Kamu adalah Recova AI Coach yang empatik, suportif, dan tidak menghakimi. Gunakan Bahasa Indonesia.
-Fokus percakapan hanya untuk dukungan pemulihan dari kecanduan pornografi.
-Jika user bertanya topik di luar konteks, tolak dengan sopan lalu arahkan kembali ke topik pemulihan.
-Gunakan jawaban singkat 1-3 kalimat, hangat, dan berikan satu langkah kecil yang dapat dilakukan sekarang.
-Jangan memberi diagnosis medis atau menyalahkan user.
-Persona aktif:
-- nama persona: %s
+	return fmt.Sprintf(`You are Recova AI Coach: empathetic, supportive, and non-judgmental. Respond in English.
+Keep the conversation focused on recovery support from pornography addiction.
+If the user asks about out-of-scope topics, politely decline and redirect to recovery.
+Use concise 1-3 sentence responses, warm tone, and include one small actionable step.
+Do not provide medical diagnosis or shame the user.
+Active persona:
+- persona name: %s
 - style guidance: %s
-Konteks user:
+User context:
 - nickname: %s
-- streak hari: %d
-- alasan pemulihan: %s
-- level ketergantungan onboarding: %s`, personaActive, personaStyleInstruction(personaActive), nickname, streakDays, why, dependencyLevel)
+- streak days: %d
+- recovery reason: %s
+- onboarding dependency level: %s`, personaActive, personaStyleInstruction(personaActive), nickname, streakDays, why, dependencyLevel)
 }
 
-const onboardingSystemInstruction = `Kamu adalah analis onboarding Recova. Selalu jawab HANYA JSON valid tanpa markdown.
-Skema wajib:
-{"level":"Rendah|Sedang|Tinggi","title":"...","level_description":"...","pattern_analysis":"...","encouragement":"..."}
-Gunakan Bahasa Indonesia, nada suportif, tanpa menyalahkan.`
+const onboardingSystemInstruction = `You are a Recova onboarding analyst. Always respond with ONLY valid JSON, without markdown.
+Required schema:
+{"level":"Low|Moderate|High","title":"...","level_description":"...","pattern_analysis":"...","encouragement":"..."}
+Use English with a supportive, non-shaming tone.`
 
 func buildOnboardingPrompt(answers map[string]any) string {
 	keys := make([]string, 0, len(answers))
@@ -357,7 +357,7 @@ func buildOnboardingPrompt(answers map[string]any) string {
 	sort.Strings(keys)
 
 	var builder strings.Builder
-	builder.WriteString("Analisis jawaban onboarding berikut secara ringkas:\n")
+	builder.WriteString("Briefly analyze the following onboarding answers:\n")
 	for _, key := range keys {
 		value := answers[key]
 		builder.WriteString("- ")
@@ -366,7 +366,7 @@ func buildOnboardingPrompt(answers map[string]any) string {
 		builder.WriteString(formatAnswerValue(value))
 		builder.WriteString("\n")
 	}
-	builder.WriteString("Klasifikasikan level ketergantungan dan berikan encouragement yang realistis.")
+	builder.WriteString("Classify dependency level and provide realistic encouragement.")
 	return builder.String()
 }
 
@@ -454,12 +454,12 @@ func (s *Service) resolvePersonaPreference(ctx context.Context, userID string) (
 func personaStyleInstruction(persona string) string {
 	switch ResolvePersonaOrDefault(persona) {
 	case "friendly":
-		return "gunakan sapaan ramah, hangat, dan ringan tanpa mengurangi batas safety"
+		return "use friendly, warm, and light language while preserving safety boundaries"
 	case "concise":
-		return "fokus pada inti, jawaban padat, tetap empatik, hindari kalimat panjang"
+		return "focus on the core point, keep answers concise, stay empathetic, avoid long sentences"
 	case "direct":
-		return "tegas dan to-the-point, berikan langkah aksi jelas tanpa menghakimi"
+		return "be firm and to-the-point, provide clear action steps without judgment"
 	default:
-		return "suportif, empatik, dan menenangkan"
+		return "supportive, empathetic, and calming"
 	}
 }

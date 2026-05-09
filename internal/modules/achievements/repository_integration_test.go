@@ -37,7 +37,7 @@ func TestIntegration_Repository_UpsertProgressIdempotentNoDoubleUnlock(t *testin
 
 	achievement := models.Achievement{
 		Code:        "streak_7_days",
-		Title:       "7 Hari",
+		Title:       "7 Days",
 		Description: "desc",
 		Category:    categoryStreakMilestone,
 		Threshold:   7,

@@ -1,3 +1,3 @@
 # Runtime Config Templates
 
-Direktori ini menyimpan template atau profil konfigurasi runtime yang non-secret.
+This directory stores non-secret runtime configuration templates or profiles.

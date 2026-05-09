@@ -15,7 +15,7 @@ if ! command -v migrate >/dev/null 2>&1; then
 fi
 
 if ! command -v govulncheck >/dev/null 2>&1; then
-  echo "[preflight] warning: 'govulncheck' binary not found (security-scan akan install otomatis saat dijalankan)"
+  echo "[preflight] warning: 'govulncheck' binary not found (security-scan will install it automatically when run)"
 fi
 
 goversion_raw="$(go env GOVERSION)"

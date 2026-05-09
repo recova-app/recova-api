@@ -35,8 +35,8 @@ func TestIntegration_Repository_ResetUserDataForTesting_RemovesAIChatsScopedUser
 	}
 
 	rows := []models.AIChat{
-		{UserID: userA.ID, Role: "user", Content: "pesan a"},
-		{UserID: userB.ID, Role: "user", Content: "pesan b"},
+		{UserID: userA.ID, Role: "user", Content: "message a"},
+		{UserID: userB.ID, Role: "user", Content: "message b"},
 	}
 	if err := client.Gorm().WithContext(ctx).Create(&rows).Error; err != nil {
 		t.Fatalf("create ai chats: %v", err)

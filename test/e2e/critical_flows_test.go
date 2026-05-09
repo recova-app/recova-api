@@ -98,12 +98,12 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		accessToken = readSessionAccessToken(resp.JSON)
 		if strings.TrimSpace(accessToken) == "" {
-			return fmt.Errorf("access token kosong")
+			return fmt.Errorf("access token is empty")
 		}
 
 		refreshCookie = extractCookiePair(resp.Header, "recova_refresh_e2e")
 		if strings.TrimSpace(refreshCookie) == "" {
-			return fmt.Errorf("refresh cookie tidak ditemukan")
+			return fmt.Errorf("refresh cookie not found")
 		}
 		return nil
 	})
@@ -119,7 +119,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		accessToken = readSessionAccessToken(resp.JSON)
 		if strings.TrimSpace(accessToken) == "" {
-			return fmt.Errorf("access token refresh kosong")
+			return fmt.Errorf("refreshed access token is empty")
 		}
 
 		newCookie := extractCookiePair(resp.Header, "recova_refresh_e2e")
@@ -211,7 +211,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 	runStep("journals create/list", func() error {
 		createResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/journals", map[string]any{
-			"content": "hari ini saya berhasil menahan dorongan",
+			"content": "today I successfully resisted the urge",
 		}, bearerHeaders(accessToken))
 		if createResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("journals create expected 201 got %d body=%s", createResp.StatusCode, string(createResp.Body))
@@ -231,7 +231,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 	runStep("community post/comment/like", func() error {
 		createResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community", map[string]any{
-			"content":  "tetap semangat, satu hari satu langkah",
+			"content":  "stay strong, one day at a time",
 			"category": "motivation",
 		}, bearerHeaders(accessToken))
 		if createResp.StatusCode != fiber.StatusCreated {
@@ -240,11 +240,11 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		httpharness.RequireSuccessEnvelope(t, createResp.JSON)
 		communityPostID = readNestedString(createResp.JSON, "data", "id")
 		if strings.TrimSpace(communityPostID) == "" {
-			return fmt.Errorf("post id kosong")
+			return fmt.Errorf("post id is empty")
 		}
 
 		commentResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/comments", map[string]any{
-			"content": "komentar dukungan",
+			"content": "supportive comment",
 		}, bearerHeaders(accessToken))
 		if commentResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("community comment expected 201 got %d body=%s", commentResp.StatusCode, string(commentResp.Body))
@@ -252,7 +252,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		httpharness.RequireSuccessEnvelope(t, commentResp.JSON)
 		communityCommentID = readNestedString(commentResp.JSON, "data", "id")
 		if strings.TrimSpace(communityCommentID) == "" {
-			return fmt.Errorf("comment id kosong")
+			return fmt.Errorf("comment id is empty")
 		}
 
 		replyResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/comments/"+communityCommentID+"/replies", map[string]any{
@@ -273,15 +273,15 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		httpharness.RequireSuccessEnvelope(t, threadResp.JSON)
 		comments := readNestedArray(threadResp.JSON, "data", "comments")
 		if len(comments) < 1 {
-			return fmt.Errorf("community thread comments kosong")
+			return fmt.Errorf("community thread comments are empty")
 		}
 		root, ok := comments[0].(map[string]any)
 		if !ok {
-			return fmt.Errorf("community thread root invalid")
+			return fmt.Errorf("community thread root is invalid")
 		}
 		replyCount, _ := root["replyCount"].(float64)
 		if int(replyCount) < 1 {
-			return fmt.Errorf("community thread replyCount belum bertambah")
+			return fmt.Errorf("community thread replyCount did not increase")
 		}
 
 		likeResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/like", nil, bearerHeaders(accessToken))
@@ -308,10 +308,10 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 		httpharness.RequireSuccessEnvelope(t, contentResp.JSON)
 		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "motivation")) == "" {
-			return fmt.Errorf("motivation kosong")
+			return fmt.Errorf("motivation is empty")
 		}
 		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "challenge")) == "" {
-			return fmt.Errorf("challenge kosong")
+			return fmt.Errorf("challenge is empty")
 		}
 		return nil
 	})
@@ -335,7 +335,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 
 		askResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/ai/ask-coach", map[string]any{
-			"message": "saya ingin relapse",
+			"message": "I feel close to relapse",
 		}, bearerHeaders(accessToken))
 		if askResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("ask coach expected 200 got %d body=%s", askResp.StatusCode, string(askResp.Body))
@@ -344,7 +344,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		coachText := strings.ToLower(strings.TrimSpace(readNestedString(askResp.JSON, "data", "response")))
 		if coachText == "" {
-			return fmt.Errorf("response ai kosong")
+			return fmt.Errorf("AI response is empty")
 		}
 		if strings.Contains(coachText, "token-e2e") {
 			return fmt.Errorf("response ai memuat token sensitif")
@@ -368,11 +368,11 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 		httpharness.RequireSuccessEnvelope(t, summaryResp.JSON)
 		if strings.TrimSpace(readNestedString(summaryResp.JSON, "data", "summary")) == "" {
-			return fmt.Errorf("summary kosong")
+			return fmt.Errorf("summary is empty")
 		}
 
 		analysisResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/ai/onboarding-analysis", map[string]any{
-			"answers": map[string]any{"q1": "sulit tidur saat sendiri"},
+			"answers": map[string]any{"q1": "hard to sleep when alone"},
 		}, bearerHeaders(accessToken))
 		if analysisResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("onboarding analysis expected 200 got %d body=%s", analysisResp.StatusCode, string(analysisResp.Body))
@@ -380,7 +380,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		httpharness.RequireSuccessEnvelope(t, analysisResp.JSON)
 		for _, key := range []string{"level", "title", "levelDescription", "patternAnalysis", "encouragement"} {
 			if strings.TrimSpace(readNestedString(analysisResp.JSON, "data", key)) == "" {
-				return fmt.Errorf("analysis field kosong: %s", key)
+				return fmt.Errorf("analysis field is empty: %s", key)
 			}
 		}
 

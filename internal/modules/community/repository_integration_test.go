@@ -43,15 +43,15 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 
 	createdPost, err := repo.CreatePost(ctx, models.CommunityPost{
 		UserID:   author.ID,
-		Title:    ptrString("Judul test"),
-		Content:  "konten komunitas valid untuk integration test",
+		Title:    ptrString("Test title"),
+		Content:  "valid community content for integration test",
 		Category: "motivation",
 	})
 	if err != nil {
 		t.Fatalf("create post: %v", err)
 	}
 
-	if _, err := repo.CreateCommentAndIncrement(ctx, commenter.ID, createdPost.ID, "komentar valid"); err != nil {
+	if _, err := repo.CreateCommentAndIncrement(ctx, commenter.ID, createdPost.ID, "valid comment"); err != nil {
 		t.Fatalf("create comment: %v", err)
 	}
 
@@ -121,19 +121,19 @@ func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 
 	post, err := repo.CreatePost(ctx, models.CommunityPost{
 		UserID:   author.ID,
-		Content:  "post untuk thread comment integration",
+		Content:  "post for thread comment integration",
 		Category: "story",
 	})
 	if err != nil {
 		t.Fatalf("create post: %v", err)
 	}
 
-	root, err := repo.CreateCommentAndIncrement(ctx, author.ID, post.ID, "komentar root")
+	root, err := repo.CreateCommentAndIncrement(ctx, author.ID, post.ID, "root comment")
 	if err != nil {
 		t.Fatalf("create root comment: %v", err)
 	}
 
-	reply, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, post.ID, root.ID, "reply pertama", 1)
+	reply, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, post.ID, root.ID, "first reply", 1)
 	if err != nil {
 		t.Fatalf("create reply: %v", err)
 	}
@@ -165,14 +165,14 @@ func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 
 	otherPost, err := repo.CreatePost(ctx, models.CommunityPost{
 		UserID:   author.ID,
-		Content:  "post lain",
+		Content:  "other post",
 		Category: "advice",
 	})
 	if err != nil {
 		t.Fatalf("create other post: %v", err)
 	}
 
-	if _, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, otherPost.ID, root.ID, "harus gagal", 1); !errors.Is(err, errParentCommentPostMismatch) {
+	if _, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, otherPost.ID, root.ID, "must fail", 1); !errors.Is(err, errParentCommentPostMismatch) {
 		t.Fatalf("expected errParentCommentPostMismatch, got %v", err)
 	}
 }

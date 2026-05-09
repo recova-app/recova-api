@@ -8,7 +8,7 @@ import (
 
 func TestNormalizeCreatePostRequest_InvalidCategory(t *testing.T) {
 	_, err := NormalizeCreatePostRequest(CreatePostRequest{
-		Content:  "konten yang cukup panjang",
+		Content:  "content that is long enough",
 		Category: "invalid",
 	})
 	if err == nil {

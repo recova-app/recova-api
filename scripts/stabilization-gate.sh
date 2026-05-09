@@ -13,7 +13,7 @@ run_openapi_check="${RUN_OPENAPI_CHECK:-true}"
 case "$run_full_regression" in
   true|false) ;;
   *)
-    echo "[stabilization-gate] RUN_FULL_REGRESSION tidak valid: $run_full_regression (gunakan true|false)" >&2
+    echo "[stabilization-gate] RUN_FULL_REGRESSION invalid: $run_full_regression (use true|false)" >&2
     exit 1
     ;;
 esac
@@ -21,40 +21,40 @@ esac
 case "$run_openapi_check" in
   true|false) ;;
   *)
-    echo "[stabilization-gate] RUN_OPENAPI_CHECK tidak valid: $run_openapi_check (gunakan true|false)" >&2
+    echo "[stabilization-gate] RUN_OPENAPI_CHECK invalid: $run_openapi_check (use true|false)" >&2
     exit 1
     ;;
 esac
 
 if ! command -v "$go_bin" >/dev/null 2>&1; then
-  echo "[stabilization-gate] go command tidak ditemukan: $go_bin" >&2
+  echo "[stabilization-gate] go command not found: $go_bin" >&2
   exit 1
 fi
 
 if [ ! -f "$openapi_script" ]; then
-  echo "[stabilization-gate] openapi script tidak ditemukan: $openapi_script" >&2
+  echo "[stabilization-gate] openapi script not found: $openapi_script" >&2
   exit 1
 fi
 
 if [ ! -f "$e2e_script" ]; then
-  echo "[stabilization-gate] e2e script tidak ditemukan: $e2e_script" >&2
+  echo "[stabilization-gate] e2e script not found: $e2e_script" >&2
   exit 1
 fi
 
 if [ ! -f "$performance_script" ]; then
-  echo "[stabilization-gate] performance script tidak ditemukan: $performance_script" >&2
+  echo "[stabilization-gate] performance script not found: $performance_script" >&2
   exit 1
 fi
 
 db_url="${RECOVA_DB_INTEGRATION_URL:-}"
 if [ -z "$db_url" ]; then
-  echo "[stabilization-gate] RECOVA_DB_INTEGRATION_URL wajib diisi" >&2
+  echo "[stabilization-gate] RECOVA_DB_INTEGRATION_URL must be provided" >&2
   exit 1
 fi
 case "$db_url" in
   *_test*) ;;
   *)
-    echo "[stabilization-gate] RECOVA_DB_INTEGRATION_URL wajib mengarah ke database *_test" >&2
+    echo "[stabilization-gate] RECOVA_DB_INTEGRATION_URL must point to database *_test" >&2
     exit 1
     ;;
 esac
@@ -86,11 +86,11 @@ assert_report_passed() {
   report_file="$1"
   report_label="$2"
   if [ ! -f "$report_file" ]; then
-    echo "[stabilization-gate] report ${report_label} tidak ditemukan: $report_file" >&2
+    echo "[stabilization-gate] report ${report_label} not found: $report_file" >&2
     return 1
   fi
   if ! grep -E '"status"[[:space:]]*:[[:space:]]*"passed"' "$report_file" >/dev/null 2>&1; then
-    echo "[stabilization-gate] report ${report_label} tidak berstatus passed: $report_file" >&2
+    echo "[stabilization-gate] report ${report_label} not in status passed: $report_file" >&2
     return 1
   fi
 }

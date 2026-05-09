@@ -19,7 +19,7 @@ func TestService_ListPosts_Success(t *testing.T) {
 		posts: []communityPostListRow{
 			{
 				ID:              "post-1",
-				Content:         "konten komunitas contoh yang panjang",
+				Content:         "long sample community content",
 				Category:        "motivation",
 				CommentCount:    2,
 				LikeCount:       3,
@@ -50,7 +50,7 @@ func TestService_CreatePost_UserNotFound(t *testing.T) {
 	service := NewService(repo)
 
 	_, err := service.CreatePost(context.Background(), "user-1", CreatePostRequest{
-		Content:  "konten komunitas valid minimal sepuluh",
+		Content:  "valid community content with enough length",
 		Category: "advice",
 	})
 	if err == nil {

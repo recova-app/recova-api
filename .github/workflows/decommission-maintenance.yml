@@ -4,37 +4,37 @@ on:
   workflow_dispatch:
     inputs:
       run_decommission:
-        description: "Jalankan runtime decommission gate"
+        description: "Run runtime decommission gate"
         required: true
         default: false
         type: boolean
       run_maintenance:
-        description: "Jalankan post-migration maintenance review"
+        description: "Run post-migration maintenance review"
         required: true
         default: true
         type: boolean
       legacy_runtime_traffic_count:
-        description: "Jumlah traffic publik runtime legacy (harus 0 untuk lulus)"
+        description: "Public traffic count on legacy runtime (must be 0 to pass)"
         required: true
         default: "0"
         type: string
       alert_review_done:
-        description: "Sudah review alert threshold observability"
+        description: "Observability alert threshold reviewed"
         required: true
         default: false
         type: boolean
       slo_review_done:
-        description: "Sudah review target SLO/error budget"
+        description: "SLO/error budget target reviewed"
         required: true
         default: false
         type: boolean
       dependency_review_done:
-        description: "Sudah review cadence update dependency"
+        description: "Dependency update cadence reviewed"
         required: true
         default: false
         type: boolean
       rollback_rehearsal_wave:
-        description: "Wave untuk rollback rehearsal sebelum decommission"
+        description: "Wave for rollback rehearsal before decommission"
         required: true
         default: "65"
         type: choice

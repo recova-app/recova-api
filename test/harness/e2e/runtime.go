@@ -86,7 +86,7 @@ func NewRuntime(t testing.TB) *Runtime {
 		apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{{
 			Name:    "database",
 			Mode:    apphttp.ReadinessModeRequired,
-			Message: "Koneksi database tidak sehat",
+			Message: "Database connection is unhealthy",
 			Probe:   client.Ping,
 		}}),
 		apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
@@ -167,18 +167,18 @@ func seedReferenceContent(ctx context.Context, client *database.Client) error {
 	statements := []string{
 		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, is_active, published_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111','Memahami Trigger dan Rutinitas','Dasar mengenali pemicu harian dan membentuk respon yang lebih sehat.','https://recova.app/education/memahami-trigger-dan-rutinitas',NULL,'mindset',true,now()),
-  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk kembali fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'coping',true,now())
+  ('11111111-1111-1111-1111-111111111111','Understanding Triggers and Routines','Core basics to identify daily triggers and build healthier responses.','https://recova.app/education/memahami-trigger-dan-rutinitas',NULL,'mindset',true,now()),
+  ('22222222-2222-2222-2222-222222222222','Grounding Technique 5-4-3-2-1','A simple exercise to regain focus when urges appear.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'coping',true,now())
 ON CONFLICT (id) DO NOTHING;`,
 		`INSERT INTO daily_motivations (id, content, is_active, created_at)
 VALUES
-  ('33333333-3333-3333-3333-333333333333','Satu keputusan sehat hari ini tetap berarti besar.',true,now()),
-  ('44444444-4444-4444-4444-444444444444','Kemajuan kecil yang konsisten lebih kuat dari niat sesaat.',true,now())
+  ('33333333-3333-3333-3333-333333333333','One healthy choice today still matters.',true,now()),
+  ('44444444-4444-4444-4444-444444444444','Small consistent progress is stronger than short-lived intention.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 		`INSERT INTO daily_challenges (id, content, is_active, created_at)
 VALUES
-  ('55555555-5555-5555-5555-555555555555','Catat satu pemicu utama hari ini dan rencana responnya.',true,now()),
-  ('66666666-6666-6666-6666-666666666666','Lakukan jeda 60 detik sebelum bereaksi saat dorongan muncul.',true,now())
+  ('55555555-5555-5555-5555-555555555555','Write down one main trigger today and your response plan.',true,now()),
+  ('66666666-6666-6666-6666-666666666666','Take a 60-second pause before reacting when urges appear.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 	}
 
@@ -217,13 +217,13 @@ func (p *fakeAIProvider) Generate(_ context.Context, req aiplatform.GenerateRequ
 		return aiplatform.GenerateResponse{
 			Provider: aiplatform.ProviderOpenAICompatible,
 			Model:    "fake-e2e",
-			Text:     `{"level":"Sedang","title":"Kamu sudah punya komitmen","level_description":"Ada dorongan yang masih perlu dikelola.","pattern_analysis":"Pemicu muncul saat lelah dan sendirian.","encouragement":"Ambil jeda napas 60 detik saat dorongan muncul."}`,
+			Text:     `{"level":"Moderate","title":"You already have commitment","level_description":"There are urges that still need to be managed.","pattern_analysis":"Triggers appear when tired and alone.","encouragement":"Take a 60-second breathing pause when urges appear."}`,
 		}, nil
 	}
 
 	return aiplatform.GenerateResponse{
 		Provider: aiplatform.ProviderOpenAICompatible,
 		Model:    "fake-e2e",
-		Text:     "Kamu tidak sendiri. Tarik napas dalam, lalu lakukan satu langkah kecil yang menenangkan sekarang.",
+		Text:     "You are not alone. Take a deep breath, then take one small calming step now.",
 	}, nil
 }

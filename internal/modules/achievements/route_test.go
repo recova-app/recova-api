@@ -67,7 +67,7 @@ func (r *achievementsRouteRepo) ListActiveAchievements(_ context.Context, _ *str
 	return []models.Achievement{{
 		ID:          "a-1",
 		Code:        "streak_7_days",
-		Title:       "7 Hari",
+		Title:       "7 Days",
 		Description: "desc",
 		Category:    categoryStreakMilestone,
 		Threshold:   7,
@@ -88,7 +88,7 @@ func (r *achievementsRouteRepo) ListProgressByUser(_ context.Context, _ string, 
 func (r *achievementsRouteRepo) ListUnlockedByUser(_ context.Context, _ string, _ *string) ([]unlockedListRow, error) {
 	return []unlockedListRow{{
 		Code:          "streak_7_days",
-		Title:         "7 Hari",
+		Title:         "7 Days",
 		Description:   "desc",
 		Category:      categoryStreakMilestone,
 		Threshold:     7,

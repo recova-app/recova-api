@@ -8,32 +8,32 @@ wave="${ROLLBACK_REHEARSAL_WAVE:-65}"
 rollback_command="${ROLLBACK_REHEARSAL_COMMAND:-}"
 
 if [ ! -f "$cutover_script" ]; then
-  echo "[rollback-rehearsal] cutover script tidak ditemukan: $cutover_script" >&2
+  echo "[rollback-rehearsal] cutover script not found: $cutover_script" >&2
   exit 1
 fi
 
 if [ -z "$rollback_command" ]; then
-  echo "[rollback-rehearsal] ROLLBACK_REHEARSAL_COMMAND wajib diisi" >&2
+  echo "[rollback-rehearsal] ROLLBACK_REHEARSAL_COMMAND must be provided" >&2
   exit 1
 fi
 
 case "$wave" in
   65|66|67|68) ;;
   *)
-    echo "[rollback-rehearsal] ROLLBACK_REHEARSAL_WAVE tidak valid: $wave (gunakan 65|66|67|68)" >&2
+    echo "[rollback-rehearsal] ROLLBACK_REHEARSAL_WAVE invalid: $wave (use 65|66|67|68)" >&2
     exit 1
     ;;
 esac
 
 db_url="${RECOVA_DB_INTEGRATION_URL:-}"
 if [ -z "$db_url" ]; then
-  echo "[rollback-rehearsal] RECOVA_DB_INTEGRATION_URL wajib diisi" >&2
+  echo "[rollback-rehearsal] RECOVA_DB_INTEGRATION_URL must be provided" >&2
   exit 1
 fi
 case "$db_url" in
   *_test*) ;;
   *)
-    echo "[rollback-rehearsal] RECOVA_DB_INTEGRATION_URL wajib mengarah ke database *_test" >&2
+    echo "[rollback-rehearsal] RECOVA_DB_INTEGRATION_URL must point to database *_test" >&2
     exit 1
     ;;
 esac
@@ -108,12 +108,12 @@ cutover_exit_code=$?
 set -e
 
 if [ "$cutover_exit_code" -eq 0 ]; then
-  echo "[rollback-rehearsal] cutover rehearsal seharusnya gagal namun exit 0" >&2
+  echo "[rollback-rehearsal] cutover rehearsal should fail but exited 0" >&2
   exit 1
 fi
 
 if [ ! -f "$rollback_marker_file" ]; then
-  echo "[rollback-rehearsal] rollback marker tidak ditemukan, rollback command tidak terpanggil" >&2
+  echo "[rollback-rehearsal] rollback marker not found, rollback command not invoked" >&2
   exit 1
 fi
 

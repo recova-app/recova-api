@@ -10,27 +10,27 @@ keep_stack="${KEEP_STACK:-false}"
 run_migration_dry_run="${RUN_MIGRATION_DRY_RUN:-true}"
 
 if ! command -v "$docker_bin" >/dev/null 2>&1; then
-  echo "[staging-deploy] docker command tidak ditemukan: $docker_bin" >&2
+  echo "[staging-deploy] docker command not found: $docker_bin" >&2
   exit 1
 fi
 
 if ! command -v "$migrate_bin" >/dev/null 2>&1; then
-  echo "[staging-deploy] migrate binary tidak ditemukan: $migrate_bin" >&2
+  echo "[staging-deploy] migrate binary not found: $migrate_bin" >&2
   exit 1
 fi
 
 if ! command -v curl >/dev/null 2>&1; then
-  echo "[staging-deploy] curl command tidak ditemukan" >&2
+  echo "[staging-deploy] curl command not found" >&2
   exit 1
 fi
 
 if [ ! -f "$compose_file" ]; then
-  echo "[staging-deploy] compose file tidak ditemukan: $compose_file" >&2
+  echo "[staging-deploy] compose file not found: $compose_file" >&2
   exit 1
 fi
 
 if [ ! -f "$env_file" ]; then
-  echo "[staging-deploy] env file tidak ditemukan: $env_file" >&2
+  echo "[staging-deploy] env file not found: $env_file" >&2
   exit 1
 fi
 
@@ -59,7 +59,7 @@ query_db_count() {
 
 cleanup() {
   if [ "$keep_stack" = "true" ]; then
-    echo "[staging-deploy] KEEP_STACK=true, stack tetap aktif"
+    echo "[staging-deploy] KEEP_STACK=true, stack remains running"
     return
   fi
   compose down -v --remove-orphans >/dev/null 2>&1 || true
@@ -105,12 +105,12 @@ motivation_second="$(query_db_count 'SELECT COUNT(*) FROM daily_motivations;')"
 challenge_second="$(query_db_count 'SELECT COUNT(*) FROM daily_challenges;')"
 
 if [ "$education_first" != "$education_second" ] || [ "$motivation_first" != "$motivation_second" ] || [ "$challenge_first" != "$challenge_second" ]; then
-  echo "[staging-deploy] seed idempotency gagal: before=($education_first,$motivation_first,$challenge_first) after=($education_second,$motivation_second,$challenge_second)" >&2
+  echo "[staging-deploy] seed idempotency failed: before=($education_first,$motivation_first,$challenge_first) after=($education_second,$motivation_second,$challenge_second)" >&2
   exit 1
 fi
 
 if [ "$education_second" -le 0 ] || [ "$motivation_second" -le 0 ] || [ "$challenge_second" -le 0 ]; then
-  echo "[staging-deploy] integrity gagal: reference content kosong" >&2
+  echo "[staging-deploy] integrity failed: reference content empty" >&2
   exit 1
 fi
 
@@ -118,7 +118,7 @@ motivation_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FR
 challenge_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_challenges GROUP BY content HAVING COUNT(*) > 1) dup;')"
 
 if [ "$motivation_duplicates" -ne 0 ] || [ "$challenge_duplicates" -ne 0 ]; then
-  echo "[staging-deploy] integrity gagal: duplicate reference content terdeteksi" >&2
+  echo "[staging-deploy] integrity failed: duplicate reference content detected" >&2
   exit 1
 fi
 

@@ -18,17 +18,17 @@ if [ -z "$command_name" ]; then
 fi
 
 if [ -z "$database_url" ]; then
-  echo "DATABASE_URL wajib diisi" >&2
+  echo "DATABASE_URL must be provided" >&2
   exit 1
 fi
 
 if [ ! -d "$migrations_path" ]; then
-  echo "migrations path tidak ditemukan: $migrations_path" >&2
+  echo "migrations path not found: $migrations_path" >&2
   exit 1
 fi
 
 if ! command -v "$migrate_bin" >/dev/null 2>&1; then
-  echo "migrate binary tidak ditemukan: $migrate_bin" >&2
+  echo "migrate binary not found: $migrate_bin" >&2
   exit 1
 fi
 
@@ -54,13 +54,13 @@ case "$command_name" in
 
     printf '%s\n' "$output"
     if printf '%s' "$output" | grep -i "dirty" >/dev/null 2>&1; then
-      echo "status migrasi dirty; perbaiki sebelum lanjut" >&2
+      echo "migration status dirty; fix before continuing" >&2
       exit 1
     fi
     ;;
   force)
     if [ -z "$migration_version" ]; then
-      echo "versi force wajib diisi" >&2
+      echo "force version must be provided" >&2
       exit 1
     fi
     exec "$migrate_bin" -path "$migrations_path" -database "$database_url" force "$migration_version"

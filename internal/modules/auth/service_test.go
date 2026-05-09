@@ -69,7 +69,7 @@ func TestService_RefreshSession_Expired(t *testing.T) {
 }
 
 func TestService_BuildUserPayload(t *testing.T) {
-	reason := "Fokus pemulihan"
+	reason := "Recovery focus"
 	checkin := "09:30"
 	repo := &fakeAuthRepo{
 		userByID: models.User{

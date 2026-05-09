@@ -1,6 +1,6 @@
 # SQL Migrations
 
-Direktori ini menyimpan file migrasi SQL berpasangan `*.up.sql` dan `*.down.sql`.
+This directory stores paired SQL migration files `*.up.sql` and `*.down.sql`.
 
 ## Current Baseline
 
@@ -9,6 +9,6 @@ Direktori ini menyimpan file migrasi SQL berpasangan `*.up.sql` dan `*.down.sql`
 
 ## Seed Baseline
 
-Seed reference data disimpan terpisah di:
+Seed reference data is stored separately at:
 
 - `migrations/seeds/000001_baseline_seed.sql`

@@ -20,7 +20,7 @@ func TestService_AskCoach_ProviderTimeoutMapsServiceUnavailable(t *testing.T) {
 	provider := &fakeAIProvider{err: &aiplatform.ProviderError{Provider: aiplatform.ProviderGemini, Kind: aiplatform.ErrorKindTimeout, Message: "timeout"}}
 	service := NewService(repo, provider)
 
-	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "Halo"})
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "Hello"})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -36,11 +36,11 @@ func TestService_AskCoach_ProviderErrorMessageIsSafe(t *testing.T) {
 	provider := &fakeAIProvider{err: &aiplatform.ProviderError{
 		Provider: aiplatform.ProviderOpenAICompatible,
 		Kind:     aiplatform.ErrorKindInvalidResponse,
-		Message:  "payload rejected: user prompt 'sangat sensitif'",
+		Message:  "payload rejected: user prompt 'highly sensitive'",
 	}}
 	service := NewService(repo, provider)
 
-	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "sangat sensitif"})
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "highly sensitive"})
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -49,28 +49,28 @@ func TestService_AskCoach_ProviderErrorMessageIsSafe(t *testing.T) {
 	if mapped.Code != errs.CodeDownstreamError {
 		t.Fatalf("expected DOWNSTREAM_ERROR, got %s", mapped.Code)
 	}
-	if strings.Contains(strings.ToLower(mapped.Message), "sangat sensitif") {
+	if strings.Contains(strings.ToLower(mapped.Message), "highly sensitive") {
 		t.Fatalf("expected safe message, got %q", mapped.Message)
 	}
 }
 
 func TestService_AskCoach_SuccessStoresConversation(t *testing.T) {
-	profileReason := "ingin sehat"
+	profileReason := "want to be healthy"
 	repo := &fakeAIRepo{
 		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test", UserWhy: &profileReason},
-		history: []models.AIChat{{Role: "user", Content: "pesan lama"}},
+		history: []models.AIChat{{Role: "user", Content: "old message"}},
 	}
-	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Tetap semangat"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Stay strong"}}
 	service := NewService(repo, provider)
 	service.now = func() time.Time {
 		return time.Date(2026, 5, 8, 9, 0, 0, 0, time.UTC)
 	}
 
-	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "Hari ini berat"})
+	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "Today is hard"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if payload.Response != "Tetap semangat" {
+	if payload.Response != "Stay strong" {
 		t.Fatalf("unexpected response: %q", payload.Response)
 	}
 	if payload.PersonaUsed != DefaultPersona {
@@ -102,11 +102,11 @@ func TestService_GetSummary_FallbackWhenNoProfile(t *testing.T) {
 
 func TestService_AnalyzeOnboarding_InvalidProviderJSON(t *testing.T) {
 	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
-	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "bukan-json"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "not-json"}}
 	service := NewService(repo, provider)
 
 	_, err := service.AnalyzeOnboarding(context.Background(), "user-1", OnboardingAnalysisRequest{
-		Answers: map[string]any{"frekuensi": "harian"},
+		Answers: map[string]any{"frequency": "daily"},
 	})
 	if err == nil {
 		t.Fatal("expected error")
@@ -118,16 +118,16 @@ func TestService_AnalyzeOnboarding_InvalidProviderJSON(t *testing.T) {
 
 func TestService_AnalyzeOnboarding_Success(t *testing.T) {
 	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
-	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: `{"level":"Sedang","title":"Analisis Awal","level_description":"Penjelasan","pattern_analysis":"Pola stres","encouragement":"Kamu bisa"}`}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: `{"level":"Moderate","title":"Initial Analysis","level_description":"Explanation","pattern_analysis":"Stress pattern","encouragement":"You can do this"}`}}
 	service := NewService(repo, provider)
 
 	payload, err := service.AnalyzeOnboarding(context.Background(), "user-1", OnboardingAnalysisRequest{
-		Answers: map[string]any{"frekuensi": "harian"},
+		Answers: map[string]any{"frequency": "daily"},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if payload.Level != "Sedang" || payload.PatternAnalysis != "Pola stres" {
+	if payload.Level != "Moderate" || payload.PatternAnalysis != "Stress pattern" {
 		t.Fatalf("unexpected payload: %+v", payload)
 	}
 }
@@ -174,7 +174,7 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "ok"}}
 	service := NewService(repo, provider)
 
-	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "hello"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if provider.lastReq.Persona != "friendly" {
 		t.Fatalf("expected provider persona friendly, got %q", provider.lastReq.Persona)
 	}
-	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
+	if !strings.Contains(provider.lastReq.SystemInstruction, "persona name: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
 }

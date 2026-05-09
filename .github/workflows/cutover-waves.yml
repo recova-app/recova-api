@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       wave:
-        description: "Wave cutover yang dijalankan"
+        description: "Cutover wave to run"
         required: true
         default: all
         type: choice
@@ -16,17 +16,17 @@ on:
           - "67"
           - "68"
       run_staging_deploy:
-        description: "Jalankan staging deploy runner pada wave 64"
+        description: "Run staging deploy runner on wave 64"
         required: true
         default: true
         type: boolean
       run_rollback_on_failure:
-        description: "Jalankan rollback command jika wave gagal"
+        description: "Run rollback command if a wave fails"
         required: true
         default: false
         type: boolean
       rollback_command:
-        description: "Command rollback (wajib jika run_rollback_on_failure=true)"
+        description: "Rollback command (required if run_rollback_on_failure=true)"
         required: false
         default: ""
         type: string

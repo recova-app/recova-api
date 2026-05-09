@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       run_stabilization:
-        description: "Jalankan stabilization gate"
+        description: "Run stabilization gate"
         required: true
         default: true
         type: boolean
       run_rollback_rehearsal:
-        description: "Jalankan rollback rehearsal"
+        description: "Run rollback rehearsal"
         required: true
         default: true
         type: boolean
       rollback_rehearsal_wave:
-        description: "Wave untuk rollback rehearsal"
+        description: "Wave for rollback rehearsal"
         required: true
         default: "65"
         type: choice
@@ -24,7 +24,7 @@ on:
           - "67"
           - "68"
       rollback_rehearsal_command:
-        description: "Command rollback yang direhearse"
+        description: "Rollback command to rehearse"
         required: true
         default: "echo rollback-rehearsal-placeholder"
         type: string

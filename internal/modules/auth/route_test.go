@@ -12,7 +12,7 @@ import (
 )
 
 func TestRegisterCoreRoutes_GoogleLoginSuccess(t *testing.T) {
-	reason := "pemulihan"
+	reason := "recovery"
 	service := NewService(&fakeAuthRepo{
 		userByGoogle: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester", UserWhy: &reason},
 		userByID:     models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester", UserWhy: &reason},

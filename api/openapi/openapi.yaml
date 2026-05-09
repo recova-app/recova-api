@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Recova Backend API
   version: 0.2.0
-  description: Kontrak API publik runtime Go Fiber Recova Backend.
+  description: Public API contract for the Go Fiber Recova Backend runtime.
 servers:
   - url: /
     description: Base URL runtime service
@@ -12,10 +12,10 @@ paths:
       tags:
         - health
       operationId: getHealthLive
-      summary: Memeriksa status liveness layanan
+      summary: Check service liveness status
       responses:
         '200':
-          description: Layanan aktif
+          description: Service is live
           content:
             application/json:
               schema:
@@ -24,7 +24,7 @@ paths:
                 success:
                   value:
                     success: true
-                    message: Layanan aktif
+                    message: Service is live
                     data:
                       status: ok
                     meta: null
@@ -33,10 +33,10 @@ paths:
       tags:
         - health
       operationId: getHealthReady
-      summary: Memeriksa readiness dependency layanan
+      summary: Check service dependency readiness
       responses:
         '200':
-          description: Layanan siap menerima request
+          description: Service is ready to accept requests
           content:
             application/json:
               schema:
@@ -45,17 +45,17 @@ paths:
                 ready:
                   value:
                     success: true
-                    message: Layanan siap
+                    message: Service is ready
                     data:
                       status: ready
                       checks:
                         database:
                           status: ok
                           healthy: true
-                          message: Koneksi database sehat
+                          message: Database connection is healthy
                     meta: null
         '503':
-          description: Layanan belum siap
+          description: Service is not ready yet
           content:
             application/json:
               schema:
@@ -65,10 +65,10 @@ paths:
       tags:
         - observability
       operationId: getMetrics
-      summary: Mengekspos metrik runtime format Prometheus
+      summary: Expose runtime metrics in Prometheus format
       responses:
         '200':
-          description: Metrics runtime dalam format text/plain
+          description: Runtime metrics in text/plain format
           content:
             text/plain:
               schema:
@@ -78,16 +78,16 @@ paths:
       tags:
         - docs
       operationId: getOpenAPIArtifact
-      summary: Mengekspos artefak OpenAPI YAML generated untuk tooling dokumentasi
+      summary: Expose generated OpenAPI YAML artifact for documentation tooling
       responses:
         '200':
-          description: Dokumen OpenAPI YAML tersedia
+          description: OpenAPI YAML document is available
           content:
             application/yaml:
               schema:
                 type: string
         '503':
-          description: Dokumen OpenAPI belum tersedia pada runtime
+          description: OpenAPI document is not available at runtime
           content:
             application/json:
               schema:
@@ -97,16 +97,16 @@ paths:
       tags:
         - docs
       operationId: getScalarAPIReference
-      summary: Menyajikan halaman interaktif Scalar API reference
+      summary: Serve interactive Scalar API reference page
       responses:
         '200':
-          description: Halaman HTML Scalar API reference
+          description: Scalar API reference HTML page
           content:
             text/html:
               schema:
                 type: string
         '500':
-          description: Halaman dokumentasi gagal dirender
+          description: Failed to render documentation page
           content:
             application/json:
               schema:
@@ -116,7 +116,7 @@ paths:
       tags:
         - auth
       operationId: postAuthGoogle
-      summary: Login atau registrasi pengguna via Google token
+      summary: Login or register user via Google token
       requestBody:
         required: true
         content:
@@ -125,19 +125,19 @@ paths:
               $ref: '#/components/schemas/AuthGoogleLoginRequest'
       responses:
         '200':
-          description: Login berhasil
+          description: Login succeeded
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token Google tidak valid
+          description: Google token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload tidak valid
+          description: Invalid payload
           content:
             application/json:
               schema:
@@ -147,7 +147,7 @@ paths:
       tags:
         - onboarding
       operationId: postAuthOnboarding
-      summary: Menyimpan data onboarding awal pengguna
+      summary: Save initial user onboarding data
       security:
         - BearerAuth: []
       requestBody:
@@ -158,25 +158,25 @@ paths:
               $ref: '#/components/schemas/OnboardingRequest'
       responses:
         '201':
-          description: Data onboarding berhasil disimpan
+          description: Onboarding data saved successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '409':
-          description: Onboarding sudah selesai dengan data berbeda
+          description: Onboarding already completed with different data
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload onboarding tidak valid
+          description: Invalid onboarding payload
           content:
             application/json:
               schema:
@@ -186,18 +186,18 @@ paths:
       tags:
         - auth
       operationId: postAuthRefresh
-      summary: Merotasi refresh token dan menerbitkan access token baru
+      summary: Rotates the refresh token and issues a new access token.
       security:
         - RefreshCookieAuth: []
       responses:
         '200':
-          description: Sesi berhasil diperbarui
+          description: Session refreshed successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Refresh token tidak valid atau kadaluarsa
+          description: Refresh token is invalid or expired
           content:
             application/json:
               schema:
@@ -207,18 +207,18 @@ paths:
       tags:
         - auth
       operationId: postAuthLogout
-      summary: Mengakhiri sesi pengguna saat ini
+      summary: End current user session
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Logout berhasil
+          description: Logout succeeded
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -228,24 +228,24 @@ paths:
       tags:
         - users
       operationId: getUsersMe
-      summary: Mengambil profil pengguna saat ini
+      summary: Get current user profile
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Profil pengguna berhasil diambil
+          description: User profile fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Pengguna tidak ditemukan
+          description: User not found
           content:
             application/json:
               schema:
@@ -255,7 +255,7 @@ paths:
       tags:
         - users
       operationId: putUsersSettings
-      summary: Memperbarui pengaturan profil pengguna
+      summary: Update user profile settings
       security:
         - BearerAuth: []
       requestBody:
@@ -266,19 +266,19 @@ paths:
               $ref: '#/components/schemas/UserSettingsUpdateRequest'
       responses:
         '200':
-          description: Pengaturan pengguna berhasil diperbarui
+          description: User settings updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload update tidak valid
+          description: Invalid update payload
           content:
             application/json:
               schema:
@@ -288,24 +288,24 @@ paths:
       tags:
         - users
       operationId: deleteUsersMeResetData
-      summary: Mereset data pengguna untuk kebutuhan development
+      summary: Reset user data for development purposes
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Data pengguna berhasil direset
+          description: User data reset successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '403':
-          description: Endpoint reset tidak diizinkan pada environment ini
+          description: Reset endpoint is not allowed in this environment
           content:
             application/json:
               schema:
@@ -315,7 +315,7 @@ paths:
       tags:
         - routine
       operationId: postRoutineCheckin
-      summary: Menyimpan check-in harian pengguna
+      summary: Save user daily check-in
       security:
         - BearerAuth: []
       requestBody:
@@ -326,25 +326,25 @@ paths:
               $ref: '#/components/schemas/RoutineCheckInRequest'
       responses:
         '200':
-          description: Check-in harian berhasil disimpan
+          description: Daily check-in saved successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '409':
-          description: Pengguna sudah check-in pada hari UTC yang sama
+          description: User already checked in on the same UTC day
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload check-in tidak valid
+          description: Invalid check-in payload
           content:
             application/json:
               schema:
@@ -354,18 +354,18 @@ paths:
       tags:
         - routine
       operationId: getRoutineStatistics
-      summary: Mengambil statistik check-in pengguna
+      summary: Get user check-in statistics
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Statistik rutin berhasil diambil
+          description: Routine statistics fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -375,7 +375,7 @@ paths:
       tags:
         - routine
       operationId: getRoutineActivitySummary
-      summary: Mengambil ringkasan aktivitas periodik pengguna
+      summary: Get periodic user activity summary
       security:
         - BearerAuth: []
       parameters:
@@ -388,19 +388,19 @@ paths:
             maximum: 90
       responses:
         '200':
-          description: Ringkasan aktivitas berhasil diambil
+          description: Activity summary fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Nilai windowDays tidak valid
+          description: windowDays value is invalid
           content:
             application/json:
               schema:
@@ -410,18 +410,18 @@ paths:
       tags:
         - routine
       operationId: getRoutineRelapses
-      summary: Mengambil riwayat relapse pengguna
+      summary: Get user relapse history
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Riwayat relapse berhasil diambil
+          description: Relapse history fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -431,18 +431,18 @@ paths:
       tags:
         - journals
       operationId: getJournals
-      summary: Mengambil daftar jurnal milik pengguna
+      summary: Get user journal list
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Daftar jurnal berhasil diambil
+          description: Journal list fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -451,7 +451,7 @@ paths:
       tags:
         - journals
       operationId: postJournals
-      summary: Membuat entri jurnal pengguna
+      summary: Create user journal entry
       security:
         - BearerAuth: []
       requestBody:
@@ -462,19 +462,19 @@ paths:
               $ref: '#/components/schemas/JournalCreateRequest'
       responses:
         '201':
-          description: Entri jurnal berhasil dibuat
+          description: Journal entry created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload jurnal tidak valid
+          description: Invalid journal payload
           content:
             application/json:
               schema:
@@ -484,7 +484,7 @@ paths:
       tags:
         - community
       operationId: getCommunityPosts
-      summary: Mengambil daftar postingan komunitas
+      summary: Get community post list
       security:
         - BearerAuth: []
       parameters:
@@ -495,19 +495,19 @@ paths:
             $ref: '#/components/schemas/CommunityCategory'
       responses:
         '200':
-          description: Daftar postingan komunitas berhasil diambil
+          description: Community post list fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Query kategori tidak valid
+          description: Invalid category query
           content:
             application/json:
               schema:
@@ -516,7 +516,7 @@ paths:
       tags:
         - community
       operationId: postCommunity
-      summary: Membuat postingan komunitas
+      summary: Create community post
       security:
         - BearerAuth: []
       requestBody:
@@ -527,25 +527,25 @@ paths:
               $ref: '#/components/schemas/CommunityCreatePostRequest'
       responses:
         '201':
-          description: Postingan komunitas berhasil dibuat
+          description: Community post created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload postingan tidak valid
+          description: Invalid post payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan write community melebihi limit
+          description: Community write request exceeded limit
           content:
             application/json:
               schema:
@@ -555,7 +555,7 @@ paths:
       tags:
         - community
       operationId: getCommunityCommentThread
-      summary: Mengambil thread komentar pada postingan komunitas
+      summary: Get comment thread for community post
       security:
         - BearerAuth: []
       parameters:
@@ -573,19 +573,19 @@ paths:
             maximum: 200
       responses:
         '200':
-          description: Thread komentar berhasil diambil
+          description: Comment thread fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Query komentar tidak valid
+          description: Invalid comment query
           content:
             application/json:
               schema:
@@ -594,7 +594,7 @@ paths:
       tags:
         - community
       operationId: postCommunityComment
-      summary: Menambahkan komentar ke postingan komunitas
+      summary: Add comment to community post
       security:
         - BearerAuth: []
       parameters:
@@ -611,31 +611,31 @@ paths:
               $ref: '#/components/schemas/CommunityCreateCommentRequest'
       responses:
         '201':
-          description: Komentar berhasil dibuat
+          description: Comment created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Postingan tidak ditemukan
+          description: Post not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload komentar tidak valid
+          description: Invalid comment payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan write community melebihi limit
+          description: Community write request exceeded limit
           content:
             application/json:
               schema:
@@ -645,7 +645,7 @@ paths:
       tags:
         - community
       operationId: postCommunityCommentReply
-      summary: Menambahkan balasan pada komentar komunitas
+      summary: Add reply to community comment
       security:
         - BearerAuth: []
       parameters:
@@ -667,31 +667,31 @@ paths:
               $ref: '#/components/schemas/CommunityCreateCommentRequest'
       responses:
         '201':
-          description: Balasan komentar berhasil dibuat
+          description: Reply created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Postingan atau komentar parent tidak ditemukan
+          description: Post or parent comment not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload balasan atau depth thread tidak valid
+          description: Invalid reply payload or thread depth
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan write community melebihi limit
+          description: Community write request exceeded limit
           content:
             application/json:
               schema:
@@ -701,7 +701,7 @@ paths:
       tags:
         - community
       operationId: postCommunityLikeToggle
-      summary: Toggle status suka pada postingan komunitas
+      summary: Toggle like status on community post
       security:
         - BearerAuth: []
       parameters:
@@ -712,25 +712,25 @@ paths:
             type: string
       responses:
         '200':
-          description: Status suka postingan berhasil diperbarui
+          description: Post like status updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Postingan tidak ditemukan
+          description: Post not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan write community melebihi limit
+          description: Community write request exceeded limit
           content:
             application/json:
               schema:
@@ -740,7 +740,7 @@ paths:
       tags:
         - achievements
       operationId: getAchievementsCatalog
-      summary: Mengambil katalog achievement aktif
+      summary: Get active achievement catalog
       security:
         - BearerAuth: []
       parameters:
@@ -751,25 +751,25 @@ paths:
             $ref: '#/components/schemas/AchievementsCategory'
       responses:
         '200':
-          description: Katalog achievement berhasil diambil
+          description: Achievement catalog fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Pengguna tidak ditemukan
+          description: User not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Filter kategori tidak valid
+          description: Invalid category filter
           content:
             application/json:
               schema:
@@ -779,7 +779,7 @@ paths:
       tags:
         - achievements
       operationId: getAchievementsProgress
-      summary: Mengambil progres achievement pengguna
+      summary: Get user achievement progress
       security:
         - BearerAuth: []
       parameters:
@@ -790,25 +790,25 @@ paths:
             $ref: '#/components/schemas/AchievementsCategory'
       responses:
         '200':
-          description: Progres achievement berhasil diambil
+          description: Achievement progress fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Pengguna tidak ditemukan
+          description: User not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Filter kategori tidak valid
+          description: Invalid category filter
           content:
             application/json:
               schema:
@@ -818,7 +818,7 @@ paths:
       tags:
         - achievements
       operationId: getAchievementsUnlocked
-      summary: Mengambil daftar achievement yang sudah terbuka
+      summary: Get unlocked achievement list
       security:
         - BearerAuth: []
       parameters:
@@ -829,25 +829,25 @@ paths:
             $ref: '#/components/schemas/AchievementsCategory'
       responses:
         '200':
-          description: Daftar achievement terbuka berhasil diambil
+          description: Unlocked achievement list fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '404':
-          description: Pengguna tidak ditemukan
+          description: User not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Filter kategori tidak valid
+          description: Invalid category filter
           content:
             application/json:
               schema:
@@ -857,18 +857,18 @@ paths:
       tags:
         - education
       operationId: getEducation
-      summary: Mengambil daftar konten edukasi aktif
+      summary: Get active educational content list
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Konten edukasi berhasil diambil
+          description: Educational content fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -878,18 +878,18 @@ paths:
       tags:
         - content
       operationId: getDailyContent
-      summary: Mengambil konten motivasi dan tantangan harian
+      summary: Get daily motivation and challenge content
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Konten harian berhasil diambil
+          description: Daily content fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
@@ -899,7 +899,7 @@ paths:
       tags:
         - ai
       operationId: postAIAskCoach
-      summary: Mengirim pesan ke AI Coach
+      summary: Send message to AI Coach
       security:
         - BearerAuth: []
       requestBody:
@@ -910,37 +910,37 @@ paths:
               $ref: '#/components/schemas/AIAskCoachRequest'
       responses:
         '200':
-          description: Respons AI Coach berhasil dibuat
+          description: AI Coach response generated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload chat AI tidak valid
+          description: Invalid AI chat payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '502':
-          description: Respons provider AI tidak valid
+          description: Invalid AI provider response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '503':
-          description: Provider AI tidak tersedia atau timeout
+          description: AI provider unavailable or timeout
           content:
             application/json:
               schema:
@@ -950,7 +950,7 @@ paths:
       tags:
         - ai
       operationId: getAIChatHistory
-      summary: Mengambil riwayat chat AI milik pengguna
+      summary: Get user AI chat history
       security:
         - BearerAuth: []
       parameters:
@@ -963,25 +963,25 @@ paths:
             maximum: 200
       responses:
         '200':
-          description: Riwayat chat AI berhasil diambil
+          description: AI chat history fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Nilai query tidak valid
+          description: Invalid query value
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:
@@ -991,24 +991,24 @@ paths:
       tags:
         - ai
       operationId: getAISummary
-      summary: Mengambil ringkasan AI pengguna saat ini
+      summary: Get current user AI summary
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Ringkasan AI berhasil diambil
+          description: AI summary fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:
@@ -1018,7 +1018,7 @@ paths:
       tags:
         - ai
       operationId: postAIOnboardingAnalysis
-      summary: Menganalisis jawaban onboarding menggunakan AI
+      summary: Analyze onboarding answers with AI
       security:
         - BearerAuth: []
       requestBody:
@@ -1029,37 +1029,37 @@ paths:
               $ref: '#/components/schemas/AIOnboardingAnalysisRequest'
       responses:
         '200':
-          description: Analisis onboarding berhasil dibuat
+          description: Onboarding analysis generated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Payload onboarding-analysis tidak valid
+          description: Invalid onboarding-analysis payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '502':
-          description: Respons analisis provider AI tidak valid
+          description: Invalid AI provider analysis response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '503':
-          description: Provider AI tidak tersedia atau timeout
+          description: AI provider unavailable or timeout
           content:
             application/json:
               schema:
@@ -1069,24 +1069,24 @@ paths:
       tags:
         - ai
       operationId: getAIPersonaPreference
-      summary: Mengambil preferensi persona AI pengguna
+      summary: Get user AI persona preference
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Preferensi persona AI berhasil diambil
+          description: AI persona preference fetched successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:
@@ -1095,7 +1095,7 @@ paths:
       tags:
         - ai
       operationId: putAIPersonaPreference
-      summary: Memperbarui preferensi persona AI pengguna
+      summary: Update user AI persona preference
       security:
         - BearerAuth: []
       requestBody:
@@ -1106,25 +1106,25 @@ paths:
               $ref: '#/components/schemas/AIPersonaPreferenceRequest'
       responses:
         '200':
-          description: Preferensi persona AI berhasil diperbarui
+          description: AI persona preference updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
         '401':
-          description: Token akses tidak valid
+          description: Access token is invalid
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
-          description: Nilai persona tidak valid
+          description: Invalid persona value
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '429':
-          description: Permintaan AI melebihi limit
+          description: AI request exceeded limit
           content:
             application/json:
               schema:

@@ -14,8 +14,8 @@ case "$command" in
     ./scripts/with-env.sh go run ./cmd/api
     ;;
   *)
-    echo "[scalar] command tidak didukung: $command" >&2
-    echo "[scalar] gunakan: check | preview" >&2
+    echo "[scalar] command not supported: $command" >&2
+    echo "[scalar] use: check | preview" >&2
     exit 1
     ;;
 esac

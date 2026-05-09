@@ -51,7 +51,7 @@ func TestRegisterRoutes_ListSuccess(t *testing.T) {
 	service := NewService(&communityRouteRepo{
 		posts: []communityPostListRow{{
 			ID:             "post-1",
-			Content:        "konten komunitas contoh yang panjang",
+			Content:        "long sample community content",
 			Category:       "motivation",
 			CommentCount:   1,
 			LikeCount:      1,
@@ -78,7 +78,7 @@ func TestRegisterRoutes_CommentSuccess(t *testing.T) {
 	RegisterRoutes(app.Group("/api/v1/community"), authService, service, nil)
 
 	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community/post-1/comments", map[string]any{
-		"content": "komentar valid",
+		"content": "valid comment",
 	}, map[string]string{
 		"Authorization": "Bearer access-token",
 	})
@@ -169,13 +169,13 @@ func TestRegisterRoutes_WriteRateLimited(t *testing.T) {
 
 	headers := map[string]string{"Authorization": "Bearer access-token"}
 	first := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community", map[string]any{
-		"content":  "konten komunitas valid minimal sepuluh",
+		"content":  "valid community content with enough length",
 		"category": "advice",
 	}, headers)
 	httpharness.RequireStatus(t, first.StatusCode, fiber.StatusCreated)
 
 	second := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community", map[string]any{
-		"content":  "konten komunitas valid minimal sepuluh",
+		"content":  "valid community content with enough length",
 		"category": "advice",
 	}, headers)
 	httpharness.RequireStatus(t, second.StatusCode, fiber.StatusTooManyRequests)

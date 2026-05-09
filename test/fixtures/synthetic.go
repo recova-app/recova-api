@@ -36,8 +36,8 @@ func SyntheticUser() UserFixture {
 		ID:            "00000000-0000-0000-0000-000000000001",
 		GoogleID:      "google-sandbox-user-1",
 		Email:         "synthetic.user1@example.test",
-		DisplayName:   "Pengguna Uji Satu",
-		RecoveryFocus: "Membangun rutinitas sehat",
+		DisplayName:   "Test User One",
+		RecoveryFocus: "Building healthy routines",
 	}
 }
 
@@ -46,8 +46,8 @@ func SyntheticJournal() JournalFixture {
 	return JournalFixture{
 		ID:        "10000000-0000-0000-0000-000000000001",
 		UserID:    SyntheticUser().ID,
-		Title:     "Refleksi Hari Pertama",
-		Body:      "Hari ini saya berhasil menjaga komitmen check-in.",
+		Title:     "First Day Reflection",
+		Body:      "Today I successfully kept my check-in commitment.",
 		CreatedAt: time.Date(2026, time.May, 8, 7, 0, 0, 0, time.UTC),
 	}
 }
@@ -57,8 +57,8 @@ func SyntheticRoutineCheckIn() RoutineCheckInFixture {
 	return RoutineCheckInFixture{
 		ID:      "20000000-0000-0000-0000-000000000001",
 		UserID:  SyntheticUser().ID,
-		Mood:    "termotivasi",
-		Note:    "Saya fokus pada langkah kecil yang konsisten.",
+		Mood:    "motivated",
+		Note:    "I focus on small, consistent steps.",
 		DayDate: "2026-05-08",
 	}
 }

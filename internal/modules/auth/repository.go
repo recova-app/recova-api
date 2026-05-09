@@ -149,17 +149,17 @@ func IsUniqueViolation(err error) bool {
 func fallbackNickname(email string) string {
 	normalized := strings.TrimSpace(strings.ToLower(email))
 	if normalized == "" {
-		return "Pengguna"
+		return "User"
 	}
 
 	parts := strings.Split(normalized, "@")
 	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
-		return "Pengguna"
+		return "User"
 	}
 
 	candidate := strings.TrimSpace(parts[0])
 	if len([]rune(candidate)) < minNicknameLength {
-		return "Pengguna"
+		return "User"
 	}
 	if len([]rune(candidate)) > maxNicknameLength {
 		runes := []rune(candidate)
