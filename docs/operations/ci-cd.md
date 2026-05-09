@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/ci-cd.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend CI/CD Operations
@@ -41,7 +41,8 @@ Urutan ini diimplementasikan di `.github/workflows/ci.yml` melalui job:
 2. `database-gates`,
 3. `container-compose-smoke`,
 4. `image-build`,
-5. `deploy-gate-staging` (hanya branch `main` atau manual `workflow_dispatch`).
+5. `deploy-gate-staging` (quality rehearsal deploy local-compose),
+6. `deploy-staging` workflow terpisah untuk remote deploy branch `develop`.
 
 ## Gate Rules
 
@@ -101,6 +102,19 @@ Kontrol concurrency:
 
 - `concurrency.group = ci-${workflow}-${ref}`,
 - `cancel-in-progress = true` untuk membatalkan run lama pada ref yang sama.
+- `deploy-staging` memakai concurrency group terpisah `deploy-staging` agar deploy host staging selalu serial.
+
+## Remote Staging Deploy Workflow
+
+Workflow `.github/workflows/deploy-staging.yml`:
+
+- trigger pada `push` branch `develop` dan `workflow_dispatch`,
+- build + push image GHCR dengan tag:
+  - `develop`,
+  - `sha-<commit-sha>`,
+- deploy job memakai GitHub Environment `staging`,
+- validasi secret wajib sebelum SSH ke host staging,
+- menjalankan `scripts/deploy/remote-deploy.sh` untuk pull image, migrate, start, smoke, diagnostics saat gagal.
 
 ## Gate Coverage Implementasi
 

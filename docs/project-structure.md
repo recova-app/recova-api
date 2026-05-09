@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/project-structure.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Project Structure
@@ -54,9 +54,8 @@ Dokumen ini menetapkan layout repository target untuk backend Go agar modul doma
 |-- api/
 |   `-- openapi/
 |
-|-- configs/
 |-- migrations/
-|-- deployments/
+|-- docker-compose.staging.yml
 |-- scripts/
 |-- bin/ (generated local build artifact, ignored by git)
 |-- test/
@@ -68,18 +67,18 @@ Dokumen ini menetapkan layout repository target untuk backend Go agar modul doma
 
 ## Directory Responsibilities
 
-| Path                | Responsibility                                                  |
-| ------------------- | --------------------------------------------------------------- |
-| `cmd/api`           | entrypoint runtime, wiring bootstrap, startup/shutdown          |
-| `internal/app`      | assembly aplikasi dan lifecycle service                         |
-| `internal/modules`  | domain modules dan business use-cases                           |
-| `internal/platform` | adapter infrastruktur (config, db, logger, observability)       |
-| `internal/shared`   | komponen lintas-modul yang bebas ketergantungan domain spesifik |
-| `api/openapi`       | kontrak OpenAPI sumber kebenaran API                            |
-| `migrations`        | SQL migration files up/down                                     |
-| `deployments`       | artefak deploy (container/manifest)                             |
-| `bin`               | output binary lokal hasil command build                         |
-| `test`              | test suite unit/integration/contract                            |
+| Path                         | Responsibility                                                  |
+| ---------------------------- | --------------------------------------------------------------- |
+| `cmd/api`                    | entrypoint runtime, wiring bootstrap, startup/shutdown          |
+| `internal/app`               | assembly aplikasi dan lifecycle service                         |
+| `internal/modules`           | domain modules dan business use-cases                           |
+| `internal/platform`          | adapter infrastruktur (config, db, logger, observability)       |
+| `internal/shared`            | komponen lintas-modul yang bebas ketergantungan domain spesifik |
+| `api/openapi`                | kontrak OpenAPI sumber kebenaran API                            |
+| `migrations`                 | SQL migration files up/down                                     |
+| `docker-compose.staging.yml` | compose runtime deploy staging production-style                 |
+| `bin`                        | output binary lokal hasil command build                         |
+| `test`                       | test suite unit/integration/contract                            |
 
 ## Module Anatomy
 

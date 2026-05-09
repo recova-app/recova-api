@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/environments.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Environment Matrix and Runtime Profiles
@@ -55,6 +55,8 @@ Dokumen ini menjelaskan tujuan tiap environment dan baseline konfigurasi runtime
 - harus mereplikasi jalur deployment production,
 - semua secret berasal dari secret manager non-prod,
 - semua gate observability, rate limit, dan error mapping harus aktif.
+- deployment otomatis hanya dari branch `develop` dengan GitHub Environment `staging`.
+- artifact runtime staging harus memakai image immutable `sha-<commit-sha>` walau branch tag `develop` tetap dipublish.
 
 ### Production
 

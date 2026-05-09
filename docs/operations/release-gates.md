@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/release-gates.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Release Gates
@@ -46,6 +46,7 @@ Wajib lulus:
 - deployment plan dan rollback path tersedia,
 - gate environment staging melewati approval/protection yang ditetapkan,
 - dry-run deploy staging lulus (`scripts/staging-deploy.sh`) termasuk migration dry-run, seed idempotency, integrity checks, dan readiness checks,
+- remote deploy staging (`.github/workflows/deploy-staging.yml`) sukses dari branch `develop` dengan image immutable `sha-<commit-sha>`,
 - release sign-off engineering + platform.
 
 ## Gate D - Post-Deploy

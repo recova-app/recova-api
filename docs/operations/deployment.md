@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/deployment.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Deployment Workflow
@@ -82,6 +82,29 @@ Runner ini mengeksekusi urutan berikut secara deterministik:
 8. smoke check health endpoint.
 
 Jika salah satu langkah gagal, deployment dianggap gagal dan stack dibersihkan otomatis (kecuali `KEEP_STACK=true`).
+
+## Remote Staging Deployment from `develop`
+
+Untuk jalur staging yang mereplikasi deployment production-style:
+
+- trigger deploy dari branch `develop` melalui workflow `.github/workflows/deploy-staging.yml`,
+- build image ke GHCR dengan dua tag:
+  - mutable branch tag: `develop`,
+  - immutable release tag: `sha-<commit-sha>`,
+- deploy ke host staging via `scripts/deploy/remote-deploy.sh`.
+
+Remote runner mengeksekusi urutan:
+
+1. validasi precondition host (`git`, `docker`, `curl`, `migrate`, repo clean),
+2. validasi `APP_ENV=staging` dan `DATABASE_URL` dari env file staging,
+3. sinkronisasi checkout ke `origin/develop`,
+4. update `APP_IMAGE` ke tag immutable `sha-<commit-sha>`,
+5. pull image terbaru dan apply migration (`up` + `check`),
+6. `docker compose up -d --wait` untuk service API,
+7. smoke checks: liveness, readiness, OpenAPI route, unauthorized reject pada route protected,
+8. diagnostics otomatis saat gagal (`compose ps`, log tail, migration status, health output).
+
+Catatan: `docker-compose.local.yml` tidak digunakan sebagai target runtime deploy staging/production.
 
 ## Cutover Wave Runner
 
@@ -167,7 +190,10 @@ Setiap deploy harus punya bukti:
 ## Source Reference
 
 - [/Users/macbookpro/Development/bisakerja-api/docs/operations/deployment.md](/Users/macbookpro/Development/bisakerja-api/docs/operations/deployment.md)
+- [Deploying with GitHub Actions](https://docs.github.com/actions/deployment/deploying-with-github-actions)
 - [Fiber App API](https://docs.gofiber.io/api/app/)
 - [Docker Multi-stage Builds](https://docs.docker.com/build/building/multi-stage/)
+- [docker compose pull](https://docs.docker.com/reference/cli/docker/compose/pull/)
+- [docker compose up](https://docs.docker.com/reference/cli/docker/compose/up/)
 - [golang-migrate](https://github.com/golang-migrate/migrate)
 - [PostgreSQL Backup and Restore](https://www.postgresql.org/docs/current/backup.html)

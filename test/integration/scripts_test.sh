@@ -602,3 +602,116 @@ assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-
 ./scripts/preflight.sh >/dev/null
 
 echo "scripts integration checks passed"
+
+# remote-deploy.sh should enforce staging APP_ENV, run migrate/check, and run deploy smoke checks.
+remote_temp_dir="$(mktemp -d)"
+trap 'rm -rf "$temp_dir" "$remote_temp_dir"' EXIT
+
+remote_repo_dir="$remote_temp_dir/repo"
+mkdir -p "$remote_repo_dir/scripts" "$remote_repo_dir/scripts/deploy" "$remote_repo_dir/migrations"
+cp ./scripts/migrate.sh "$remote_repo_dir/scripts/migrate.sh"
+cp ./scripts/deploy/remote-deploy.sh "$remote_repo_dir/scripts/deploy/remote-deploy.sh"
+chmod +x "$remote_repo_dir/scripts/migrate.sh" "$remote_repo_dir/scripts/deploy/remote-deploy.sh"
+
+touch "$remote_repo_dir/docker-compose.staging.yml"
+cat > "$remote_repo_dir/.env.staging" <<'ENVFILE'
+APP_ENV=staging
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable
+ENVFILE
+
+fake_remote_log="$remote_temp_dir/fake-remote.log"
+
+cat > "$remote_temp_dir/git" <<'SCRIPT'
+#!/usr/bin/env sh
+printf 'git %s\n' "$*" >> "$FAKE_REMOTE_LOG"
+case "${1:-}" in
+  rev-parse)
+    if [ "${2:-}" = "--is-inside-work-tree" ]; then
+      exit 0
+    fi
+    ;;
+  diff)
+    exit 0
+    ;;
+esac
+exit 0
+SCRIPT
+chmod +x "$remote_temp_dir/git"
+
+cat > "$remote_temp_dir/docker" <<'SCRIPT'
+#!/usr/bin/env sh
+printf 'docker %s\n' "$*" >> "$FAKE_REMOTE_LOG"
+exit 0
+SCRIPT
+chmod +x "$remote_temp_dir/docker"
+
+cat > "$remote_temp_dir/migrate" <<'SCRIPT'
+#!/usr/bin/env sh
+printf 'migrate %s\n' "$*" >> "$FAKE_REMOTE_LOG"
+if [ "${4:-}" = "version" ]; then
+  printf '43\n'
+fi
+exit 0
+SCRIPT
+chmod +x "$remote_temp_dir/migrate"
+
+cat > "$remote_temp_dir/curl" <<'SCRIPT'
+#!/usr/bin/env sh
+printf 'curl %s\n' "$*" >> "$FAKE_REMOTE_LOG"
+case "$*" in
+  *"%{http_code}"*)
+    printf '401'
+    ;;
+esac
+exit 0
+SCRIPT
+chmod +x "$remote_temp_dir/curl"
+
+PATH="$remote_temp_dir:$PATH" \
+FAKE_REMOTE_LOG="$fake_remote_log" \
+MIGRATE_BIN="$remote_temp_dir/migrate" \
+"$remote_repo_dir/scripts/deploy/remote-deploy.sh" \
+  "$remote_repo_dir" \
+  "develop" \
+  "ghcr.io/example/recova:sha-abc" \
+  "docker-compose.staging.yml" \
+  ".env.staging" \
+  "staging" \
+  "staging" \
+  "3000" \
+  "http://127.0.0.1:3000" >/dev/null
+
+assert_file_contains "$fake_remote_log" "git fetch origin develop --prune"
+assert_file_contains "$fake_remote_log" "git checkout -B develop origin/develop"
+assert_file_not_contains "$fake_remote_log" "git reset --hard"
+assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
+assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
+assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
+assert_file_contains "$fake_remote_log" "curl -fsS --retry 4 --retry-delay 2 http://127.0.0.1:3000/openapi.yaml"
+
+# remote-deploy.sh must fail when APP_ENV is not staging.
+cat > "$remote_repo_dir/.env.bad" <<'ENVFILE'
+APP_ENV=production
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable
+ENVFILE
+
+assert_fail env \
+  PATH="$remote_temp_dir:$PATH" \
+  FAKE_REMOTE_LOG="$fake_remote_log" \
+  MIGRATE_BIN="$remote_temp_dir/migrate" \
+  "$remote_repo_dir/scripts/deploy/remote-deploy.sh" \
+    "$remote_repo_dir" \
+    "develop" \
+    "ghcr.io/example/recova:sha-abc" \
+    "docker-compose.staging.yml" \
+    ".env.bad" \
+    "staging" \
+    "staging" \
+    "3000" \
+    "http://127.0.0.1:3000"
+
+# deploy-staging workflow must stay develop-only and use immutable sha tag.
+assert_file_contains .github/workflows/deploy-staging.yml "branches:"
+assert_file_contains .github/workflows/deploy-staging.yml "- develop"
+assert_file_contains .github/workflows/deploy-staging.yml 'image_tag_sha="sha-${source_sha}"'
+assert_file_contains .github/workflows/deploy-staging.yml "name: staging"

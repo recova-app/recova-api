@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/post-deploy-checks.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Post-Deploy Checks
@@ -91,6 +91,9 @@ Verifikasi sinyal minimum:
 
 - waktu dan environment deploy,
 - artifact id,
+- commit SHA source deploy,
+- image tag immutable (`sha-<commit-sha>`),
+- migration version hasil `migrate version/check`,
 - hasil tiap check,
 - keputusan akhir (promote/hotfix/rollback),
 - PIC verifikasi.

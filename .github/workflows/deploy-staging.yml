@@ -1,0 +1,174 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  CONTAINER_REGISTRY: ghcr.io
+  DEPLOY_BRANCH: develop
+  DEPLOY_TARGET: staging
+  EXPECTED_APP_ENV: staging
+  COMPOSE_FILE: docker-compose.staging.yml
+  RUNTIME_ENV_FILE: .env.staging
+  DEFAULT_APP_PORT: "3000"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_name: ${{ steps.meta.outputs.image_name }}
+      image_tag_branch: ${{ steps.meta.outputs.image_tag_branch }}
+      image_tag_sha: ${{ steps.meta.outputs.image_tag_sha }}
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_BRANCH }}
+
+      - name: Prepare metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source_sha="$(git rev-parse HEAD)"
+          image_tag_branch="develop"
+          image_tag_sha="sha-${source_sha}"
+          {
+            echo "image_name=${image_name}"
+            echo "image_tag_branch=${image_tag_branch}"
+            echo "image_tag_sha=${image_tag_sha}"
+            echo "image_ref=${image_name}:${image_tag_sha}"
+            echo "source_sha=${source_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_branch }}
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_sha }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.source_sha }}
+            VCS_REF=${{ steps.meta.outputs.source_sha }}
+            BUILD_DATE=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Remote Deploy
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 25
+    environment:
+      name: staging
+    steps:
+      - name: Validate required secrets
+        env:
+          DEPLOY_VPS_HOST: ${{ secrets.DEPLOY_VPS_HOST }}
+          DEPLOY_VPS_PORT: ${{ secrets.DEPLOY_VPS_PORT }}
+          DEPLOY_VPS_USERNAME: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          DEPLOY_VPS_KEY: ${{ secrets.DEPLOY_VPS_KEY }}
+          DEPLOY_REMOTE_PATH: ${{ secrets.DEPLOY_REMOTE_PATH }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+          GHCR_READ_PACKAGES_TOKEN: ${{ secrets.GHCR_READ_PACKAGES_TOKEN }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          STAGING_PUBLIC_BASE_URL: ${{ secrets.STAGING_PUBLIC_BASE_URL }}
+        run: |
+          set -euo pipefail
+          required=(
+            DEPLOY_VPS_HOST
+            DEPLOY_VPS_PORT
+            DEPLOY_VPS_USERNAME
+            DEPLOY_VPS_KEY
+            DEPLOY_REMOTE_PATH
+            DEPLOY_ENV_FILE
+            GHCR_READ_PACKAGES_TOKEN
+            GH_USERNAME
+            STAGING_PUBLIC_BASE_URL
+          )
+          for key in "${required[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing required secret: ${key}"
+              exit 1
+            fi
+          done
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_VPS_HOST }}
+          username: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          key: ${{ secrets.DEPLOY_VPS_KEY }}
+          port: ${{ secrets.DEPLOY_VPS_PORT }}
+          timeout: 60s
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+
+            remote_path="${{ secrets.DEPLOY_REMOTE_PATH }}"
+            runtime_env_file="${{ env.RUNTIME_ENV_FILE }}"
+            compose_file="${{ env.COMPOSE_FILE }}"
+            image_ref="${{ needs.build-and-push.outputs.image_ref }}"
+
+            install -d -m 755 "$remote_path"
+            cat <<'ENVEOF' > "$remote_path/$runtime_env_file"
+            ${{ secrets.DEPLOY_ENV_FILE }}
+            ENVEOF
+            chmod 600 "$remote_path/$runtime_env_file"
+
+            cd "$remote_path"
+            printf '%s' '${{ secrets.GHCR_READ_PACKAGES_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GH_USERNAME }}' --password-stdin
+
+            ./scripts/deploy/remote-deploy.sh \
+              "$remote_path" \
+              "${{ env.DEPLOY_BRANCH }}" \
+              "$image_ref" \
+              "$compose_file" \
+              "$runtime_env_file" \
+              "${{ env.DEPLOY_TARGET }}" \
+              "${{ env.EXPECTED_APP_ENV }}" \
+              "${{ env.DEFAULT_APP_PORT }}" \
+              "${{ secrets.STAGING_PUBLIC_BASE_URL }}"
+
+      - name: Diagnostics on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_VPS_HOST }}
+          username: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          key: ${{ secrets.DEPLOY_VPS_KEY }}
+          port: ${{ secrets.DEPLOY_VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set +e
+            cd "${{ secrets.DEPLOY_REMOTE_PATH }}"
+            docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" ps
+            docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" logs --tail=150 api

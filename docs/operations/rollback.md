@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/rollback.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Rollback Runbook
@@ -56,6 +56,7 @@ Aturan:
 
 - rollback aplikasi tidak boleh menulis skema baru,
 - jika ada cache berisi format baru yang inkompatibel, purge terkontrol sebelum trafik penuh.
+- untuk jalur staging berbasis image registry, rollback utama dilakukan dengan mengembalikan `APP_IMAGE` ke tag immutable sebelumnya lalu `docker compose up -d --wait`.
 
 ## Database Rollback Constraints
 
