@@ -125,6 +125,8 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 			},
 		},
 		{name: "community comment", method: http.MethodPost, path: "/api/v1/community/post-1/comments", body: map[string]any{"content": "uji"}},
+		{name: "community comment thread", method: http.MethodGet, path: "/api/v1/community/post-1/comments"},
+		{name: "community comment reply", method: http.MethodPost, path: "/api/v1/community/post-1/comments/comment-1/replies", body: map[string]any{"content": "uji"}},
 		{name: "community like", method: http.MethodPost, path: "/api/v1/community/post-1/like"},
 		{name: "education list", method: http.MethodGet, path: "/api/v1/education"},
 		{name: "daily content", method: http.MethodGet, path: "/api/v1/content/daily"},

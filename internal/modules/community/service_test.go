@@ -2,6 +2,7 @@ package community
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,13 +74,83 @@ func TestService_ToggleLike_PostNotFound(t *testing.T) {
 	}
 }
 
-type fakeCommunityRepo struct {
-	userErr   error
-	createErr error
-	listErr   error
-	toggleErr error
+func TestService_CreateReply_DepthExceeded(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		parentComment: models.CommunityComment{
+			ID:      "comment-parent",
+			PostID:  "post-1",
+			UserID:  "user-2",
+			Content: "parent",
+			Depth:   2,
+		},
+	}
+	service := NewService(repo)
 
-	posts []communityPostListRow
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "comment-parent", CreateReplyRequest{
+		Content: "reply",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected VALIDATION_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ListCommentThread_Success(t *testing.T) {
+	now := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	repo := &fakeCommunityRepo{
+		threadRows: []models.CommunityComment{
+			{
+				ID:         "c1",
+				PostID:     "post-1",
+				UserID:     "user-1",
+				Content:    "root",
+				Depth:      0,
+				ReplyCount: 1,
+				CreatedAt:  now,
+			},
+			{
+				ID:              "c2",
+				PostID:          "post-1",
+				UserID:          "user-2",
+				ParentCommentID: ptrStringService("c1"),
+				Content:         "reply",
+				Depth:           1,
+				ReplyCount:      0,
+				CreatedAt:       now.Add(time.Minute),
+			},
+		},
+	}
+	service := NewService(repo)
+
+	out, err := service.ListCommentThread(context.Background(), "user-1", "post-1", ListCommentThreadQuery{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out.PostID != "post-1" {
+		t.Fatalf("unexpected post id: %s", out.PostID)
+	}
+	if len(out.Comments) != 1 {
+		t.Fatalf("expected 1 root comment, got %d", len(out.Comments))
+	}
+	if len(out.Comments[0].Replies) != 1 {
+		t.Fatalf("expected 1 reply, got %d", len(out.Comments[0].Replies))
+	}
+}
+
+type fakeCommunityRepo struct {
+	userErr        error
+	createErr      error
+	listErr        error
+	toggleErr      error
+	threadErr      error
+	parentErr      error
+	createReplyErr error
+
+	posts         []communityPostListRow
+	threadRows    []models.CommunityComment
+	parentComment models.CommunityComment
 }
 
 func (r *fakeCommunityRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -107,12 +178,49 @@ func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory) ([]com
 
 func (r *fakeCommunityRepo) CreateCommentAndIncrement(_ context.Context, userID string, postID string, content string) (models.CommunityComment, error) {
 	return models.CommunityComment{
-		ID:        "comment-1",
-		UserID:    userID,
-		PostID:    postID,
-		Content:   content,
-		CreatedAt: time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
+		ID:              "comment-1",
+		UserID:          userID,
+		PostID:          postID,
+		ParentCommentID: nil,
+		Content:         content,
+		Depth:           0,
+		ReplyCount:      0,
+		CreatedAt:       time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
 	}, nil
+}
+
+func (r *fakeCommunityRepo) CreateReplyAndIncrement(_ context.Context, userID string, postID string, parentCommentID string, content string, depth int16) (models.CommunityComment, error) {
+	if r.createReplyErr != nil {
+		return models.CommunityComment{}, r.createReplyErr
+	}
+	parentID := parentCommentID
+	return models.CommunityComment{
+		ID:              "comment-reply-1",
+		UserID:          userID,
+		PostID:          postID,
+		ParentCommentID: &parentID,
+		Content:         content,
+		Depth:           depth,
+		ReplyCount:      0,
+		CreatedAt:       time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
+	}, nil
+}
+
+func (r *fakeCommunityRepo) FindCommentByID(_ context.Context, _ string) (models.CommunityComment, error) {
+	if r.parentErr != nil {
+		return models.CommunityComment{}, r.parentErr
+	}
+	if strings.TrimSpace(r.parentComment.ID) == "" {
+		return models.CommunityComment{}, gorm.ErrRecordNotFound
+	}
+	return r.parentComment, nil
+}
+
+func (r *fakeCommunityRepo) ListCommentThreadByPostID(_ context.Context, _ string, _ int) ([]models.CommunityComment, error) {
+	if r.threadErr != nil {
+		return nil, r.threadErr
+	}
+	return r.threadRows, nil
 }
 
 func (r *fakeCommunityRepo) ToggleLike(_ context.Context, _ string, _ string) (ToggleLikePayload, error) {
@@ -120,4 +228,8 @@ func (r *fakeCommunityRepo) ToggleLike(_ context.Context, _ string, _ string) (T
 		return ToggleLikePayload{}, r.toggleErr
 	}
 	return ToggleLikePayload{LikedCount: 1, IsLiked: true}, nil
+}
+
+func ptrStringService(v string) *string {
+	return &v
 }

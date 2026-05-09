@@ -52,7 +52,7 @@ Constraint minimum:
 - comment terkait post yang valid,
 - relasi user ownership terjaga untuk post/comment,
 - reply memakai `parent_comment_id` pada tabel komentar,
-- depth thread komentar dibatasi oleh kebijakan (`max_thread_depth`),
+- depth thread komentar dibatasi kebijakan maksimum `2`,
 - reply wajib berada pada post yang sama dengan parent comment.
 
 ## Authentication and Authorization
@@ -66,7 +66,7 @@ Constraint minimum:
 - endpoint like bersifat toggle (`like` <-> `unlike`) dan konsisten terhadap state akhir,
 - komentar top-level memiliki `depth = 0`,
 - reply komentar menaikkan depth parent + 1,
-- reply yang melewati `max_thread_depth` ditolak dengan `VALIDATION_ERROR`,
+- reply yang menghasilkan depth di atas `2` ditolak dengan `VALIDATION_ERROR`,
 - setiap node komentar menyertakan `reply_count` agar client tidak perlu full scan,
 - post/comment yang melanggar kebijakan dapat ditandai atau disembunyikan,
 - rate limit lebih ketat pada endpoint write.
@@ -83,6 +83,7 @@ Constraint minimum:
 ## Threading Policy
 
 - struktur komentar memakai adjacency list (`parent_comment_id`) dengan traversal rekursif terkontrol,
+- batas kedalaman thread adalah `2` (root depth `0`, reply maksimal depth `2`),
 - query thread wajib deterministic by `created_at` lalu `id`,
 - response thread memuat `depth`, `parentCommentId`, `replyCount`,
 - implementasi harus aman terhadap siklus data (cycle) lewat constraint/check query traversal.
@@ -131,7 +132,7 @@ Metrik minimum:
 ## Open Gaps
 
 - kebijakan delete post/comment final,
-- batas final `max_thread_depth` dan pagination thread.
+- pagination thread untuk dataset komentar besar.
 
 ## Related Documents
 

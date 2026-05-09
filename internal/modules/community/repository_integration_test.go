@@ -2,6 +2,7 @@ package community
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -91,6 +92,88 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 	}
 	if row.StreakStartDate == nil || !row.StreakStartDate.Equal(streakStart) {
 		t.Fatalf("expected streak_start_date=%s, got %#v", streakStart, row.StreakStartDate)
+	}
+}
+
+func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
+	databaseURL := databaseharness.RequireDatabaseURLFromEnv(t, "RECOVA_DB_INTEGRATION_URL")
+	databaseharness.ResetMigrations(t, databaseURL)
+
+	client, err := database.Connect(integrationConfigCommunity(databaseURL))
+	if err != nil {
+		t.Fatalf("connect db: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	repo := NewRepository(client.Gorm())
+	ctx := context.Background()
+
+	author := models.User{GoogleID: "google-community-thread-author", Email: "community-thread-author@example.test", Nickname: "author"}
+	replyUser := models.User{GoogleID: "google-community-thread-reply", Email: "community-thread-reply@example.test", Nickname: "reply"}
+	if err := client.Gorm().WithContext(ctx).Create(&author).Error; err != nil {
+		t.Fatalf("create author: %v", err)
+	}
+	if err := client.Gorm().WithContext(ctx).Create(&replyUser).Error; err != nil {
+		t.Fatalf("create reply user: %v", err)
+	}
+
+	post, err := repo.CreatePost(ctx, models.CommunityPost{
+		UserID:   author.ID,
+		Content:  "post untuk thread comment integration",
+		Category: "story",
+	})
+	if err != nil {
+		t.Fatalf("create post: %v", err)
+	}
+
+	root, err := repo.CreateCommentAndIncrement(ctx, author.ID, post.ID, "komentar root")
+	if err != nil {
+		t.Fatalf("create root comment: %v", err)
+	}
+
+	reply, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, post.ID, root.ID, "reply pertama", 1)
+	if err != nil {
+		t.Fatalf("create reply: %v", err)
+	}
+	if reply.ParentCommentID == nil || *reply.ParentCommentID != root.ID {
+		t.Fatalf("expected parent comment id %s, got %#v", root.ID, reply.ParentCommentID)
+	}
+
+	updatedRoot, err := repo.FindCommentByID(ctx, root.ID)
+	if err != nil {
+		t.Fatalf("find root comment: %v", err)
+	}
+	if updatedRoot.ReplyCount != 1 {
+		t.Fatalf("expected root reply_count=1, got %d", updatedRoot.ReplyCount)
+	}
+
+	thread, err := repo.ListCommentThreadByPostID(ctx, post.ID, 50)
+	if err != nil {
+		t.Fatalf("list thread: %v", err)
+	}
+	if len(thread) != 2 {
+		t.Fatalf("expected 2 comments in thread, got %d", len(thread))
+	}
+	if thread[0].Depth != 0 {
+		t.Fatalf("expected root depth=0, got %d", thread[0].Depth)
+	}
+	if thread[1].Depth != 1 {
+		t.Fatalf("expected reply depth=1, got %d", thread[1].Depth)
+	}
+
+	otherPost, err := repo.CreatePost(ctx, models.CommunityPost{
+		UserID:   author.ID,
+		Content:  "post lain",
+		Category: "advice",
+	})
+	if err != nil {
+		t.Fatalf("create other post: %v", err)
+	}
+
+	if _, err := repo.CreateReplyAndIncrement(ctx, replyUser.ID, otherPost.ID, root.ID, "harus gagal", 1); !errors.Is(err, errParentCommentPostMismatch) {
+		t.Fatalf("expected errParentCommentPostMismatch, got %v", err)
 	}
 }
 

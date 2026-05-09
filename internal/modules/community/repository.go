@@ -15,6 +15,8 @@ import (
 
 const uniqueViolationCode = "23505"
 
+var errParentCommentPostMismatch = errors.New("parent comment does not belong to selected post")
+
 // Repository provides persistence operations for community module.
 type Repository struct {
 	db *gorm.DB
@@ -215,6 +217,175 @@ func (r *Repository) CreateCommentAndIncrement(ctx context.Context, userID strin
 	}
 
 	return created, nil
+}
+
+// FindCommentByID loads one comment by identifier.
+func (r *Repository) FindCommentByID(ctx context.Context, commentID string) (models.CommunityComment, error) {
+	var comment models.CommunityComment
+	if err := r.db.WithContext(ctx).Where("id = ?", strings.TrimSpace(commentID)).First(&comment).Error; err != nil {
+		return models.CommunityComment{}, err
+	}
+	return comment, nil
+}
+
+// FindCommentByIDForUpdate loads one comment and acquires row lock for atomic reply_count mutation.
+func (r *Repository) FindCommentByIDForUpdate(ctx context.Context, commentID string) (models.CommunityComment, error) {
+	var comment models.CommunityComment
+	if err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", strings.TrimSpace(commentID)).
+		First(&comment).Error; err != nil {
+		return models.CommunityComment{}, err
+	}
+	return comment, nil
+}
+
+// CreateReplyAndIncrement inserts reply, increments parent reply_count and post comment_count atomically.
+func (r *Repository) CreateReplyAndIncrement(
+	ctx context.Context,
+	userID string,
+	postID string,
+	parentCommentID string,
+	content string,
+	depth int16,
+) (models.CommunityComment, error) {
+	var created models.CommunityComment
+
+	err := database.WithTransaction(ctx, r.db, func(tx *gorm.DB) error {
+		txRepo := r.WithTx(tx)
+
+		if _, err := txRepo.FindPostByIDForUpdate(ctx, postID); err != nil {
+			return err
+		}
+
+		parent, err := txRepo.FindCommentByIDForUpdate(ctx, parentCommentID)
+		if err != nil {
+			return err
+		}
+		if !strings.EqualFold(strings.TrimSpace(parent.PostID), strings.TrimSpace(postID)) {
+			return errParentCommentPostMismatch
+		}
+
+		parentCommentIDNormalized := strings.TrimSpace(parentCommentID)
+		row := models.CommunityComment{
+			UserID:          strings.TrimSpace(userID),
+			PostID:          strings.TrimSpace(postID),
+			ParentCommentID: &parentCommentIDNormalized,
+			Content:         strings.TrimSpace(content),
+			Depth:           depth,
+		}
+		if err := tx.WithContext(ctx).Create(&row).Error; err != nil {
+			return err
+		}
+
+		if err := tx.WithContext(ctx).
+			Model(&models.CommunityComment{}).
+			Where("id = ?", parent.ID).
+			Updates(map[string]any{
+				"reply_count": gorm.Expr("reply_count + 1"),
+			}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.WithContext(ctx).
+			Model(&models.CommunityPost{}).
+			Where("id = ?", strings.TrimSpace(postID)).
+			Updates(map[string]any{
+				"comment_count": gorm.Expr("comment_count + 1"),
+				"updated_at":    gorm.Expr("now()"),
+			}).Error; err != nil {
+			return err
+		}
+
+		created = row
+		return nil
+	})
+	if err != nil {
+		return models.CommunityComment{}, err
+	}
+
+	return created, nil
+}
+
+// ListCommentThreadByPostID returns thread comments for one post with deterministic ordering.
+func (r *Repository) ListCommentThreadByPostID(ctx context.Context, postID string, rootLimit int) ([]models.CommunityComment, error) {
+	type threadRow struct {
+		ID              string
+		UserID          string
+		PostID          string
+		ParentCommentID *string
+		Content         string
+		Depth           int16
+		ReplyCount      int
+		CreatedAt       time.Time
+	}
+
+	var rows []threadRow
+	err := r.db.WithContext(ctx).
+		Raw(`
+			WITH RECURSIVE root_comments AS (
+				SELECT id
+				FROM community_comments
+				WHERE post_id = ? AND parent_comment_id IS NULL
+				ORDER BY created_at ASC, id ASC
+				LIMIT ?
+			),
+			thread AS (
+				SELECT
+					c.id,
+					c.user_id,
+					c.post_id,
+					c.parent_comment_id,
+					c.content,
+					c.depth,
+					c.reply_count,
+					c.created_at
+				FROM community_comments c
+				JOIN root_comments rc ON rc.id = c.id
+				UNION ALL
+				SELECT
+					child.id,
+					child.user_id,
+					child.post_id,
+					child.parent_comment_id,
+					child.content,
+					child.depth,
+					child.reply_count,
+					child.created_at
+				FROM community_comments child
+				JOIN thread parent ON child.parent_comment_id = parent.id
+			)
+			SELECT
+				id,
+				user_id,
+				post_id,
+				parent_comment_id,
+				content,
+				depth,
+				reply_count,
+				created_at
+			FROM thread
+			ORDER BY created_at ASC, id ASC
+		`, strings.TrimSpace(postID), rootLimit).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]models.CommunityComment, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, models.CommunityComment{
+			ID:              row.ID,
+			UserID:          row.UserID,
+			PostID:          row.PostID,
+			ParentCommentID: row.ParentCommentID,
+			Content:         row.Content,
+			Depth:           row.Depth,
+			ReplyCount:      row.ReplyCount,
+			CreatedAt:       row.CreatedAt,
+		})
+	}
+	return out, nil
 }
 
 // FindLikeByUserAndPost loads like state for one post-user tuple.

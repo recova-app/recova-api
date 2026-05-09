@@ -65,11 +65,14 @@ type CommunityPost struct {
 }
 
 type CommunityComment struct {
-	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID    string    `gorm:"type:uuid;column:user_id;not null;index:idx_community_comments_user_post"`
-	PostID    string    `gorm:"type:uuid;column:post_id;not null;index:idx_community_comments_user_post"`
-	Content   string    `gorm:"not null"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
+	ID              string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID          string    `gorm:"type:uuid;column:user_id;not null;index:idx_community_comments_user_post"`
+	PostID          string    `gorm:"type:uuid;column:post_id;not null;index:idx_community_comments_user_post;index:idx_community_comments_post_parent_created,priority:1"`
+	ParentCommentID *string   `gorm:"type:uuid;column:parent_comment_id;index:idx_community_comments_parent;index:idx_community_comments_post_parent_created,priority:2"`
+	Content         string    `gorm:"not null"`
+	Depth           int16     `gorm:"type:smallint;not null;default:0"`
+	ReplyCount      int       `gorm:"column:reply_count;not null;default:0"`
+	CreatedAt       time.Time `gorm:"not null;default:now();index:idx_community_comments_post_parent_created,priority:3"`
 }
 
 type CommunityPostLike struct {

@@ -89,6 +89,67 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(response.Success("Komentar berhasil dibuat", payload, nil))
 }
 
+// ListCommentThread handles comment-thread listing on selected post.
+func (h *Handler) ListCommentThread(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	postID := strings.TrimSpace(c.Params("postId"))
+	if postID == "" {
+		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
+			"field": "postId", "message": "ID postingan wajib diisi",
+		}}, nil)
+	}
+
+	var query ListCommentThreadQuery
+	if err := c.Bind().Query(&query); err != nil {
+		return err
+	}
+
+	payload, err := h.service.ListCommentThread(c.Context(), principal.UserID, postID, query)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Thread komentar berhasil diambil", payload, nil))
+}
+
+// CreateReply handles reply creation on selected parent comment.
+func (h *Handler) CreateReply(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	postID := strings.TrimSpace(c.Params("postId"))
+	if postID == "" {
+		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
+			"field": "postId", "message": "ID postingan wajib diisi",
+		}}, nil)
+	}
+
+	commentID := strings.TrimSpace(c.Params("commentId"))
+	if commentID == "" {
+		return errs.New(errs.CodeValidationError, "ID komentar parent wajib diisi", []map[string]string{{
+			"field": "commentId", "message": "ID komentar parent wajib diisi",
+		}}, nil)
+	}
+
+	var req CreateReplyRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return err
+	}
+
+	payload, err := h.service.CreateReply(c.Context(), principal.UserID, postID, commentID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(response.Success("Balasan komentar berhasil dibuat", payload, nil))
+}
+
 // ToggleLike handles like/unlike toggle on selected post.
 func (h *Handler) ToggleLike(c fiber.Ctx) error {
 	principal, ok := authmodule.PrincipalFromContext(c)

@@ -3,6 +3,7 @@ package community
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 	"github.com/recova-app/backend-v2/internal/shared/response"
 	httpharness "github.com/recova-app/backend-v2/test/harness/http"
+	"gorm.io/gorm"
 )
 
 func TestRegisterRoutes_Unauthenticated(t *testing.T) {
@@ -84,6 +86,56 @@ func TestRegisterRoutes_CommentSuccess(t *testing.T) {
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
 }
 
+func TestRegisterRoutes_CommentThreadSuccess(t *testing.T) {
+	authService := buildCommunityAuthService(t, "user-1")
+	service := NewService(&communityRouteRepo{
+		threadRows: []models.CommunityComment{
+			{
+				ID:         "comment-1",
+				PostID:     "post-1",
+				UserID:     "user-1",
+				Content:    "root",
+				Depth:      0,
+				ReplyCount: 1,
+				CreatedAt:  time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC),
+			},
+		},
+	})
+
+	app := newCommunityTestApp()
+	RegisterRoutes(app.Group("/api/v1/community"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/community/post-1/comments", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+}
+
+func TestRegisterRoutes_ReplySuccess(t *testing.T) {
+	authService := buildCommunityAuthService(t, "user-1")
+	service := NewService(&communityRouteRepo{
+		parentComment: models.CommunityComment{
+			ID:      "comment-1",
+			PostID:  "post-1",
+			UserID:  "user-2",
+			Content: "parent",
+			Depth:   0,
+		},
+	})
+
+	app := newCommunityTestApp()
+	RegisterRoutes(app.Group("/api/v1/community"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community/post-1/comments/comment-1/replies", map[string]any{
+		"content": "balasan valid",
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusCreated)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+}
+
 func TestRegisterRoutes_ToggleLikeSuccess(t *testing.T) {
 	authService := buildCommunityAuthService(t, "user-1")
 	service := NewService(&communityRouteRepo{})
@@ -144,8 +196,10 @@ func buildCommunityAuthService(t testing.TB, userID string) *authmodule.Service 
 }
 
 type communityRouteRepo struct {
-	posts      []communityPostListRow
-	toggleLike bool
+	posts         []communityPostListRow
+	threadRows    []models.CommunityComment
+	parentComment models.CommunityComment
+	toggleLike    bool
 }
 
 func (r *communityRouteRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -163,7 +217,41 @@ func (r *communityRouteRepo) ListPosts(_ context.Context, _ *PostCategory) ([]co
 }
 
 func (r *communityRouteRepo) CreateCommentAndIncrement(_ context.Context, userID string, postID string, content string) (models.CommunityComment, error) {
-	return models.CommunityComment{ID: "comment-1", UserID: userID, PostID: postID, Content: content, CreatedAt: time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)}, nil
+	return models.CommunityComment{
+		ID:              "comment-1",
+		UserID:          userID,
+		PostID:          postID,
+		ParentCommentID: nil,
+		Content:         content,
+		Depth:           0,
+		ReplyCount:      0,
+		CreatedAt:       time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC),
+	}, nil
+}
+
+func (r *communityRouteRepo) CreateReplyAndIncrement(_ context.Context, userID string, postID string, parentCommentID string, content string, depth int16) (models.CommunityComment, error) {
+	parentID := parentCommentID
+	return models.CommunityComment{
+		ID:              "comment-2",
+		UserID:          userID,
+		PostID:          postID,
+		ParentCommentID: &parentID,
+		Content:         content,
+		Depth:           depth,
+		ReplyCount:      0,
+		CreatedAt:       time.Date(2026, 5, 8, 10, 1, 0, 0, time.UTC),
+	}, nil
+}
+
+func (r *communityRouteRepo) FindCommentByID(_ context.Context, _ string) (models.CommunityComment, error) {
+	if strings.TrimSpace(r.parentComment.ID) == "" {
+		return models.CommunityComment{}, gorm.ErrRecordNotFound
+	}
+	return r.parentComment, nil
+}
+
+func (r *communityRouteRepo) ListCommentThreadByPostID(_ context.Context, _ string, _ int) ([]models.CommunityComment, error) {
+	return r.threadRows, nil
 }
 
 func (r *communityRouteRepo) ToggleLike(_ context.Context, _ string, _ string) (ToggleLikePayload, error) {

@@ -18,6 +18,7 @@ var auditedRoutes = []auditRoute{
 	{method: "POST", path: "/api/v1/auth/onboarding", action: "auth.onboarding"},
 	{method: "PUT", path: "/api/v1/users/settings", action: "users.settings.update"},
 	{method: "DELETE", path: "/api/v1/users/me/reset-data", action: "users.data.reset"},
+	{method: "POST", path: "/api/v1/community/:postId/comments/:commentId/replies", action: "community.comment.reply"},
 }
 
 func auditAction(method string, path string) (string, bool) {

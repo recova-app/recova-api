@@ -11,6 +11,9 @@ const (
 	maxPostTitleLength   = 120
 	maxPostContentLength = 5000
 	maxCommentLength     = 2000
+	minThreadLimit       = 1
+	maxThreadLimit       = 200
+	maxThreadDepth       = 2
 )
 
 var allowedCategories = map[PostCategory]struct{}{
@@ -106,6 +109,39 @@ func NormalizeCreateCommentRequest(req CreateCommentRequest) (CreateCommentInput
 	}
 
 	return CreateCommentInput{Content: content}, nil
+}
+
+// NormalizeCreateReplyRequest validates and normalizes create-reply payload.
+func NormalizeCreateReplyRequest(req CreateReplyRequest) (CreateReplyInput, error) {
+	input, err := NormalizeCreateCommentRequest(CreateCommentRequest{Content: req.Content})
+	if err != nil {
+		return CreateReplyInput{}, err
+	}
+	return CreateReplyInput{Content: input.Content}, nil
+}
+
+// NormalizeListCommentThreadQuery validates thread query params and returns effective limit.
+func NormalizeListCommentThreadQuery(query ListCommentThreadQuery) (int, error) {
+	if query.Limit == nil {
+		return maxThreadLimit, nil
+	}
+	limit := *query.Limit
+	if limit < minThreadLimit || limit > maxThreadLimit {
+		return 0, errs.New(errs.CodeValidationError, "Nilai limit komentar tidak valid", []map[string]string{
+			{"field": "limit", "message": "Limit komentar harus di antara 1 sampai 200"},
+		}, nil)
+	}
+	return limit, nil
+}
+
+func validateReplyDepth(parentDepth int16) (int16, error) {
+	nextDepth := parentDepth + 1
+	if int(nextDepth) > maxThreadDepth {
+		return 0, errs.New(errs.CodeValidationError, "Balasan komentar melewati batas kedalaman thread", []map[string]string{
+			{"field": "commentId", "message": "Kedalaman balasan komentar maksimal 2"},
+		}, nil)
+	}
+	return nextDepth, nil
 }
 
 func isAllowedCategory(category PostCategory) bool {

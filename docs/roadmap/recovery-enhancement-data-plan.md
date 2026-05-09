@@ -41,6 +41,7 @@ Dokumen ini memetakan perubahan skema yang diperlukan agar kontrak enhancement d
 Constraint tambahan:
 
 - `depth >= 0`,
+- `depth <= 2`,
 - comment root wajib `parent_comment_id is null and depth = 0`,
 - reply wajib `parent_comment_id is not null and depth > 0`.
 

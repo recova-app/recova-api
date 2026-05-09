@@ -513,6 +513,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
   /api/v1/community/{postId}/comments:
+    get:
+      tags:
+        - community
+      operationId: getCommunityCommentThread
+      summary: Mengambil thread komentar pada postingan komunitas
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Thread komentar berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Query komentar tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
     post:
       tags:
         - community
@@ -553,6 +592,62 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '422':
           description: Payload komentar tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan write community melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/community/{postId}/comments/{commentId}/replies:
+    post:
+      tags:
+        - community
+      operationId: postCommunityCommentReply
+      summary: Menambahkan balasan pada komentar komunitas
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityCreateCommentRequest'
+      responses:
+        '201':
+          description: Balasan komentar berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Postingan atau komentar parent tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Payload balasan atau depth thread tidak valid
           content:
             application/json:
               schema:

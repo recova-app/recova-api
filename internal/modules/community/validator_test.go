@@ -39,3 +39,24 @@ func TestNormalizeCreateCommentRequest_Empty(t *testing.T) {
 		t.Fatalf("expected validation error code, got: %s", errs.Map(err).Code)
 	}
 }
+
+func TestNormalizeListCommentThreadQuery_InvalidLimit(t *testing.T) {
+	limit := 201
+	_, err := NormalizeListCommentThreadQuery(ListCommentThreadQuery{Limit: &limit})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected validation error code, got: %s", errs.Map(err).Code)
+	}
+}
+
+func TestValidateReplyDepth_MaxDepthExceeded(t *testing.T) {
+	_, err := validateReplyDepth(2)
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected validation error code, got: %s", errs.Map(err).Code)
+	}
+}
