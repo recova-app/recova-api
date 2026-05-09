@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// User stores core account identity and onboarding pointers.
 type User struct {
 	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	GoogleID    string    `gorm:"column:google_id;not null;uniqueIndex"`
@@ -15,6 +16,7 @@ type User struct {
 	UpdatedAt   time.Time `gorm:"not null;default:now()"`
 }
 
+// Profile stores onboarding profile answers and derived AI summary for one user.
 type Profile struct {
 	ID              string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID          string    `gorm:"type:uuid;column:user_id;not null;uniqueIndex"`
@@ -25,6 +27,7 @@ type Profile struct {
 	UpdatedAt       time.Time `gorm:"not null;default:now()"`
 }
 
+// CheckIn stores one daily check-in row per user and date.
 type CheckIn struct {
 	ID           string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID       string    `gorm:"type:uuid;column:user_id;not null;index"`
@@ -34,6 +37,7 @@ type CheckIn struct {
 	CreatedAt    time.Time `gorm:"not null;default:now()"`
 }
 
+// Streak stores active and historical streak windows for one user.
 type Streak struct {
 	ID        string     `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID    string     `gorm:"type:uuid;column:user_id;not null;index"`
@@ -44,6 +48,7 @@ type Streak struct {
 	UpdatedAt time.Time  `gorm:"not null;default:now()"`
 }
 
+// Journal stores one personal journal entry optionally linked to a check-in.
 type Journal struct {
 	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID    string    `gorm:"type:uuid;column:user_id;not null;index"`
@@ -52,6 +57,7 @@ type Journal struct {
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+// CommunityPost stores a public community post created by one user.
 type CommunityPost struct {
 	ID           string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID       string `gorm:"type:uuid;column:user_id;not null;index"`
@@ -64,6 +70,7 @@ type CommunityPost struct {
 	UpdatedAt    time.Time `gorm:"not null;default:now()"`
 }
 
+// CommunityComment stores threaded comments on community posts.
 type CommunityComment struct {
 	ID              string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID          string    `gorm:"type:uuid;column:user_id;not null;index:idx_community_comments_user_post"`
@@ -75,12 +82,14 @@ type CommunityComment struct {
 	CreatedAt       time.Time `gorm:"not null;default:now();index:idx_community_comments_post_parent_created,priority:3"`
 }
 
+// CommunityPostLike stores one like relation between user and post.
 type CommunityPostLike struct {
 	UserID    string    `gorm:"type:uuid;column:user_id;not null;primaryKey"`
 	PostID    string    `gorm:"type:uuid;column:post_id;not null;primaryKey;index"`
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+// Achievement stores achievement catalog metadata and activation state.
 type Achievement struct {
 	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Code        string    `gorm:"not null;uniqueIndex"`
@@ -93,6 +102,7 @@ type Achievement struct {
 	UpdatedAt   time.Time `gorm:"not null;default:now()"`
 }
 
+// UserAchievementProgress stores per-user progress state for one achievement.
 type UserAchievementProgress struct {
 	ID              string     `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID          string     `gorm:"type:uuid;column:user_id;not null;index:idx_user_achievement_progress_user,priority:1;index:idx_user_achievement_progress_user_unlocked,priority:1;uniqueIndex:uq_user_achievement_progress_user_achievement,priority:1"`
@@ -104,6 +114,7 @@ type UserAchievementProgress struct {
 	UpdatedAt       time.Time  `gorm:"not null;default:now();index:idx_user_achievement_progress_user,priority:2,sort:desc"`
 }
 
+// EducationContent stores one educational content item metadata.
 type EducationContent struct {
 	ID           string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Title        string `gorm:"not null"`
@@ -115,6 +126,7 @@ type EducationContent struct {
 	PublishedAt  *time.Time `gorm:"column:published_at"`
 }
 
+// DailyMotivation stores one daily motivation catalog item.
 type DailyMotivation struct {
 	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Content   string    `gorm:"not null;uniqueIndex"`
@@ -122,6 +134,7 @@ type DailyMotivation struct {
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+// DailyChallenge stores one daily challenge catalog item.
 type DailyChallenge struct {
 	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Content   string    `gorm:"not null;uniqueIndex"`
@@ -129,6 +142,7 @@ type DailyChallenge struct {
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+// AIChat stores one AI conversation message for one user.
 type AIChat struct {
 	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID    string    `gorm:"type:uuid;column:user_id;not null;index"`
@@ -137,6 +151,7 @@ type AIChat struct {
 	CreatedAt time.Time `gorm:"not null;default:now();index:idx_ai_chats_user_created_at"`
 }
 
+// UserAIPersonaPreference stores selected AI persona preference for one user.
 type UserAIPersonaPreference struct {
 	UserID    string    `gorm:"type:uuid;column:user_id;primaryKey"`
 	Persona   string    `gorm:"not null"`
