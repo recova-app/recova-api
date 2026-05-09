@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check scalar-check scalar-preview security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check scalar-check scalar-preview module-consistency-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
 
 preflight:
 	@./scripts/preflight.sh
@@ -67,6 +67,9 @@ scalar-check:
 
 scalar-preview:
 	@./scripts/scalar.sh preview
+
+module-consistency-check:
+	@./scripts/module-consistency.sh check
 
 security-scan:
 	@./scripts/security-scan.sh ./...

@@ -38,6 +38,8 @@ Halaman ini merangkum standar yang menjadi acuan lintas dokumen dan implementasi
 - [Log Redaction Policy](/Users/macbookpro/Development/recova-backend-v2/docs/standards/log-redaction-policy.md)
 - [Documentation Maintenance Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/documentation-maintenance.md)
 - [Module Documentation Template](/Users/macbookpro/Development/recova-backend-v2/docs/standards/module-documentation-template.md)
+- [Module Structure Consistency Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/module-structure-consistency.md)
+- [Module Contract Consistency Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/module-contract-consistency.md)
 - [GORM Modeling Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/gorm-modeling.md)
 - [Configuration Validation Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/config-validation.md)
 - [Secure Coding Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/secure-coding.md)

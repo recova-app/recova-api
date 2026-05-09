@@ -43,7 +43,12 @@ Contract tests wajib memverifikasi:
 - response envelope,
 - status code dan error code,
 - aturan auth guard,
+- request id pada error envelope,
 - batas payload dan validasi dasar.
+
+Gate tambahan lintas module:
+
+- `make module-consistency-check` untuk anatomy module, companion tests, dan boundary layer.
 
 ## Migration Readiness Checks
 

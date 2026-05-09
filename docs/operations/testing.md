@@ -84,25 +84,26 @@ Wajib:
 
 Perintah verifikasi baseline:
 
-| Command                     | Scope                                                                 |
-| --------------------------- | --------------------------------------------------------------------- |
-| `make test`                 | unit tests package Go                                                 |
-| `make lint`                 | static checks baseline (`go vet ./...`)                               |
-| `make build`                | compile gate untuk binary API                                         |
-| `make preflight`            | validasi dependency command dan struktur minimum project              |
-| `make test-integration`     | scripted checks untuk workflow tooling (mis. migrasi wrapper)         |
-| `make migrate-check`        | validasi state migration (versi/dirtiness)                            |
-| `make openapi-check`        | validasi OpenAPI source/generated + drift route runtime               |
-| `make scalar-check`         | validasi `scalar.config.json`, filepath docs, dan route docs runtime  |
-| `make security-scan`        | vulnerability scan dependency Go via govulncheck                      |
-| `make compose-smoke`        | smoke runtime container (`docker-compose.local.yml`)                  |
-| `make test-e2e`             | E2E critical flow suite + report JSON                                 |
-| `make test-performance`     | load/performance smoke suite + report JSON                            |
-| `make release-validation`   | menjalankan seluruh gate release-validation (E2E + performance smoke) |
-| `make cutover-wave WAVE=64` | gate otomatis cutover per wave (single wave)                          |
-| `make cutover-all`          | gate otomatis cutover serial wave 64-68                               |
-| `make stabilization-gate`   | full regression + openapi + E2E + performance smoke + evidence report |
-| `make rollback-rehearsal`   | rehearsal jalur rollback dengan failure injection terkontrol          |
+| Command                         | Scope                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| `make test`                     | unit tests package Go                                                          |
+| `make lint`                     | static checks baseline (`go vet ./...`)                                        |
+| `make build`                    | compile gate untuk binary API                                                  |
+| `make preflight`                | validasi dependency command dan struktur minimum project                       |
+| `make test-integration`         | scripted checks untuk workflow tooling (mis. migrasi wrapper)                  |
+| `make migrate-check`            | validasi state migration (versi/dirtiness)                                     |
+| `make openapi-check`            | validasi OpenAPI source/generated + drift route runtime                        |
+| `make scalar-check`             | validasi `scalar.config.json`, filepath docs, dan route docs runtime           |
+| `make module-consistency-check` | validasi anatomy module, companion tests, route auth guard, dan boundary layer |
+| `make security-scan`            | vulnerability scan dependency Go via govulncheck                               |
+| `make compose-smoke`            | smoke runtime container (`docker-compose.local.yml`)                           |
+| `make test-e2e`                 | E2E critical flow suite + report JSON                                          |
+| `make test-performance`         | load/performance smoke suite + report JSON                                     |
+| `make release-validation`       | menjalankan seluruh gate release-validation (E2E + performance smoke)          |
+| `make cutover-wave WAVE=64`     | gate otomatis cutover per wave (single wave)                                   |
+| `make cutover-all`              | gate otomatis cutover serial wave 64-68                                        |
+| `make stabilization-gate`       | full regression + openapi + E2E + performance smoke + evidence report          |
+| `make rollback-rehearsal`       | rehearsal jalur rollback dengan failure injection terkontrol                   |
 
 Default output report:
 
@@ -121,11 +122,12 @@ Sebelum rilis:
 4. smoke tests readiness lulus,
 5. critical E2E flows lulus.
 6. `make scalar-check` lulus.
+7. `make module-consistency-check` lulus.
 
 Tambahan gate:
 
-7. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
-8. report release confidence E2E + performance tersedia dan dapat diaudit.
+8. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
+9. report release confidence E2E + performance tersedia dan dapat diaudit.
 
 ## Related Documents
 
