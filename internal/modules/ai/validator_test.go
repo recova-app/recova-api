@@ -39,3 +39,26 @@ func TestNormalizeChatHistoryLimit_DefaultAndBounds(t *testing.T) {
 		t.Fatalf("expected limit %d, got %d", valid, limit)
 	}
 }
+
+func TestNormalizePersonaPreferenceRequest(t *testing.T) {
+	normalized, err := NormalizePersonaPreferenceRequest(PersonaPreferenceRequest{Persona: " Friendly "})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if normalized.Persona != "friendly" {
+		t.Fatalf("expected friendly, got %q", normalized.Persona)
+	}
+
+	if _, err := NormalizePersonaPreferenceRequest(PersonaPreferenceRequest{Persona: "unknown"}); err == nil {
+		t.Fatal("expected validation error for unknown persona")
+	}
+}
+
+func TestResolvePersonaOrDefault(t *testing.T) {
+	if got := ResolvePersonaOrDefault("direct"); got != "direct" {
+		t.Fatalf("expected direct, got %q", got)
+	}
+	if got := ResolvePersonaOrDefault("invalid"); got != DefaultPersona {
+		t.Fatalf("expected default persona, got %q", got)
+	}
+}

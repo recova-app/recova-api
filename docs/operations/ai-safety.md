@@ -73,6 +73,7 @@ Implementasi runtime saat ini:
 - kegagalan validasi payload respons provider dihentikan sebagai `DOWNSTREAM_ERROR`,
 - request logger hanya mencatat metadata route (tanpa body prompt/jurnal).
 - fallback persona default aman dipakai saat preferensi user belum ada atau invalid.
+- telemetry persona usage dicatat via metric `recova_ai_persona_usage_total` tanpa payload prompt mentah.
 
 ## Incident Triage Matrix
 
@@ -91,6 +92,7 @@ Implementasi runtime saat ini:
 - verifikasi fallback behavior sesuai kebijakan,
 - verifikasi endpoint AI tercakup rate limit,
 - verifikasi whitelist persona AI dan default persona aman,
+- verifikasi metric `recova_ai_persona_usage_total` terbit dengan label persona dan action,
 - verifikasi tidak ada prompt mentah pada log sampling.
 
 ## Related Documents

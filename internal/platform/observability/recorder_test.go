@@ -16,6 +16,8 @@ func TestRecorder_MetricsHandler_ExposesRecordedMetrics(t *testing.T) {
 	recorder.RecordDBOperation("query", "users", 4*time.Millisecond, nil)
 	recorder.RecordDBOperation("update", "profiles", 7*time.Millisecond, errors.New("failed"))
 	recorder.RecordAIRequest("gemini", "gemini-2.0-flash", 82*time.Millisecond, nil)
+	recorder.RecordAIPersonaUsage("ask_coach", "friendly", nil)
+	recorder.RecordAIPersonaUsage("persona_preference_update", "direct", errors.New("db failed"))
 	recorder.RecordAuditEvent("auth.login", "succeeded")
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
@@ -33,6 +35,7 @@ func TestRecorder_MetricsHandler_ExposesRecordedMetrics(t *testing.T) {
 	assertContains(t, text, "recova_http_errors_total")
 	assertContains(t, text, "recova_db_operation_duration_seconds")
 	assertContains(t, text, "recova_ai_request_duration_seconds")
+	assertContains(t, text, "recova_ai_persona_usage_total")
 	assertContains(t, text, "recova_audit_events_total")
 	assertContains(t, text, "route=\"/health/live\"")
 	assertContains(t, text, "route=\"/api/v1/auth/google\"")
@@ -56,6 +59,7 @@ func TestAuditAction_KnownRoutes(t *testing.T) {
 		{method: "POST", path: "/api/v1/auth/google", action: "auth.login"},
 		{method: "POST", path: "/api/v1/auth/refresh", action: "auth.refresh"},
 		{method: "PUT", path: "/api/v1/users/settings", action: "users.settings.update"},
+		{method: "PUT", path: "/api/v1/ai/persona-preferences", action: "ai.persona.preference.update"},
 		{method: "POST", path: "/api/v1/community/:postId/comments/:commentId/replies", action: "community.comment.reply"},
 	}
 

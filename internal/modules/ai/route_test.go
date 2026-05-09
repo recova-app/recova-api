@@ -14,6 +14,7 @@ import (
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 	"github.com/recova-app/backend-v2/internal/shared/response"
 	httpharness "github.com/recova-app/backend-v2/test/harness/http"
+	"gorm.io/gorm"
 )
 
 func TestRegisterRoutes_Unauthenticated(t *testing.T) {
@@ -89,6 +90,41 @@ func TestRegisterRoutes_ChatHistorySuccess(t *testing.T) {
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
 }
 
+func TestRegisterRoutes_GetPersonaPreferenceSuccess(t *testing.T) {
+	authService := buildAIAuthService(t, "user-1")
+	service := NewService(&aiRouteRepo{
+		user:       models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		personaRow: models.UserAIPersonaPreference{UserID: "user-1", Persona: "friendly"},
+	}, &aiRouteProvider{response: aiplatform.GenerateResponse{Text: "ok"}})
+
+	app := newAITestApp()
+	RegisterRoutes(app.Group("/api/v1/ai"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/ai/persona-preferences", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+}
+
+func TestRegisterRoutes_UpdatePersonaPreferenceValidation(t *testing.T) {
+	authService := buildAIAuthService(t, "user-1")
+	service := NewService(&aiRouteRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+	}, &aiRouteProvider{response: aiplatform.GenerateResponse{Text: "ok"}})
+
+	app := newAITestApp()
+	RegisterRoutes(app.Group("/api/v1/ai"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPut, "/api/v1/ai/persona-preferences", map[string]any{
+		"persona": "unknown",
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
 func buildAIAuthService(t testing.TB, userID string) *authmodule.Service {
 	t.Helper()
 
@@ -100,8 +136,12 @@ func buildAIAuthService(t testing.TB, userID string) *authmodule.Service {
 }
 
 type aiRouteRepo struct {
-	user    models.User
-	history []models.AIChat
+	user              models.User
+	history           []models.AIChat
+	personaRow        models.UserAIPersonaPreference
+	personaErr        error
+	upsertPreference  models.UserAIPersonaPreference
+	upsertPreferenceE error
 }
 
 func (r *aiRouteRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -124,6 +164,28 @@ func (r *aiRouteRepo) ListRecentChatsByUserID(_ context.Context, _ string, _ int
 }
 
 func (r *aiRouteRepo) CreateChatMessages(_ context.Context, _ []models.AIChat) error {
+	return nil
+}
+
+func (r *aiRouteRepo) GetPersonaPreferenceByUserID(_ context.Context, _ string) (models.UserAIPersonaPreference, error) {
+	if r.personaErr != nil {
+		return models.UserAIPersonaPreference{}, r.personaErr
+	}
+	if r.personaRow.UserID == "" {
+		return models.UserAIPersonaPreference{}, gorm.ErrRecordNotFound
+	}
+	return r.personaRow, nil
+}
+
+func (r *aiRouteRepo) UpsertPersonaPreference(_ context.Context, userID string, persona string, updatedAt time.Time) error {
+	if r.upsertPreferenceE != nil {
+		return r.upsertPreferenceE
+	}
+	r.upsertPreference = models.UserAIPersonaPreference{
+		UserID:    userID,
+		Persona:   persona,
+		UpdatedAt: updatedAt,
+	}
 	return nil
 }
 

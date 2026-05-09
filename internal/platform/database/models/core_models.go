@@ -136,3 +136,9 @@ type AIChat struct {
 	Content   string    `gorm:"not null"`
 	CreatedAt time.Time `gorm:"not null;default:now();index:idx_ai_chats_user_created_at"`
 }
+
+type UserAIPersonaPreference struct {
+	UserID    string    `gorm:"type:uuid;column:user_id;primaryKey"`
+	Persona   string    `gorm:"not null"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:now()"`
+}

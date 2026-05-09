@@ -149,9 +149,11 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	educationService := educationmodule.NewService(educationmodule.NewRepository(nil))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(nil))
 	aiService := aimodule.NewService(aimodule.NewRepository(nil), &noopAIProvider{})
+	recorder := observability.NewRecorder()
+	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(recorder))
 
 	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)),
-		apphttp.WithObservability(observability.NewRecorder()),
+		apphttp.WithObservability(recorder),
 		apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
 			AuthService:         authService,
 			UsersService:        usersService,

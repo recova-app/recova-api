@@ -15,6 +15,8 @@ func RegisterRoutes(router fiber.Router, authService *authmodule.Service, servic
 		router.Get("/chat-history", authGuard, handler.GetChatHistory)
 		router.Get("/summary", authGuard, handler.GetSummary)
 		router.Post("/onboarding-analysis", authGuard, handler.OnboardingAnalysis)
+		router.Get("/persona-preferences", authGuard, handler.GetPersonaPreference)
+		router.Put("/persona-preferences", authGuard, handler.UpdatePersonaPreference)
 		return
 	}
 
@@ -22,4 +24,6 @@ func RegisterRoutes(router fiber.Router, authService *authmodule.Service, servic
 	router.Get("/chat-history", authGuard, aiLimiter, handler.GetChatHistory)
 	router.Get("/summary", authGuard, aiLimiter, handler.GetSummary)
 	router.Post("/onboarding-analysis", authGuard, aiLimiter, handler.OnboardingAnalysis)
+	router.Get("/persona-preferences", authGuard, aiLimiter, handler.GetPersonaPreference)
+	router.Put("/persona-preferences", authGuard, aiLimiter, handler.UpdatePersonaPreference)
 }

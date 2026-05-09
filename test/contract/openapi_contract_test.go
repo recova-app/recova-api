@@ -136,6 +136,8 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 		{name: "ai ask coach", method: http.MethodPost, path: "/api/v1/ai/ask-coach", body: map[string]any{"message": "halo"}},
 		{name: "ai chat history", method: http.MethodGet, path: "/api/v1/ai/chat-history"},
 		{name: "ai summary", method: http.MethodGet, path: "/api/v1/ai/summary"},
+		{name: "ai persona preference get", method: http.MethodGet, path: "/api/v1/ai/persona-preferences"},
+		{name: "ai persona preference put", method: http.MethodPut, path: "/api/v1/ai/persona-preferences", body: map[string]any{"persona": "supportive"}},
 		{
 			name:   "ai onboarding analysis",
 			method: http.MethodPost,

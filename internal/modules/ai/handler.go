@@ -93,3 +93,38 @@ func (h *Handler) OnboardingAnalysis(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(response.Success("Analisis onboarding berhasil dibuat", payload, nil))
 }
+
+// GetPersonaPreference handles persona-preferences endpoint.
+func (h *Handler) GetPersonaPreference(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok || strings.TrimSpace(principal.UserID) == "" {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	payload, err := h.service.GetPersonaPreference(c.Context(), principal.UserID)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Preferensi persona AI berhasil diambil", payload, nil))
+}
+
+// UpdatePersonaPreference handles persona-preferences update endpoint.
+func (h *Handler) UpdatePersonaPreference(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok || strings.TrimSpace(principal.UserID) == "" {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	var req PersonaPreferenceRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return err
+	}
+
+	payload, err := h.service.UpdatePersonaPreference(c.Context(), principal.UserID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Preferensi persona AI berhasil diperbarui", payload, nil))
+}

@@ -10,7 +10,17 @@ const (
 	defaultHistoryLimit = 50
 	maxHistoryLimit     = 200
 	maxPromptLength     = 4000
+
+	// DefaultPersona is safe fallback persona when user preference is empty/invalid.
+	DefaultPersona = "supportive"
 )
+
+var allowedPersonaSet = map[string]struct{}{
+	DefaultPersona: {},
+	"friendly":     {},
+	"concise":      {},
+	"direct":       {},
+}
 
 // NormalizeAskCoachRequest validates and normalizes ask-coach payload.
 func NormalizeAskCoachRequest(req AskCoachRequest) (AskCoachInput, error) {
@@ -70,4 +80,35 @@ func NormalizeChatHistoryLimit(raw *int) (int, error) {
 		}}, nil)
 	}
 	return *raw, nil
+}
+
+// NormalizePersonaPreferenceRequest validates and normalizes persona preference payload.
+func NormalizePersonaPreferenceRequest(req PersonaPreferenceRequest) (PersonaPreferenceInput, error) {
+	persona, ok := NormalizePersona(req.Persona)
+	if !ok {
+		return PersonaPreferenceInput{}, errs.New(errs.CodeValidationError, "Nilai persona tidak valid", []map[string]string{{
+			"field": "persona", "message": "Persona harus salah satu dari supportive, friendly, concise, direct",
+		}}, nil)
+	}
+	return PersonaPreferenceInput{Persona: persona}, nil
+}
+
+// NormalizePersona validates persona enum and returns normalized lower-case value.
+func NormalizePersona(raw string) (string, bool) {
+	persona := strings.ToLower(strings.TrimSpace(raw))
+	if persona == "" {
+		return "", false
+	}
+	if _, ok := allowedPersonaSet[persona]; !ok {
+		return "", false
+	}
+	return persona, true
+}
+
+// ResolvePersonaOrDefault returns safe default persona if value is empty/invalid.
+func ResolvePersonaOrDefault(raw string) string {
+	if persona, ok := NormalizePersona(raw); ok {
+		return persona
+	}
+	return DefaultPersona
 }

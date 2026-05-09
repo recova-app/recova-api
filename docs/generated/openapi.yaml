@@ -697,6 +697,123 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/achievements/catalog:
+    get:
+      tags:
+        - achievements
+      operationId: getAchievementsCatalog
+      summary: Mengambil katalog achievement aktif
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/AchievementsCategory'
+      responses:
+        '200':
+          description: Katalog achievement berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Pengguna tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Filter kategori tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/achievements/progress:
+    get:
+      tags:
+        - achievements
+      operationId: getAchievementsProgress
+      summary: Mengambil progres achievement pengguna
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/AchievementsCategory'
+      responses:
+        '200':
+          description: Progres achievement berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Pengguna tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Filter kategori tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/achievements/unlocked:
+    get:
+      tags:
+        - achievements
+      operationId: getAchievementsUnlocked
+      summary: Mengambil daftar achievement yang sudah terbuka
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          required: false
+          schema:
+            $ref: '#/components/schemas/AchievementsCategory'
+      responses:
+        '200':
+          description: Daftar achievement terbuka berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Pengguna tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Filter kategori tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
   /api/v1/education:
     get:
       tags:
@@ -909,6 +1026,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/ai/persona-preferences:
+    get:
+      tags:
+        - ai
+      operationId: getAIPersonaPreference
+      summary: Mengambil preferensi persona AI pengguna
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Preferensi persona AI berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan AI melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    put:
+      tags:
+        - ai
+      operationId: putAIPersonaPreference
+      summary: Memperbarui preferensi persona AI pengguna
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIPersonaPreferenceRequest'
+      responses:
+        '200':
+          description: Preferensi persona AI berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Nilai persona tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Permintaan AI melebihi limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
   securitySchemes:
     BearerAuth:
@@ -1089,6 +1271,15 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+    AchievementsCategory:
+      type: string
+      enum:
+        - streak_milestone
+        - checkin_consistency
+        - journal_consistency
+        - relapse_recovery
+        - community_participation
+        - onboarding_completion
     AIAskCoachRequest:
       type: object
       required:
@@ -1107,4 +1298,16 @@ components:
           type: object
           minProperties: 1
           additionalProperties: true
+    AIPersonaPreferenceRequest:
+      type: object
+      required:
+        - persona
+      properties:
+        persona:
+          type: string
+          enum:
+            - supportive
+            - friendly
+            - concise
+            - direct
 security: []

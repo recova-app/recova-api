@@ -73,6 +73,9 @@ func TestService_AskCoach_SuccessStoresConversation(t *testing.T) {
 	if payload.Response != "Tetap semangat" {
 		t.Fatalf("unexpected response: %q", payload.Response)
 	}
+	if payload.PersonaUsed != DefaultPersona {
+		t.Fatalf("expected default persona %q, got %q", DefaultPersona, payload.PersonaUsed)
+	}
 	if len(repo.createdMessages) != 2 {
 		t.Fatalf("expected 2 stored rows, got %d", len(repo.createdMessages))
 	}
@@ -129,6 +132,63 @@ func TestService_AnalyzeOnboarding_Success(t *testing.T) {
 	}
 }
 
+func TestService_GetPersonaPreference_FallbackDefault(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:       models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		personaErr: gorm.ErrRecordNotFound,
+	}
+	service := NewService(repo, &fakeAIProvider{})
+
+	payload, err := service.GetPersonaPreference(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Persona != DefaultPersona {
+		t.Fatalf("expected default persona %q, got %q", DefaultPersona, payload.Persona)
+	}
+	if payload.FallbackPersona != DefaultPersona {
+		t.Fatalf("unexpected fallback persona: %q", payload.FallbackPersona)
+	}
+}
+
+func TestService_UpdatePersonaPreference_Validation(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+	}
+	service := NewService(repo, &fakeAIProvider{})
+
+	_, err := service.UpdatePersonaPreference(context.Background(), "user-1", PersonaPreferenceRequest{Persona: "invalid"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if mapped := errs.Map(err); mapped.Code != errs.CodeValidationError {
+		t.Fatalf("expected VALIDATION_ERROR, got %s", mapped.Code)
+	}
+}
+
+func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		persona: models.UserAIPersonaPreference{UserID: "user-1", Persona: "friendly"},
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "ok"}}
+	service := NewService(repo, provider)
+
+	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.PersonaUsed != "friendly" {
+		t.Fatalf("expected personaUsed friendly, got %q", payload.PersonaUsed)
+	}
+	if provider.lastReq.Persona != "friendly" {
+		t.Fatalf("expected provider persona friendly, got %q", provider.lastReq.Persona)
+	}
+	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
+		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
+	}
+}
+
 type fakeAIRepo struct {
 	user            models.User
 	userErr         error
@@ -140,6 +200,10 @@ type fakeAIRepo struct {
 	historyErr      error
 	createdMessages []models.AIChat
 	createErr       error
+	persona         models.UserAIPersonaPreference
+	personaErr      error
+	upsertErr       error
+	upsertPersona   models.UserAIPersonaPreference
 }
 
 func (r *fakeAIRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -181,12 +245,36 @@ func (r *fakeAIRepo) CreateChatMessages(_ context.Context, rows []models.AIChat)
 	return nil
 }
 
+func (r *fakeAIRepo) GetPersonaPreferenceByUserID(_ context.Context, _ string) (models.UserAIPersonaPreference, error) {
+	if r.personaErr != nil {
+		return models.UserAIPersonaPreference{}, r.personaErr
+	}
+	if strings.TrimSpace(r.persona.UserID) == "" {
+		return models.UserAIPersonaPreference{}, gorm.ErrRecordNotFound
+	}
+	return r.persona, nil
+}
+
+func (r *fakeAIRepo) UpsertPersonaPreference(_ context.Context, userID string, persona string, updatedAt time.Time) error {
+	if r.upsertErr != nil {
+		return r.upsertErr
+	}
+	r.upsertPersona = models.UserAIPersonaPreference{
+		UserID:    strings.TrimSpace(userID),
+		Persona:   strings.TrimSpace(persona),
+		UpdatedAt: updatedAt,
+	}
+	return nil
+}
+
 type fakeAIProvider struct {
 	response aiplatform.GenerateResponse
 	err      error
+	lastReq  aiplatform.GenerateRequest
 }
 
-func (p *fakeAIProvider) Generate(_ context.Context, _ aiplatform.GenerateRequest) (aiplatform.GenerateResponse, error) {
+func (p *fakeAIProvider) Generate(_ context.Context, req aiplatform.GenerateRequest) (aiplatform.GenerateResponse, error) {
+	p.lastReq = req
 	if p.err != nil {
 		return aiplatform.GenerateResponse{}, p.err
 	}

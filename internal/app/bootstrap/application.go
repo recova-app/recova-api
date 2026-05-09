@@ -64,6 +64,7 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 	}
 	aiClient = observability.WrapAIClient(aiClient, obsRecorder)
 	aiService := aimodule.NewService(aimodule.NewRepository(dbClient.Gorm()), aiClient)
+	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(obsRecorder))
 
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
 		{

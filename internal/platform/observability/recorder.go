@@ -27,6 +27,7 @@ type Recorder struct {
 
 	dbOperationDurationSec *prometheus.HistogramVec
 	aiRequestDurationSec   *prometheus.HistogramVec
+	aiPersonaUsageTotal    *prometheus.CounterVec
 
 	auditEventsTotal *prometheus.CounterVec
 }
@@ -60,6 +61,10 @@ func NewRecorder() *Recorder {
 			Help:    "AI provider request latency by provider/model/status.",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"provider", "model", "status"}),
+		aiPersonaUsageTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "recova_ai_persona_usage_total",
+			Help: "Total AI persona usage events by action, persona, and status.",
+		}, []string{"action", "persona", "status"}),
 		auditEventsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "recova_audit_events_total",
 			Help: "Total audit events by action and result.",
@@ -72,6 +77,7 @@ func NewRecorder() *Recorder {
 		recorder.httpErrorsTotal,
 		recorder.dbOperationDurationSec,
 		recorder.aiRequestDurationSec,
+		recorder.aiPersonaUsageTotal,
 		recorder.auditEventsTotal,
 	)
 
@@ -133,6 +139,22 @@ func (r *Recorder) RecordAIRequest(provider string, model string, duration time.
 		normalizeLabel(model),
 		status,
 	).Observe(duration.Seconds())
+}
+
+// RecordAIPersonaUsage captures persona usage distribution and outcome status.
+func (r *Recorder) RecordAIPersonaUsage(action string, persona string, err error) {
+	if r == nil {
+		return
+	}
+	status := statusSuccess
+	if err != nil {
+		status = statusFailure
+	}
+	r.aiPersonaUsageTotal.WithLabelValues(
+		normalizeLabel(action),
+		normalizeLabel(persona),
+		status,
+	).Inc()
 }
 
 // RecordAuditEvent increments audit event counter for one action and result.

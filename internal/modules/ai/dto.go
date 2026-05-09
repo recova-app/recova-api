@@ -7,7 +7,8 @@ type AskCoachRequest struct {
 
 // AskCoachResponseData is success data for ask-coach endpoint.
 type AskCoachResponseData struct {
-	Response string `json:"response"`
+	Response    string `json:"response"`
+	PersonaUsed string `json:"personaUsed"`
 }
 
 // ChatHistoryQuery captures optional chat-history query parameters.
@@ -33,6 +34,17 @@ type OnboardingAnalysisRequest struct {
 	Answers map[string]any `json:"answers"`
 }
 
+// PersonaPreferenceRequest is request payload for persona preference update.
+type PersonaPreferenceRequest struct {
+	Persona string `json:"persona"`
+}
+
+// PersonaPreferenceResponseData is success data for persona preference endpoints.
+type PersonaPreferenceResponseData struct {
+	Persona         string `json:"persona"`
+	FallbackPersona string `json:"fallbackPersona"`
+}
+
 // OnboardingAnalysisResponseData is success data for onboarding-analysis endpoint.
 type OnboardingAnalysisResponseData struct {
 	Level            string `json:"level"`
@@ -50,4 +62,9 @@ type AskCoachInput struct {
 // OnboardingAnalysisInput is normalized onboarding-analysis payload.
 type OnboardingAnalysisInput struct {
 	Answers map[string]any
+}
+
+// PersonaPreferenceInput is normalized persona preference update payload.
+type PersonaPreferenceInput struct {
+	Persona string
 }

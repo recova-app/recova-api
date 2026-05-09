@@ -52,6 +52,7 @@ type GenerateRequest struct {
 	UserPrompt        string
 	History           []Message
 	ForceJSON         bool
+	Persona           string
 }
 
 // GenerateResponse is normalized provider output.

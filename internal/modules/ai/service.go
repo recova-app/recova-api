@@ -24,24 +24,50 @@ type aiRepository interface {
 	FindActiveStreakByUserID(ctx context.Context, userID string) (*models.Streak, error)
 	ListRecentChatsByUserID(ctx context.Context, userID string, limit int) ([]models.AIChat, error)
 	CreateChatMessages(ctx context.Context, rows []models.AIChat) error
+	GetPersonaPreferenceByUserID(ctx context.Context, userID string) (models.UserAIPersonaPreference, error)
+	UpsertPersonaPreference(ctx context.Context, userID string, persona string, updatedAt time.Time) error
 }
+
+type aiTelemetry interface {
+	RecordPersonaUsage(action string, persona string, err error)
+}
+
+type noopTelemetry struct{}
+
+func (noopTelemetry) RecordPersonaUsage(_ string, _ string, _ error) {}
+
+const (
+	telemetryActionAskCoach          = "ask_coach"
+	telemetryActionPersonaGet        = "persona_preference_get"
+	telemetryActionPersonaPreference = "persona_preference_update"
+)
 
 // Service owns AI coach business rules and orchestration.
 type Service struct {
-	repo     aiRepository
-	provider aiplatform.Client
-	now      func() time.Time
+	repo      aiRepository
+	provider  aiplatform.Client
+	telemetry aiTelemetry
+	now       func() time.Time
 }
 
 // NewService constructs AI service.
 func NewService(repo aiRepository, provider aiplatform.Client) *Service {
 	return &Service{
-		repo:     repo,
-		provider: provider,
+		repo:      repo,
+		provider:  provider,
+		telemetry: noopTelemetry{},
 		now: func() time.Time {
 			return time.Now().UTC()
 		},
 	}
+}
+
+// SetTelemetry configures optional persona telemetry recorder.
+func (s *Service) SetTelemetry(telemetry aiTelemetry) {
+	if s == nil || telemetry == nil {
+		return
+	}
+	s.telemetry = telemetry
 }
 
 // AskCoach sends one user message to AI provider, stores conversation, and returns safe reply.
@@ -78,12 +104,19 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca riwayat chat AI", nil, err)
 	}
 
+	persona, err := s.resolvePersonaPreference(ctx, userID)
+	if err != nil {
+		return AskCoachResponseData{}, err
+	}
+
 	reply, err := s.provider.Generate(ctx, aiplatform.GenerateRequest{
-		SystemInstruction: buildCoachSystemInstruction(user, profile, streakDays),
+		SystemInstruction: buildCoachSystemInstruction(user, profile, streakDays, persona),
 		UserPrompt:        input.Message,
 		History:           mapAIHistory(history),
+		Persona:           persona,
 	})
 	if err != nil {
+		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
 		return AskCoachResponseData{}, mapProviderError(err)
 	}
 
@@ -92,10 +125,15 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		{UserID: strings.TrimSpace(userID), Role: "model", Content: strings.TrimSpace(reply.Text)},
 	}
 	if err := s.repo.CreateChatMessages(ctx, chatRows); err != nil {
+		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
 		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal menyimpan riwayat chat AI", nil, err)
 	}
 
-	return AskCoachResponseData{Response: strings.TrimSpace(reply.Text)}, nil
+	s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, nil)
+	return AskCoachResponseData{
+		Response:    strings.TrimSpace(reply.Text),
+		PersonaUsed: persona,
+	}, nil
 }
 
 // GetChatHistory returns authenticated user chat history.
@@ -183,6 +221,58 @@ func (s *Service) AnalyzeOnboarding(ctx context.Context, userID string, req Onbo
 	return result, nil
 }
 
+// GetPersonaPreference returns user persona preference with safe fallback default.
+func (s *Service) GetPersonaPreference(ctx context.Context, userID string) (PersonaPreferenceResponseData, error) {
+	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
+		if IsRecordNotFound(err) {
+			return PersonaPreferenceResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return PersonaPreferenceResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	persona := DefaultPersona
+	row, err := s.repo.GetPersonaPreferenceByUserID(ctx, userID)
+	if err != nil {
+		if !IsRecordNotFound(err) {
+			return PersonaPreferenceResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca preferensi persona AI", nil, err)
+		}
+	} else {
+		persona = ResolvePersonaOrDefault(row.Persona)
+	}
+
+	s.telemetry.RecordPersonaUsage(telemetryActionPersonaGet, persona, nil)
+	return PersonaPreferenceResponseData{
+		Persona:         persona,
+		FallbackPersona: DefaultPersona,
+	}, nil
+}
+
+// UpdatePersonaPreference validates and persists user persona preference.
+func (s *Service) UpdatePersonaPreference(ctx context.Context, userID string, req PersonaPreferenceRequest) (PersonaPreferenceResponseData, error) {
+	input, err := NormalizePersonaPreferenceRequest(req)
+	if err != nil {
+		return PersonaPreferenceResponseData{}, err
+	}
+
+	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
+		if IsRecordNotFound(err) {
+			return PersonaPreferenceResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return PersonaPreferenceResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	if err := s.repo.UpsertPersonaPreference(ctx, userID, input.Persona, s.now()); err != nil {
+		s.telemetry.RecordPersonaUsage(telemetryActionPersonaPreference, input.Persona, err)
+		return PersonaPreferenceResponseData{}, errs.New(errs.CodeInternalError, "Gagal menyimpan preferensi persona AI", nil, err)
+	}
+
+	s.telemetry.RecordPersonaUsage(telemetryActionPersonaPreference, input.Persona, nil)
+	return PersonaPreferenceResponseData{
+		Persona:         input.Persona,
+		FallbackPersona: DefaultPersona,
+	}, nil
+}
+
 func mapProviderError(err error) error {
 	switch aiplatform.ClassifyError(err) {
 	case aiplatform.ErrorKindTimeout, aiplatform.ErrorKindUnavailable:
@@ -222,7 +312,7 @@ func calculateStreakDays(nowUTC time.Time, startDate time.Time) int {
 	return days
 }
 
-func buildCoachSystemInstruction(user models.User, profile models.Profile, streakDays int) string {
+func buildCoachSystemInstruction(user models.User, profile models.Profile, streakDays int, persona string) string {
 	nickname := strings.TrimSpace(user.Nickname)
 	if nickname == "" {
 		nickname = "Teman"
@@ -237,16 +327,21 @@ func buildCoachSystemInstruction(user models.User, profile models.Profile, strea
 		dependencyLevel = "belum diketahui"
 	}
 
+	personaActive := ResolvePersonaOrDefault(persona)
+
 	return fmt.Sprintf(`Kamu adalah Recova AI Coach yang empatik, suportif, dan tidak menghakimi. Gunakan Bahasa Indonesia.
 Fokus percakapan hanya untuk dukungan pemulihan dari kecanduan pornografi.
 Jika user bertanya topik di luar konteks, tolak dengan sopan lalu arahkan kembali ke topik pemulihan.
 Gunakan jawaban singkat 1-3 kalimat, hangat, dan berikan satu langkah kecil yang dapat dilakukan sekarang.
 Jangan memberi diagnosis medis atau menyalahkan user.
+Persona aktif:
+- nama persona: %s
+- style guidance: %s
 Konteks user:
 - nickname: %s
 - streak hari: %d
 - alasan pemulihan: %s
-- level ketergantungan onboarding: %s`, nickname, streakDays, why, dependencyLevel)
+- level ketergantungan onboarding: %s`, personaActive, personaStyleInstruction(personaActive), nickname, streakDays, why, dependencyLevel)
 }
 
 const onboardingSystemInstruction = `Kamu adalah analis onboarding Recova. Selalu jawab HANYA JSON valid tanpa markdown.
@@ -343,4 +438,28 @@ func valueOrEmpty(v *string) string {
 		return ""
 	}
 	return *v
+}
+
+func (s *Service) resolvePersonaPreference(ctx context.Context, userID string) (string, error) {
+	row, err := s.repo.GetPersonaPreferenceByUserID(ctx, userID)
+	if err != nil {
+		if IsRecordNotFound(err) {
+			return DefaultPersona, nil
+		}
+		return "", errs.New(errs.CodeInternalError, "Gagal membaca preferensi persona AI", nil, err)
+	}
+	return ResolvePersonaOrDefault(row.Persona), nil
+}
+
+func personaStyleInstruction(persona string) string {
+	switch ResolvePersonaOrDefault(persona) {
+	case "friendly":
+		return "gunakan sapaan ramah, hangat, dan ringan tanpa mengurangi batas safety"
+	case "concise":
+		return "fokus pada inti, jawaban padat, tetap empatik, hindari kalimat panjang"
+	case "direct":
+		return "tegas dan to-the-point, berikan langkah aksi jelas tanpa menghakimi"
+	default:
+		return "suportif, empatik, dan menenangkan"
+	}
 }

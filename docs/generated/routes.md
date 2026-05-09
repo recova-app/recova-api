@@ -21,7 +21,7 @@ This document lists active routes from the current Go Fiber runtime.
 
 | Metric        | Value        |
 | ------------- | ------------ |
-| Total routes  | 28           |
+| Total routes  | 33           |
 | API prefix    | `/api/v1`    |
 | Last verified | `2026-05-08` |
 
@@ -30,7 +30,11 @@ This document lists active routes from the current Go Fiber runtime.
 | Method   | Path                                                      | Module     |
 | -------- | --------------------------------------------------------- | ---------- |
 | `DELETE` | `/api/v1/users/me/reset-data`                             | `api-v1`   |
+| `GET`    | `/api/v1/achievements/catalog`                            | `api-v1`   |
+| `GET`    | `/api/v1/achievements/progress`                           | `api-v1`   |
+| `GET`    | `/api/v1/achievements/unlocked`                           | `api-v1`   |
 | `GET`    | `/api/v1/ai/chat-history`                                 | `api-v1`   |
+| `GET`    | `/api/v1/ai/persona-preferences`                          | `api-v1`   |
 | `GET`    | `/api/v1/ai/summary`                                      | `api-v1`   |
 | `GET`    | `/api/v1/community`                                       | `api-v1`   |
 | `GET`    | `/api/v1/community/{postId}/comments`                     | `api-v1`   |
@@ -56,6 +60,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST`   | `/api/v1/community/{postId}/like`                         | `api-v1`   |
 | `POST`   | `/api/v1/journals`                                        | `api-v1`   |
 | `POST`   | `/api/v1/routine/checkin`                                 | `api-v1`   |
+| `PUT`    | `/api/v1/ai/persona-preferences`                          | `api-v1`   |
 | `PUT`    | `/api/v1/users/settings`                                  | `api-v1`   |
 
 ## Drift Check Use

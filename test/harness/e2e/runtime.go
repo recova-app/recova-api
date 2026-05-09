@@ -71,9 +71,10 @@ func NewRuntime(t testing.TB) *Runtime {
 	communityService := communitymodule.NewService(communitymodule.NewRepository(client.Gorm()))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(client.Gorm()))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(client.Gorm()))
-	aiService := aimodule.NewService(aimodule.NewRepository(client.Gorm()), &fakeAIProvider{})
-
 	recorder := observability.NewRecorder()
+	aiService := aimodule.NewService(aimodule.NewRepository(client.Gorm()), &fakeAIProvider{})
+	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(recorder))
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	srv, err := apphttp.NewServer(

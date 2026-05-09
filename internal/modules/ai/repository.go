@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Repository provides persistence operations for AI module.
@@ -74,6 +76,36 @@ func (r *Repository) CreateChatMessages(ctx context.Context, rows []models.AICha
 		return nil
 	}
 	return r.db.WithContext(ctx).Create(&rows).Error
+}
+
+// GetPersonaPreferenceByUserID loads persona preference for one user.
+func (r *Repository) GetPersonaPreferenceByUserID(ctx context.Context, userID string) (models.UserAIPersonaPreference, error) {
+	var row models.UserAIPersonaPreference
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		First(&row).Error; err != nil {
+		return models.UserAIPersonaPreference{}, err
+	}
+	return row, nil
+}
+
+// UpsertPersonaPreference stores persona preference idempotently by user id.
+func (r *Repository) UpsertPersonaPreference(ctx context.Context, userID string, persona string, updatedAt time.Time) error {
+	row := models.UserAIPersonaPreference{
+		UserID:    strings.TrimSpace(userID),
+		Persona:   strings.TrimSpace(persona),
+		UpdatedAt: updatedAt.UTC(),
+	}
+
+	return r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "user_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"persona":    gorm.Expr("EXCLUDED.persona"),
+				"updated_at": gorm.Expr("EXCLUDED.updated_at"),
+			}),
+		}).
+		Create(&row).Error
 }
 
 func reverseAIChats(rows []models.AIChat) {

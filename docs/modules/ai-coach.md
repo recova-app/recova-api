@@ -67,7 +67,7 @@ Constraint minimum:
 - safety filtering dijalankan sebelum respons dikirim.
 - jika preferensi persona kosong, fallback ke persona default aman,
 - persona aktif harus dipakai saat membangun system instruction AI,
-- respons `ask-coach` sebaiknya menyertakan `persona_used` agar audit troubleshooting mudah.
+- respons `ask-coach` menyertakan `personaUsed` agar audit troubleshooting mudah.
 
 ## Validation Rules
 
@@ -115,6 +115,10 @@ Metrik minimum:
 - timeout rate,
 - persona usage distribution,
 - p95 latency AI endpoint.
+
+Metrik persona usage direkomendasikan:
+
+- `recova_ai_persona_usage_total{action,persona,status}`
 
 Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
 

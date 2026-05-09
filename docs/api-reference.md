@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api-reference.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend API Reference
@@ -47,6 +47,8 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | ai        | `GET`    | `/ai/chat-history`            | ambil riwayat chat AI Coach                   | bearer            | implemented     |
 | ai        | `GET`    | `/ai/summary`                 | ambil ringkasan check-in                      | bearer            | implemented     |
 | ai        | `POST`   | `/ai/onboarding-analysis`     | analisis data onboarding                      | bearer            | implemented     |
+| ai        | `GET`    | `/ai/persona-preferences`     | ambil preferensi persona AI                   | bearer            | implemented     |
+| ai        | `PUT`    | `/ai/persona-preferences`     | perbarui preferensi persona AI                | bearer            | implemented     |
 | routine   | `POST`   | `/routine/checkin`            | check-in harian                               | bearer            | implemented     |
 | routine   | `GET`    | `/routine/statistics`         | ambil statistik pengguna                      | bearer            | implemented     |
 | routine   | `GET`    | `/routine/relapses`           | ambil riwayat relapse                         | bearer            | implemented     |
