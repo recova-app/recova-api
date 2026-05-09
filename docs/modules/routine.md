@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/routine.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Routine Module
@@ -28,11 +28,12 @@ Route prefix:
 /api/v1/routine
 ```
 
-| Method | Path                         | Auth class | Purpose                |
-| ------ | ---------------------------- | ---------- | ---------------------- |
-| `POST` | `/api/v1/routine/checkin`    | Bearer     | simpan check-in harian |
-| `GET`  | `/api/v1/routine/statistics` | Bearer     | ambil statistik rutin  |
-| `GET`  | `/api/v1/routine/relapses`   | Bearer     | ambil riwayat relapse  |
+| Method | Path                                          | Auth class | Purpose                            |
+| ------ | --------------------------------------------- | ---------- | ---------------------------------- |
+| `POST` | `/api/v1/routine/checkin`                     | Bearer     | simpan check-in harian             |
+| `GET`  | `/api/v1/routine/statistics`                  | Bearer     | ambil statistik rutin              |
+| `GET`  | `/api/v1/routine/statistics/activity-summary` | Bearer     | ambil ringkasan aktivitas periodik |
+| `GET`  | `/api/v1/routine/relapses`                    | Bearer     | ambil riwayat relapse              |
 
 ## Database Model
 
@@ -63,6 +64,7 @@ Constraint minimum:
 
 - `mood` wajib dalam enum/format yang didukung,
 - `commitment` wajib valid sesuai batas panjang,
+- `windowDays` pada endpoint activity summary bersifat opsional dengan rentang `7..90`,
 - timestamp/check-in time harus valid,
 - request invalid dipetakan ke error validation standar.
 
@@ -99,7 +101,8 @@ Metrik minimum:
 - unit test boundary timezone,
 - integration test transaksi check-in + streak,
 - handler test auth, validation, idempotency,
-- contract test response statistics.
+- contract test response statistics (field existing + field additive),
+- test endpoint activity summary untuk default window dan validasi `windowDays`.
 
 ## Open Gaps
 

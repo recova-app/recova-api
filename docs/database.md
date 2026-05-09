@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/database.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Database
@@ -69,6 +69,7 @@ Skema baseline SQL saat ini berada di migration:
 
 - `migrations/20260508090000_create_core_schema.up.sql`
 - `migrations/20260508103000_create_auth_refresh_tokens.up.sql`
+- `migrations/20260509100000_add_checkins_statistics_index.up.sql`
 
 Tabel inti:
 
@@ -97,6 +98,7 @@ Constraint/index baseline:
 - unique: `auth_refresh_tokens.token_hash`,
 - FK seluruh child entity ke `users.id`,
 - index agregasi utama: `ai_chats(user_id, created_at)`,
+- index statistik periodik: `check_ins(user_id, check_in_date, is_successful)`,
 - index komunitas: `community_comments(user_id, post_id)` dan `community_post_likes(post_id)`,
 - index sesi auth: `auth_refresh_tokens(user_id, revoked_at, expires_at)`.
 

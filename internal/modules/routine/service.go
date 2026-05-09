@@ -2,6 +2,8 @@ package routine
 
 import (
 	"context"
+	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,8 +25,11 @@ type routineRepository interface {
 	CloseActiveStreak(ctx context.Context, streakID string, endDate time.Time) error
 	LatestSuccessfulCheckInBeforeDate(ctx context.Context, userID string, targetDate time.Time) (*time.Time, error)
 	ListSuccessfulCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
+	ListCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
+	ListCheckInsByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.CheckIn, error)
 	ListRelapseCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
 	FindJournalsByCheckInIDs(ctx context.Context, checkInIDs []string) ([]models.Journal, error)
+	ListJournalsByUserWithinTimeRange(ctx context.Context, userID string, startAt time.Time, endAt time.Time) ([]models.Journal, error)
 }
 
 // Service owns routine business rules.
@@ -121,12 +126,42 @@ func (s *Service) GetStatistics(ctx context.Context, userID string) (StatisticsP
 		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	rows, err := s.repo.ListSuccessfulCheckInsByUser(ctx, userID)
+	rows, err := s.repo.ListCheckInsByUser(ctx, userID)
 	if err != nil {
 		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik check-in", nil, err)
 	}
 
 	return computeStatistics(rows, utcDayStart(s.now())), nil
+}
+
+// GetActivitySummary returns periodic activity summary for authenticated user.
+func (s *Service) GetActivitySummary(ctx context.Context, userID string, query ActivitySummaryQuery) (ActivitySummaryPayload, error) {
+	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
+		if IsRecordNotFound(err) {
+			return ActivitySummaryPayload{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	windowDays, err := NormalizeActivitySummaryWindow(query.WindowDays)
+	if err != nil {
+		return ActivitySummaryPayload{}, err
+	}
+
+	endDate := utcDayStart(s.now())
+	startDate := endDate.AddDate(0, 0, -(windowDays - 1))
+	checkIns, err := s.repo.ListCheckInsByUserWithinDateRange(ctx, userID, startDate, endDate)
+	if err != nil {
+		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
+	}
+
+	endExclusive := endDate.AddDate(0, 0, 1)
+	journals, err := s.repo.ListJournalsByUserWithinTimeRange(ctx, userID, startDate, endExclusive)
+	if err != nil {
+		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
+	}
+
+	return computeActivitySummary(windowDays, checkIns, journals), nil
 }
 
 // GetRelapses returns user relapse history (failed check-ins).
@@ -256,28 +291,179 @@ func mapCheckInPayload(row models.CheckIn, commitment *string) CheckInPayload {
 }
 
 func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time) StatisticsPayload {
-	total := len(checkIns)
-	if total == 0 {
+	if len(checkIns) == 0 {
 		return StatisticsPayload{
-			CurrentStreak:  0,
-			LongestStreak:  0,
-			TotalCheckins:  0,
-			StreakCalendar: []string{},
+			CurrentStreak:           0,
+			LongestStreak:           0,
+			TotalCheckins:           0,
+			StreakCalendar:          []string{},
+			RelapseCount:            0,
+			RelapseRate:             0,
+			RecoverySuccessRate:     0,
+			CheckinConsistencyScore: 0,
+			WeeklyProgress:          zeroProgressPayload(7),
+			MonthlyProgress:         zeroProgressPayload(30),
+			MoodTrend:               []MoodTrendPayload{},
 		}
 	}
 
-	dates := make([]time.Time, 0, len(checkIns))
+	successDates := make([]time.Time, 0, len(checkIns))
 	calendar := make([]string, 0, len(checkIns))
+	activeDays := map[string]struct{}{}
+	successCount := 0
+	relapseCount := 0
+	moodByDay := map[string]map[string]int{}
+	successCountByDay := map[string]int{}
+	totalCountByDay := map[string]int{}
+
 	for _, row := range checkIns {
-		date := utcDayStart(row.CheckInDate)
-		dates = append(dates, date)
-		calendar = append(calendar, date.Format("2006-01-02"))
+		day := utcDayStart(row.CheckInDate)
+		dayKey := day.Format("2006-01-02")
+		activeDays[dayKey] = struct{}{}
+		totalCountByDay[dayKey]++
+
+		if _, exists := moodByDay[dayKey]; !exists {
+			moodByDay[dayKey] = map[string]int{}
+		}
+		moodKey := strings.TrimSpace(strings.ToLower(row.Mood))
+		if moodKey == "" {
+			moodKey = "unknown"
+		}
+		moodByDay[dayKey][moodKey]++
+
+		if row.IsSuccessful {
+			successCount++
+			successCountByDay[dayKey]++
+			successDates = append(successDates, day)
+			calendar = append(calendar, dayKey)
+			continue
+		}
+		relapseCount++
 	}
 
-	longest := 1
+	totalAttempts := successCount + relapseCount
+	recoverySuccessRate := safeRatio(successCount, totalAttempts)
+	relapseRate := safeRatio(relapseCount, totalAttempts)
+
+	currentStreak, longestStreak := computeStreaks(successDates, todayUTC)
+	checkinConsistencyScore := safeRatio(len(activeDays), 30)
+	weeklyProgress := computeProgressPayload(checkIns, todayUTC, 7)
+	monthlyProgress := computeProgressPayload(checkIns, todayUTC, 30)
+	moodTrend := buildMoodTrendPayload(moodByDay, successCountByDay, totalCountByDay)
+
+	return StatisticsPayload{
+		CurrentStreak:           currentStreak,
+		LongestStreak:           longestStreak,
+		TotalCheckins:           successCount,
+		StreakCalendar:          calendar,
+		RelapseCount:            relapseCount,
+		RelapseRate:             relapseRate,
+		RecoverySuccessRate:     recoverySuccessRate,
+		CheckinConsistencyScore: checkinConsistencyScore,
+		WeeklyProgress:          weeklyProgress,
+		MonthlyProgress:         monthlyProgress,
+		MoodTrend:               moodTrend,
+	}
+}
+
+func computeActivitySummary(windowDays int, checkIns []models.CheckIn, journals []models.Journal) ActivitySummaryPayload {
+	successfulCheckins := 0
+	relapses := 0
+	activeDays := map[string]struct{}{}
+	checkinByID := make(map[string]models.CheckIn, len(checkIns))
+	activities := make([]activityTimelineItem, 0, len(checkIns)+len(journals))
+
+	for _, row := range checkIns {
+		day := utcDayStart(row.CheckInDate).Format("2006-01-02")
+		activeDays[day] = struct{}{}
+		checkinByID[strings.TrimSpace(row.ID)] = row
+
+		if row.IsSuccessful {
+			successfulCheckins++
+		} else {
+			relapses++
+		}
+
+		eventType := "checkin_relapse"
+		if row.IsSuccessful {
+			eventType = "checkin_success"
+		}
+		mood := strings.TrimSpace(row.Mood)
+		var moodPtr *string
+		if mood != "" {
+			value := mood
+			moodPtr = &value
+		}
+
+		activities = append(activities, activityTimelineItem{
+			Date:      day,
+			Type:      eventType,
+			Mood:      moodPtr,
+			Timestamp: row.CreatedAt.UTC(),
+		})
+	}
+
+	for _, journal := range journals {
+		day := utcDayStart(journal.CreatedAt).Format("2006-01-02")
+		activeDays[day] = struct{}{}
+
+		var moodPtr *string
+		if journal.CheckInID != nil {
+			if row, exists := checkinByID[strings.TrimSpace(*journal.CheckInID)]; exists {
+				mood := strings.TrimSpace(row.Mood)
+				if mood != "" {
+					value := mood
+					moodPtr = &value
+				}
+			}
+		}
+
+		activities = append(activities, activityTimelineItem{
+			Date:      day,
+			Type:      "journal",
+			Mood:      moodPtr,
+			Timestamp: journal.CreatedAt.UTC(),
+		})
+	}
+
+	sort.SliceStable(activities, func(i, j int) bool {
+		return activities[i].Timestamp.After(activities[j].Timestamp)
+	})
+
+	recentActivity := make([]ActivityItemPayload, 0, len(activities))
+	for _, item := range activities {
+		recentActivity = append(recentActivity, ActivityItemPayload{
+			Date: item.Date,
+			Type: item.Type,
+			Mood: item.Mood,
+		})
+	}
+
+	return ActivitySummaryPayload{
+		WindowDays:         windowDays,
+		SuccessfulCheckins: successfulCheckins,
+		Relapses:           relapses,
+		ActiveDays:         len(activeDays),
+		RecentActivity:     recentActivity,
+	}
+}
+
+type activityTimelineItem struct {
+	Date      string
+	Type      string
+	Mood      *string
+	Timestamp time.Time
+}
+
+func computeStreaks(successDates []time.Time, todayUTC time.Time) (current int, longest int) {
+	if len(successDates) == 0 {
+		return 0, 0
+	}
+
+	longest = 1
 	currentRun := 1
-	for i := 1; i < len(dates); i++ {
-		diff := int(dates[i].Sub(dates[i-1]).Hours() / 24)
+	for i := 1; i < len(successDates); i++ {
+		diff := int(successDates[i].Sub(successDates[i-1]).Hours() / 24)
 		if diff == 1 {
 			currentRun++
 		} else {
@@ -291,25 +477,107 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time) Statistics
 		longest = currentRun
 	}
 
-	current := 0
-	latest := dates[len(dates)-1]
-	if !latest.Before(todayUTC.AddDate(0, 0, -1)) {
-		current = 1
-		for i := len(dates) - 1; i > 0; i-- {
-			diff := int(dates[i].Sub(dates[i-1]).Hours() / 24)
-			if diff != 1 {
-				break
-			}
-			current++
-		}
+	latest := successDates[len(successDates)-1]
+	if latest.Before(todayUTC.AddDate(0, 0, -1)) {
+		return 0, longest
 	}
 
-	return StatisticsPayload{
-		CurrentStreak:  current,
-		LongestStreak:  longest,
-		TotalCheckins:  total,
-		StreakCalendar: calendar,
+	current = 1
+	for i := len(successDates) - 1; i > 0; i-- {
+		diff := int(successDates[i].Sub(successDates[i-1]).Hours() / 24)
+		if diff != 1 {
+			break
+		}
+		current++
 	}
+	return current, longest
+}
+
+func computeProgressPayload(checkIns []models.CheckIn, todayUTC time.Time, windowDays int) ProgressPayload {
+	currentEnd := todayUTC
+	currentStart := currentEnd.AddDate(0, 0, -(windowDays - 1))
+	previousEnd := currentStart.AddDate(0, 0, -1)
+	previousStart := previousEnd.AddDate(0, 0, -(windowDays - 1))
+
+	currentSuccess := countSuccessfulCheckInsInRange(checkIns, currentStart, currentEnd)
+	previousSuccess := countSuccessfulCheckInsInRange(checkIns, previousStart, previousEnd)
+	delta := currentSuccess - previousSuccess
+	deltaRate := 0.0
+	if previousSuccess > 0 {
+		deltaRate = roundRatio(float64(delta) / float64(previousSuccess))
+	}
+
+	return ProgressPayload{
+		WindowDays:                 windowDays,
+		CurrentSuccessfulCheckins:  currentSuccess,
+		PreviousSuccessfulCheckins: previousSuccess,
+		Delta:                      delta,
+		DeltaRate:                  deltaRate,
+	}
+}
+
+func zeroProgressPayload(windowDays int) ProgressPayload {
+	return ProgressPayload{
+		WindowDays:                 windowDays,
+		CurrentSuccessfulCheckins:  0,
+		PreviousSuccessfulCheckins: 0,
+		Delta:                      0,
+		DeltaRate:                  0,
+	}
+}
+
+func countSuccessfulCheckInsInRange(checkIns []models.CheckIn, startDate time.Time, endDate time.Time) int {
+	count := 0
+	for _, row := range checkIns {
+		if !row.IsSuccessful {
+			continue
+		}
+		day := utcDayStart(row.CheckInDate)
+		if day.Before(startDate) || day.After(endDate) {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
+func buildMoodTrendPayload(moodByDay map[string]map[string]int, successByDay map[string]int, totalByDay map[string]int) []MoodTrendPayload {
+	keys := make([]string, 0, len(moodByDay))
+	for day := range moodByDay {
+		keys = append(keys, day)
+	}
+	sort.Strings(keys)
+
+	result := make([]MoodTrendPayload, 0, len(keys))
+	for _, day := range keys {
+		moodMap := moodByDay[day]
+		dominant := "unknown"
+		maxCount := -1
+		for mood, count := range moodMap {
+			if count > maxCount {
+				dominant = mood
+				maxCount = count
+			}
+		}
+
+		result = append(result, MoodTrendPayload{
+			Date:            day,
+			DominantMood:    dominant,
+			SuccessfulRatio: safeRatio(successByDay[day], totalByDay[day]),
+		})
+	}
+	return result
+}
+
+func safeRatio(numerator int, denominator int) float64 {
+	if denominator <= 0 {
+		return 0
+	}
+	return roundRatio(float64(numerator) / float64(denominator))
+}
+
+func roundRatio(value float64) float64 {
+	return math.Round(value*100) / 100
 }
 
 func sameUTCDate(a time.Time, b time.Time) bool {

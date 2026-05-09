@@ -9,6 +9,9 @@ import (
 const (
 	maxMoodLength       = 50
 	maxCommitmentLength = 2000
+	defaultWindowDays   = 30
+	minWindowDays       = 7
+	maxWindowDays       = 90
 )
 
 // NormalizeDailyCheckInRequest validates and normalizes check-in request payload.
@@ -57,4 +60,22 @@ func firstNonEmptyPointer(candidates ...*string) *string {
 		return &trimmed
 	}
 	return nil
+}
+
+// NormalizeActivitySummaryWindow validates and normalizes optional window days.
+func NormalizeActivitySummaryWindow(raw *int) (int, error) {
+	if raw == nil {
+		return defaultWindowDays, nil
+	}
+	if *raw < minWindowDays {
+		return 0, errs.New(errs.CodeValidationError, "Nilai windowDays tidak valid", []map[string]string{
+			{"field": "windowDays", "message": "windowDays minimal 7"},
+		}, nil)
+	}
+	if *raw > maxWindowDays {
+		return 0, errs.New(errs.CodeValidationError, "Nilai windowDays tidak valid", []map[string]string{
+			{"field": "windowDays", "message": "windowDays maksimal 90"},
+		}, nil)
+	}
+	return *raw, nil
 }

@@ -52,6 +52,26 @@ func (h *Handler) GetStatistics(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.Success("Statistik berhasil diambil", payload, nil))
 }
 
+// GetActivitySummary handles periodic activity summary retrieval.
+func (h *Handler) GetActivitySummary(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	var query ActivitySummaryQuery
+	if err := c.Bind().Query(&query); err != nil {
+		return err
+	}
+
+	payload, err := h.service.GetActivitySummary(c.Context(), principal.UserID, query)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Ringkasan aktivitas berhasil diambil", payload, nil))
+}
+
 // GetRelapses handles relapse history retrieval.
 func (h *Handler) GetRelapses(c fiber.Ctx) error {
 	principal, ok := authmodule.PrincipalFromContext(c)

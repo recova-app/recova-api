@@ -132,6 +132,34 @@ func (r *Repository) ListSuccessfulCheckInsByUser(ctx context.Context, userID st
 	return rows, nil
 }
 
+// ListCheckInsByUser returns all check-ins sorted by day and creation time.
+func (r *Repository) ListCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error) {
+	var rows []models.CheckIn
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Order("check_in_date asc").
+		Order("created_at asc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// ListCheckInsByUserWithinDateRange returns check-ins within inclusive UTC date range.
+func (r *Repository) ListCheckInsByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.CheckIn, error) {
+	var rows []models.CheckIn
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Where("check_in_date >= ?", startDate.UTC()).
+		Where("check_in_date <= ?", endDate.UTC()).
+		Order("check_in_date desc").
+		Order("created_at desc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // ListRelapseCheckInsByUser returns failed check-ins with optional journal linked by check-in.
 func (r *Repository) ListRelapseCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error) {
 	var rows []models.CheckIn
@@ -155,6 +183,20 @@ func (r *Repository) FindJournalsByCheckInIDs(ctx context.Context, checkInIDs []
 	var rows []models.Journal
 	if err := r.db.WithContext(ctx).
 		Where("check_in_id IN ?", checkInIDs).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// ListJournalsByUserWithinTimeRange returns journals within inclusive start and exclusive end time.
+func (r *Repository) ListJournalsByUserWithinTimeRange(ctx context.Context, userID string, startAt time.Time, endAt time.Time) ([]models.Journal, error) {
+	var rows []models.Journal
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Where("created_at >= ?", startAt.UTC()).
+		Where("created_at < ?", endAt.UTC()).
+		Order("created_at desc").
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}

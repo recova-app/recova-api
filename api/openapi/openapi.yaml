@@ -332,6 +332,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/routine/statistics/activity-summary:
+    get:
+      tags:
+        - routine
+      operationId: getRoutineActivitySummary
+      summary: Mengambil ringkasan aktivitas periodik pengguna
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: windowDays
+          required: false
+          schema:
+            type: integer
+            minimum: 7
+            maximum: 90
+      responses:
+        '200':
+          description: Ringkasan aktivitas berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '401':
+          description: Token akses tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Nilai windowDays tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
   /api/v1/routine/relapses:
     get:
       tags:

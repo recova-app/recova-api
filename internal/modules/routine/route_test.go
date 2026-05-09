@@ -61,6 +61,86 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data, ok := resp.JSON["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.JSON["data"])
+	}
+	for _, key := range []string{
+		"currentStreak",
+		"longestStreak",
+		"totalCheckins",
+		"streakCalendar",
+		"relapseCount",
+		"relapseRate",
+		"recoverySuccessRate",
+		"checkinConsistencyScore",
+		"weeklyProgress",
+		"monthlyProgress",
+		"moodTrend",
+	} {
+		if _, exists := data[key]; !exists {
+			t.Fatalf("expected statistics field %s", key)
+		}
+	}
+}
+
+func TestRegisterRoutes_GetActivitySummaryValidationError(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	service := NewService(&fakeRoutineRepo{
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+	})
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=3", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
+func TestRegisterRoutes_GetActivitySummarySuccess(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	service := NewService(&fakeRoutineRepo{
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		windowRows: []models.CheckIn{
+			{
+				ID:           "checkin-1",
+				CheckInDate:  time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+				Mood:         "tenang",
+				IsSuccessful: true,
+				CreatedAt:    time.Date(2026, 5, 8, 9, 0, 0, 0, time.UTC),
+			},
+		},
+	})
+	service.now = func() time.Time { return time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC) }
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=30", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data, ok := resp.JSON["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.JSON["data"])
+	}
+	for _, key := range []string{
+		"windowDays",
+		"successfulCheckins",
+		"relapses",
+		"activeDays",
+		"recentActivity",
+	} {
+		if _, exists := data[key]; !exists {
+			t.Fatalf("expected activity summary field %s", key)
+		}
+	}
 }
 
 func buildRoutineAuthService(t testing.TB, userID string) *authmodule.Service {
