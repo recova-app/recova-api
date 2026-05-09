@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/testing.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Testing Strategy
@@ -48,6 +48,14 @@ Dokumen ini mendefinisikan baseline testing agar perubahan layanan aman sebelum 
 - community: ownership/moderation rules,
 - education/content: read contract dan fallback data,
 - AI coach: timeout, error mapping, safety redaction.
+
+## Enhancement Integration Scenarios
+
+Skenario minimum pada suite release confidence:
+
+- `make test-e2e` wajib mencakup statistik `activity-summary`, thread komentar + reply, achievements, dan persona preference AI.
+- `make test-performance` wajib mencakup load smoke endpoint enhancement read-path (`activity-summary`, thread comments read, achievements catalog, persona preference read).
+- hasil kedua suite wajib menghasilkan artefak report yang dapat diaudit.
 
 ## Database and Migration Verification
 
@@ -93,7 +101,7 @@ Perintah verifikasi baseline:
 | `make cutover-wave WAVE=64` | gate otomatis cutover per wave (single wave)                          |
 | `make cutover-all`          | gate otomatis cutover serial wave 64-68                               |
 | `make stabilization-gate`   | full regression + openapi + E2E + performance smoke + evidence report |
-| `make rollback-rehearsal`   | rehearsal jalur rollback dengan failure injection terkontrol           |
+| `make rollback-rehearsal`   | rehearsal jalur rollback dengan failure injection terkontrol          |
 
 Default output report:
 

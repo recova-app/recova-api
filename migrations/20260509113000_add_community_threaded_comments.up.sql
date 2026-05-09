@@ -8,7 +8,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
-    WHERE conname = fk_community_comments_parent_comment
+    WHERE conname = 'fk_community_comments_parent_comment'
   ) THEN
     ALTER TABLE community_comments
       ADD CONSTRAINT fk_community_comments_parent_comment
@@ -25,7 +25,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
-    WHERE conname = chk_community_comments_depth_non_negative
+    WHERE conname = 'chk_community_comments_depth_non_negative'
   ) THEN
     ALTER TABLE community_comments
       ADD CONSTRAINT chk_community_comments_depth_non_negative
@@ -39,7 +39,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
-    WHERE conname = chk_community_comments_parent_depth_consistency
+    WHERE conname = 'chk_community_comments_parent_depth_consistency'
   ) THEN
     ALTER TABLE community_comments
       ADD CONSTRAINT chk_community_comments_parent_depth_consistency

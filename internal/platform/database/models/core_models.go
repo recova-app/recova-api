@@ -142,3 +142,7 @@ type UserAIPersonaPreference struct {
 	Persona   string    `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:now()"`
 }
+
+func (UserAIPersonaPreference) TableName() string {
+	return "user_ai_persona_preferences"
+}

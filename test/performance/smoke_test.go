@@ -72,12 +72,20 @@ func TestPerformance_LoadSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("prepare auth session for performance test: %v", err)
 	}
+	communityPostID, err := prepareCommunityThread(runtime, accessToken)
+	if err != nil {
+		t.Fatalf("prepare community thread for performance test: %v", err)
+	}
 
 	scenarios := []perfScenario{
 		{name: "health_live", method: http.MethodGet, path: "/health/live", expectedStatus: fiber.StatusOK},
 		{name: "health_ready", method: http.MethodGet, path: "/health/ready", expectedStatus: fiber.StatusOK},
 		{name: "users_me", method: http.MethodGet, path: "/api/v1/users/me", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
 		{name: "daily_content", method: http.MethodGet, path: "/api/v1/content/daily", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
+		{name: "routine_activity_summary", method: http.MethodGet, path: "/api/v1/routine/statistics/activity-summary?windowDays=30", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
+		{name: "achievements_catalog", method: http.MethodGet, path: "/api/v1/achievements/catalog", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
+		{name: "community_comment_thread", method: http.MethodGet, path: "/api/v1/community/" + communityPostID + "/comments?limit=50", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
+		{name: "ai_persona_preferences", method: http.MethodGet, path: "/api/v1/ai/persona-preferences", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
 		{name: "ai_summary", method: http.MethodGet, path: "/api/v1/ai/summary", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
 	}
 
@@ -319,6 +327,40 @@ func bearerHeaders(accessToken string) map[string]string {
 	}
 }
 
+func prepareCommunityThread(runtime *e2eharness.Runtime, accessToken string) (string, error) {
+	createPostResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community", map[string]any{
+		"content":  "load smoke community post",
+		"category": "motivation",
+	}, bearerHeaders(accessToken))
+	if createPostResp.StatusCode != fiber.StatusCreated {
+		return "", fmt.Errorf("create post failed: status=%d body=%s", createPostResp.StatusCode, string(createPostResp.Body))
+	}
+	postID := readNestedString(createPostResp.JSON, "data", "id")
+	if strings.TrimSpace(postID) == "" {
+		return "", fmt.Errorf("post id empty")
+	}
+
+	createCommentResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community/"+postID+"/comments", map[string]any{
+		"content": "load smoke root comment",
+	}, bearerHeaders(accessToken))
+	if createCommentResp.StatusCode != fiber.StatusCreated {
+		return "", fmt.Errorf("create comment failed: status=%d body=%s", createCommentResp.StatusCode, string(createCommentResp.Body))
+	}
+	commentID := readNestedString(createCommentResp.JSON, "data", "id")
+	if strings.TrimSpace(commentID) == "" {
+		return "", fmt.Errorf("comment id empty")
+	}
+
+	createReplyResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community/"+postID+"/comments/"+commentID+"/replies", map[string]any{
+		"content": "load smoke reply comment",
+	}, bearerHeaders(accessToken))
+	if createReplyResp.StatusCode != fiber.StatusCreated {
+		return "", fmt.Errorf("create reply failed: status=%d body=%s", createReplyResp.StatusCode, string(createReplyResp.Body))
+	}
+
+	return postID, nil
+}
+
 func readSessionAccessToken(payload map[string]any) string {
 	data, ok := payload["data"].(map[string]any)
 	if !ok {
@@ -366,4 +408,23 @@ func writeJSONReport(t testing.TB, path string, payload any) {
 	if err := os.WriteFile(targetPath, encoded, 0o644); err != nil {
 		t.Fatalf("write report: %v", err)
 	}
+}
+
+func readNestedString(payload map[string]any, keys ...string) string {
+	if len(keys) == 0 {
+		return ""
+	}
+	var current any = payload
+	for _, key := range keys {
+		asMap, ok := current.(map[string]any)
+		if !ok {
+			return ""
+		}
+		current, ok = asMap[key]
+		if !ok {
+			return ""
+		}
+	}
+	value, _ := current.(string)
+	return strings.TrimSpace(value)
 }

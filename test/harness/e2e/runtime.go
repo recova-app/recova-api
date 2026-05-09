@@ -11,6 +11,7 @@ import (
 	"time"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	achievementsmodule "github.com/recova-app/backend-v2/internal/modules/achievements"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
@@ -69,6 +70,7 @@ func NewRuntime(t testing.TB) *Runtime {
 	routineService := routinemodule.NewService(routinemodule.NewRepository(client.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(client.Gorm()))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(client.Gorm()))
+	achievementsService := achievementsmodule.NewService(achievementsmodule.NewRepository(client.Gorm()))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(client.Gorm()))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(client.Gorm()))
 	recorder := observability.NewRecorder()
@@ -88,14 +90,15 @@ func NewRuntime(t testing.TB) *Runtime {
 			Probe:   client.Ping,
 		}}),
 		apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-			AuthService:      authService,
-			UsersService:     usersService,
-			RoutineService:   routineService,
-			JournalsService:  journalsService,
-			CommunityService: communityService,
-			EducationService: educationService,
-			ContentService:   contentService,
-			AIService:        aiService,
+			AuthService:         authService,
+			UsersService:        usersService,
+			RoutineService:      routineService,
+			JournalsService:     journalsService,
+			CommunityService:    communityService,
+			AchievementsService: achievementsService,
+			EducationService:    educationService,
+			ContentService:      contentService,
+			AIService:           aiService,
 		}),
 	)
 	if err != nil {

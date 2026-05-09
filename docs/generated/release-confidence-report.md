@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/generated/release-confidence-report.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 generated_by: test-e2e-and-performance-smoke
 ---
 
@@ -31,18 +31,18 @@ Dokumen ini mendefinisikan format evidence release confidence berbasis hasil ver
 
 ## Reporting Template
 
-| Item                       | Status    | Catatan                               |
-| -------------------------- | --------- | ------------------------------------- |
-| E2E critical flows         | `pending` | update dari `e2e-critical-flows.json` |
-| Performance smoke          | `pending` | update dari `performance-smoke.json`  |
-| Release confidence overall | `pending` | `passed` jika semua item lulus        |
+| Item                       | Status   | Catatan                                                                                                     |
+| -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| E2E critical flows         | `passed` | `generatedAt=2026-05-09T13:43:34Z`, scope `all`, termasuk stats summary/threaded reply/achievements/persona |
+| Performance smoke          | `passed` | `generatedAt=2026-05-09T13:43:36Z`, semua scenario `errorRate=0`, `p95Ms` jauh di bawah threshold           |
+| Release confidence overall | `passed` | seluruh item lulus pada candidate run yang sama                                                             |
 
 ## Review Checklist
 
-- [ ] report E2E terbarui dari run candidate yang sama,
-- [ ] report performance terbarui dari run candidate yang sama,
-- [ ] tidak ada payload sensitif dalam artefak report,
-- [ ] hasil sinkron dengan gate CI release candidate.
+- [x] report E2E terbarui dari run candidate yang sama,
+- [x] report performance terbarui dari run candidate yang sama,
+- [x] tidak ada payload sensitif dalam artefak report,
+- [x] hasil sinkron dengan gate CI release candidate.
 
 ## Related Documents
 

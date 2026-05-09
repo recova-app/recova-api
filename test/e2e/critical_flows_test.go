@@ -59,6 +59,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	var accessToken string
 	var refreshCookie string
 	var communityPostID string
+	var communityCommentID string
 
 	runStep := func(name string, fn func() error) {
 		stepIndex := len(steps)
@@ -175,6 +176,36 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		if totalCheckins < 1 {
 			return fmt.Errorf("expected totalCheckins >= 1, got %.0f", totalCheckins)
 		}
+
+		summaryResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=30", nil, bearerHeaders(accessToken))
+		if summaryResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("activity summary expected 200 got %d body=%s", summaryResp.StatusCode, string(summaryResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, summaryResp.JSON)
+		if readNestedFloat(summaryResp.JSON, "data", "windowDays") != 30 {
+			return fmt.Errorf("activity summary windowDays mismatch")
+		}
+		return nil
+	})
+
+	runStep("achievements catalog/progress/unlocked", func() error {
+		catalogResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/catalog", nil, bearerHeaders(accessToken))
+		if catalogResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("achievements catalog expected 200 got %d body=%s", catalogResp.StatusCode, string(catalogResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, catalogResp.JSON)
+
+		progressResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/progress", nil, bearerHeaders(accessToken))
+		if progressResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("achievements progress expected 200 got %d body=%s", progressResp.StatusCode, string(progressResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, progressResp.JSON)
+
+		unlockedResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/unlocked", nil, bearerHeaders(accessToken))
+		if unlockedResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("achievements unlocked expected 200 got %d body=%s", unlockedResp.StatusCode, string(unlockedResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, unlockedResp.JSON)
 		return nil
 	})
 
@@ -219,6 +250,39 @@ func TestE2E_CriticalFlows(t *testing.T) {
 			return fmt.Errorf("community comment expected 201 got %d body=%s", commentResp.StatusCode, string(commentResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, commentResp.JSON)
+		communityCommentID = readNestedString(commentResp.JSON, "data", "id")
+		if strings.TrimSpace(communityCommentID) == "" {
+			return fmt.Errorf("comment id kosong")
+		}
+
+		replyResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/comments/"+communityCommentID+"/replies", map[string]any{
+			"content": "reply dukungan lanjutan",
+		}, bearerHeaders(accessToken))
+		if replyResp.StatusCode != fiber.StatusCreated {
+			return fmt.Errorf("community reply expected 201 got %d body=%s", replyResp.StatusCode, string(replyResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, replyResp.JSON)
+		if readNestedString(replyResp.JSON, "data", "parentCommentId") != communityCommentID {
+			return fmt.Errorf("reply parentCommentId mismatch")
+		}
+
+		threadResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/community/"+communityPostID+"/comments?limit=50", nil, bearerHeaders(accessToken))
+		if threadResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("community thread expected 200 got %d body=%s", threadResp.StatusCode, string(threadResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, threadResp.JSON)
+		comments := readNestedArray(threadResp.JSON, "data", "comments")
+		if len(comments) < 1 {
+			return fmt.Errorf("community thread comments kosong")
+		}
+		root, ok := comments[0].(map[string]any)
+		if !ok {
+			return fmt.Errorf("community thread root invalid")
+		}
+		replyCount, _ := root["replyCount"].(float64)
+		if int(replyCount) < 1 {
+			return fmt.Errorf("community thread replyCount belum bertambah")
+		}
 
 		likeResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/like", nil, bearerHeaders(accessToken))
 		if likeResp.StatusCode != fiber.StatusOK {
@@ -253,6 +317,23 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	})
 
 	runStep("ai coach safe response and history", func() error {
+		getPersonaResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/persona-preferences", nil, bearerHeaders(accessToken))
+		if getPersonaResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("persona preference get expected 200 got %d body=%s", getPersonaResp.StatusCode, string(getPersonaResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, getPersonaResp.JSON)
+
+		updatePersonaResp := sendJSONRequest(t, runtime, http.MethodPut, "/api/v1/ai/persona-preferences", map[string]any{
+			"persona": "direct",
+		}, bearerHeaders(accessToken))
+		if updatePersonaResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("persona preference put expected 200 got %d body=%s", updatePersonaResp.StatusCode, string(updatePersonaResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, updatePersonaResp.JSON)
+		if readNestedString(updatePersonaResp.JSON, "data", "persona") != "direct" {
+			return fmt.Errorf("persona update mismatch")
+		}
+
 		askResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/ai/ask-coach", map[string]any{
 			"message": "saya ingin relapse",
 		}, bearerHeaders(accessToken))
@@ -267,6 +348,9 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 		if strings.Contains(coachText, "token-e2e") {
 			return fmt.Errorf("response ai memuat token sensitif")
+		}
+		if readNestedString(askResp.JSON, "data", "personaUsed") != "direct" {
+			return fmt.Errorf("personaUsed mismatch")
 		}
 
 		historyResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/chat-history", nil, bearerHeaders(accessToken))
@@ -454,6 +538,28 @@ func readDataArray(payload map[string]any) []any {
 	return data
 }
 
+func readNestedArray(payload map[string]any, keys ...string) []any {
+	if len(keys) == 0 {
+		return []any{}
+	}
+	var current any = payload
+	for _, key := range keys {
+		asMap, ok := current.(map[string]any)
+		if !ok {
+			return []any{}
+		}
+		current, ok = asMap[key]
+		if !ok {
+			return []any{}
+		}
+	}
+	value, ok := current.([]any)
+	if !ok {
+		return []any{}
+	}
+	return value
+}
+
 func extractCookiePair(header http.Header, cookieName string) string {
 	for _, raw := range header.Values("Set-Cookie") {
 		parts := strings.Split(raw, ";")
@@ -517,12 +623,13 @@ func e2eScopeAllowsStep(scope string, stepName string) bool {
 			"auth logout and refresh invalidation": {},
 		},
 		"wave66": {
-			"health readiness":                     {},
-			"auth login flow":                      {},
-			"onboarding and profile":               {},
-			"daily checkin and statistics":         {},
-			"journals create/list":                 {},
-			"auth logout and refresh invalidation": {},
+			"health readiness":                       {},
+			"auth login flow":                        {},
+			"onboarding and profile":                 {},
+			"daily checkin and statistics":           {},
+			"achievements catalog/progress/unlocked": {},
+			"journals create/list":                   {},
+			"auth logout and refresh invalidation":   {},
 		},
 		"wave67": {
 			"health readiness":                     {},
