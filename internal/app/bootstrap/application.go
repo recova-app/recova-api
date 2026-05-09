@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	achievementsmodule "github.com/recova-app/backend-v2/internal/modules/achievements"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
@@ -53,6 +54,7 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 	routineService := routinemodule.NewService(routinemodule.NewRepository(dbClient.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(dbClient.Gorm()))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(dbClient.Gorm()))
+	achievementsService := achievementsmodule.NewService(achievementsmodule.NewRepository(dbClient.Gorm()))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(dbClient.Gorm()))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(dbClient.Gorm()))
 	aiClient, err := aiplatform.NewClient(cfg.AI)
@@ -71,14 +73,15 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 			Probe:   dbClient.Ping,
 		},
 	}), apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-		AuthService:      authService,
-		UsersService:     usersService,
-		RoutineService:   routineService,
-		JournalsService:  journalsService,
-		CommunityService: communityService,
-		EducationService: educationService,
-		ContentService:   contentService,
-		AIService:        aiService,
+		AuthService:         authService,
+		UsersService:        usersService,
+		RoutineService:      routineService,
+		JournalsService:     journalsService,
+		CommunityService:    communityService,
+		AchievementsService: achievementsService,
+		EducationService:    educationService,
+		ContentService:      contentService,
+		AIService:           aiService,
 	}), apphttp.WithObservability(obsRecorder))
 	if err != nil {
 		_ = dbClient.Close()

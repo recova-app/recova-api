@@ -81,6 +81,29 @@ type CommunityPostLike struct {
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+type Achievement struct {
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Code        string    `gorm:"not null;uniqueIndex"`
+	Title       string    `gorm:"not null"`
+	Description string    `gorm:"not null"`
+	Category    string    `gorm:"not null"`
+	Threshold   float64   `gorm:"type:numeric;not null"`
+	IsActive    bool      `gorm:"column:is_active;not null;default:true"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
+	UpdatedAt   time.Time `gorm:"not null;default:now()"`
+}
+
+type UserAchievementProgress struct {
+	ID              string     `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID          string     `gorm:"type:uuid;column:user_id;not null;index:idx_user_achievement_progress_user,priority:1;index:idx_user_achievement_progress_user_unlocked,priority:1;uniqueIndex:uq_user_achievement_progress_user_achievement,priority:1"`
+	AchievementID   string     `gorm:"type:uuid;column:achievement_id;not null;index:idx_user_achievement_progress_achievement;uniqueIndex:uq_user_achievement_progress_user_achievement,priority:2"`
+	ProgressValue   float64    `gorm:"column:progress_value;type:numeric;not null;default:0"`
+	UnlockedAt      *time.Time `gorm:"column:unlocked_at;index:idx_user_achievement_progress_user_unlocked,priority:2"`
+	LastEvaluatedAt time.Time  `gorm:"column:last_evaluated_at;not null;default:now()"`
+	CreatedAt       time.Time  `gorm:"not null;default:now()"`
+	UpdatedAt       time.Time  `gorm:"not null;default:now();index:idx_user_achievement_progress_user,priority:2,sort:desc"`
+}
+
 type EducationContent struct {
 	ID           string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Title        string `gorm:"not null"`

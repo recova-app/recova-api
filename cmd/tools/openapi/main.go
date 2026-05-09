@@ -13,6 +13,7 @@ import (
 	"time"
 
 	apphttp "github.com/recova-app/backend-v2/internal/app/http"
+	achievementsmodule "github.com/recova-app/backend-v2/internal/modules/achievements"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
@@ -144,6 +145,7 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	routineService := routinemodule.NewService(routinemodule.NewRepository(nil))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(nil))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(nil))
+	achievementsService := achievementsmodule.NewService(achievementsmodule.NewRepository(nil))
 	educationService := educationmodule.NewService(educationmodule.NewRepository(nil))
 	contentService := contentmodule.NewService(contentmodule.NewRepository(nil))
 	aiService := aimodule.NewService(aimodule.NewRepository(nil), &noopAIProvider{})
@@ -151,14 +153,15 @@ func runtimeRouteSet() (map[contractopenapi.RouteKey]struct{}, error) {
 	srv, err := apphttp.NewServer(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)),
 		apphttp.WithObservability(observability.NewRecorder()),
 		apphttp.WithModuleDependencies(apphttp.ModuleDependencies{
-			AuthService:      authService,
-			UsersService:     usersService,
-			RoutineService:   routineService,
-			JournalsService:  journalsService,
-			CommunityService: communityService,
-			EducationService: educationService,
-			ContentService:   contentService,
-			AIService:        aiService,
+			AuthService:         authService,
+			UsersService:        usersService,
+			RoutineService:      routineService,
+			JournalsService:     journalsService,
+			CommunityService:    communityService,
+			AchievementsService: achievementsService,
+			EducationService:    educationService,
+			ContentService:      contentService,
+			AIService:           aiService,
 		}))
 	if err != nil {
 		return nil, fmt.Errorf("build runtime server: %w", err)

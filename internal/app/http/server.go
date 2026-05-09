@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
+	achievementsmodule "github.com/recova-app/backend-v2/internal/modules/achievements"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	authmodule "github.com/recova-app/backend-v2/internal/modules/auth"
 	communitymodule "github.com/recova-app/backend-v2/internal/modules/community"
@@ -45,14 +46,15 @@ type Server struct {
 
 // ModuleDependencies stores domain services required to register API routes.
 type ModuleDependencies struct {
-	AuthService      *authmodule.Service
-	UsersService     *usersmodule.Service
-	RoutineService   *routinemodule.Service
-	JournalsService  *journalsmodule.Service
-	CommunityService *communitymodule.Service
-	EducationService *educationmodule.Service
-	ContentService   *contentmodule.Service
-	AIService        *aimodule.Service
+	AuthService         *authmodule.Service
+	UsersService        *usersmodule.Service
+	RoutineService      *routinemodule.Service
+	JournalsService     *journalsmodule.Service
+	CommunityService    *communitymodule.Service
+	AchievementsService *achievementsmodule.Service
+	EducationService    *educationmodule.Service
+	ContentService      *contentmodule.Service
+	AIService           *aimodule.Service
 }
 
 // ServerOption customizes server runtime assembly.
@@ -261,6 +263,11 @@ func (s *Server) registerRoutes(cfg config.Config) {
 			s.moduleDeps.CommunityService,
 			communityWriteLimiter(cfg),
 		)
+	}
+
+	if s.moduleDeps.AchievementsService != nil && s.moduleDeps.AuthService != nil {
+		achievementsGroup := apiGroup.Group("/achievements")
+		achievementsmodule.RegisterRoutes(achievementsGroup, s.moduleDeps.AuthService, s.moduleDeps.AchievementsService)
 	}
 
 	if s.moduleDeps.EducationService != nil && s.moduleDeps.AuthService != nil {
