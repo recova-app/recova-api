@@ -122,7 +122,7 @@ jobs:
           make migrate-up
 
       - name: Integration and contract test gate with DB
-        run: go test ./...
+        run: go test -p 1 ./...
 
       - name: E2E critical flow release validation
         env:

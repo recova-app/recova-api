@@ -150,6 +150,18 @@ jobs:
 
             cd "$remote_path"
             printf '%s' '${{ secrets.GHCR_READ_PACKAGES_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GH_USERNAME }}' --password-stdin
+            if ! command -v migrate >/dev/null 2>&1; then
+              install -d -m 755 "$HOME/.local/bin"
+              {
+                echo '#!/usr/bin/env sh'
+                echo 'set -eu'
+                echo 'docker run --rm --network host \'
+                echo '  -v "$PWD/migrations:/migrations:ro" \'
+                echo '  migrate/migrate:v4.19.0 "$@"'
+              } > "$HOME/.local/bin/migrate"
+              chmod +x "$HOME/.local/bin/migrate"
+            fi
+            export PATH="$HOME/.local/bin:$PATH"
 
             ./scripts/deploy/remote-deploy.sh \
               "$remote_path" \
