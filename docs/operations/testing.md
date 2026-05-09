@@ -93,6 +93,7 @@ Perintah verifikasi baseline:
 | `make test-integration`     | scripted checks untuk workflow tooling (mis. migrasi wrapper)         |
 | `make migrate-check`        | validasi state migration (versi/dirtiness)                            |
 | `make openapi-check`        | validasi OpenAPI source/generated + drift route runtime               |
+| `make scalar-check`         | validasi `scalar.config.json`, filepath docs, dan route docs runtime  |
 | `make security-scan`        | vulnerability scan dependency Go via govulncheck                      |
 | `make compose-smoke`        | smoke runtime container (`docker-compose.local.yml`)                  |
 | `make test-e2e`             | E2E critical flow suite + report JSON                                 |
@@ -119,11 +120,12 @@ Sebelum rilis:
 3. contract tests kompatibilitas lulus,
 4. smoke tests readiness lulus,
 5. critical E2E flows lulus.
+6. `make scalar-check` lulus.
 
 Tambahan gate:
 
-6. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
-7. report release confidence E2E + performance tersedia dan dapat diaudit.
+7. semua perubahan file/config dalam scope rilis memiliki test companion atau exception rationale terdokumentasi.
+8. report release confidence E2E + performance tersedia dan dapat diaudit.
 
 ## Related Documents
 

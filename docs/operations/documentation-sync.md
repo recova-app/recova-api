@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/documentation-sync.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Documentation Sync Operations
@@ -42,7 +42,8 @@ Aturan tambahan:
 
 | Jenis perubahan             | Dokumen minimum yang harus diperbarui                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Endpoint/contract API       | `docs/api-reference.md`, `docs/generated/routes.md`, dokumen modul terkait                                       |
+| Endpoint/contract API       | `docs/api-reference.md`, `docs/generated/routes.md`, `docs/generated/openapi.yaml`, dokumen modul terkait        |
+| API docs presentation       | `scalar.config.json`, `docs/api-reference.md`, `docs/operations/api-docs-generation.md`                          |
 | Auth/security               | `docs/operations/security.md`, `docs/modules/auth.md`, standar terkait                                           |
 | Database/schema             | `docs/database.md`, `docs/operations/database-migrations.md`                                                     |
 | Deployment/runtime          | `docs/operations/deployment.md`, `docs/operations/rollback.md`, post-deploy checks                               |
@@ -59,6 +60,7 @@ PR review wajib memeriksa:
 - apakah metadata dokumen valid dan `last_reviewed` diperbarui,
 - apakah link internal dokumen tetap valid,
 - apakah contoh payload aman dari data sensitif.
+- apakah `scalar.config.json` masih sinkron dengan halaman docs yang dipakai dan artefak OpenAPI generated.
 - apakah perubahan file/config memiliki test companion atau exception rationale.
 - apakah report release confidence (E2E + performance smoke) terlampir untuk release candidate.
 - apakah evidence decommission/maintenance terbaru tersedia bila runtime legacy sudah ditutup.
@@ -93,6 +95,7 @@ Debt `critical` dan `high` wajib diselesaikan sebelum rilis mayor.
 - [ ] perubahan kode memiliki update dokumen terdampak.
 - [ ] metadata wajib lengkap di dokumen baru/diubah.
 - [ ] route inventory/OpenAPI sinkron dengan kontrak runtime.
+- [ ] `scalar.config.json` sinkron dengan docs pages + artefak OpenAPI generated.
 - [ ] tidak ada konten sensitif mentah pada contoh log/payload.
 - [ ] action item documentation debt tercatat bila ada gap.
 - [ ] evidence release confidence terbaru tersedia untuk candidate rilis.

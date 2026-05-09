@@ -73,6 +73,44 @@ paths:
             text/plain:
               schema:
                 type: string
+  /openapi.yaml:
+    get:
+      tags:
+        - docs
+      operationId: getOpenAPIArtifact
+      summary: Mengekspos artefak OpenAPI YAML generated untuk tooling dokumentasi
+      responses:
+        '200':
+          description: Dokumen OpenAPI YAML tersedia
+          content:
+            application/yaml:
+              schema:
+                type: string
+        '503':
+          description: Dokumen OpenAPI belum tersedia pada runtime
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /docs/api:
+    get:
+      tags:
+        - docs
+      operationId: getScalarAPIReference
+      summary: Menyajikan halaman interaktif Scalar API reference
+      responses:
+        '200':
+          description: Halaman HTML Scalar API reference
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Halaman dokumentasi gagal dirender
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
   /api/v1/auth/google:
     post:
       tags:

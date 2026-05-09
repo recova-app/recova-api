@@ -41,6 +41,57 @@ func TestNewServer_HealthRoutes_ReturnExpectedStatus(t *testing.T) {
 	}
 }
 
+func TestNewServer_OpenAPIArtifactRoute_ReturnsGeneratedSpec(t *testing.T) {
+	srv := buildTestServer(t)
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/openapi.yaml", nil, map[string]string{
+		"Origin": "http://localhost:5173",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+
+	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+	if !strings.HasPrefix(contentType, "application/yaml") {
+		t.Fatalf("expected openapi content-type application/yaml, got: %q", contentType)
+	}
+
+	body := string(resp.Body)
+	if !strings.Contains(body, "openapi: 3.1.0") {
+		t.Fatalf("expected openapi yaml body, got: %s", httpharness.DebugBody(resp))
+	}
+}
+
+func TestNewServer_ScalarDocsRoute_ReturnsHTMLWithCSP(t *testing.T) {
+	srv := buildTestServer(t)
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/docs/api", nil, map[string]string{
+		"Origin": "http://localhost:5173",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+
+	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+	if !strings.HasPrefix(contentType, "text/html") {
+		t.Fatalf("expected text/html content type, got: %q", contentType)
+	}
+
+	csp := resp.Header.Get("Content-Security-Policy")
+	if !strings.Contains(csp, "https://cdn.jsdelivr.net/npm/@scalar/api-reference") {
+		t.Fatalf("expected scalar script source on csp header, got: %q", csp)
+	}
+	if !strings.Contains(csp, "'nonce-") {
+		t.Fatalf("expected nonce in csp header, got: %q", csp)
+	}
+
+	body := string(resp.Body)
+	if !strings.Contains(body, "@scalar/api-reference") {
+		t.Fatalf("expected scalar script tag in html body, got: %s", httpharness.DebugBody(resp))
+	}
+	if !strings.Contains(body, "url: '/openapi.yaml'") {
+		t.Fatalf("expected openapi url on scalar html initializer, got: %s", httpharness.DebugBody(resp))
+	}
+}
+
 // TestNewServer_NotFound_UsesStandardErrorEnvelope ensures unknown routes return API-standard error payload.
 func TestNewServer_NotFound_UsesStandardErrorEnvelope(t *testing.T) {
 	srv := buildTestServer(t)

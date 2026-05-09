@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/api-docs-generation.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend API Docs Generation
@@ -21,7 +21,8 @@ Artefak minimal:
 
 - source spec: `api/openapi/openapi.yaml`,
 - generated spec: `docs/generated/openapi.yaml`,
-- `docs/generated/routes.md`.
+- `docs/generated/routes.md`,
+- Scalar docs config: `scalar.config.json`.
 
 ## Security Rule
 
@@ -51,8 +52,13 @@ Gunakan command berikut:
 
 - `make openapi-generate`
 - `make openapi-check`
+- `make scalar-check`
+- `make scalar-preview` (untuk membuka runtime docs di `/docs/api`)
 
-Command dijalankan via wrapper `scripts/openapi.sh` yang memanggil `go run ./cmd/tools/openapi`.
+Command dijalankan via wrapper berikut:
+
+- `scripts/openapi.sh` untuk generate/check OpenAPI,
+- `scripts/scalar.sh` untuk validasi config Scalar dan preview runtime docs.
 
 ## Contract Drift Verification
 
@@ -75,12 +81,15 @@ Pada pipeline CI, job dokumentasi API minimal menjalankan:
 - generate artifact,
 - validate schema OpenAPI,
 - validate route inventory,
+- validate `scalar.config.json` dan keterbacaan semua filepath,
 - fail jika ada perubahan artefak yang belum dikomit.
 
 ## Manual Verification Checklist
 
 - artefak OpenAPI bisa dibaca tool validator,
 - route inventory sesuai endpoint yang didokumentasikan,
+- `scalar.config.json` memetakan route `type: openapi` ke `docs/generated/openapi.yaml`,
+- route runtime `/openapi.yaml` dan `/docs/api` tersedia serta tidak memuat credential/token nyata,
 - section auth dan error response tetap konsisten,
 - metadata file (`last_reviewed`, `source_path`) valid.
 
@@ -96,4 +105,6 @@ Pada pipeline CI, job dokumentasi API minimal menjalankan:
 - [OpenAPI Specification Latest](https://spec.openapis.org/oas/latest.html)
 - [OpenAPI Initiative](https://www.openapis.org/)
 - [Fiber Routing Guide](https://docs.gofiber.io/guide/routing/)
+- [Scalar Docs `scalar.config.json`](https://scalar.com/products/docs/configuration/scalar.config.json)
+- [Scalar Docs Navigation](https://scalar.com/products/docs/configuration/navigation)
 - [/Users/macbookpro/Development/bisakerja-api/docs/generated/routes.md](/Users/macbookpro/Development/bisakerja-api/docs/generated/routes.md)

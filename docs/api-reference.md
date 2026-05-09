@@ -23,6 +23,20 @@ Semua endpoint produk berada di bawah:
 /api/v1
 ```
 
+## OpenAPI And Scalar Surfaces
+
+Runtime dan repository sekarang memakai satu artefak OpenAPI generated yang sama.
+
+| Surface                  | Path/Route                    | Purpose                                                                       |
+| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------- |
+| Generated OpenAPI        | `docs/generated/openapi.yaml` | kontrak machine-readable kanonik untuk review, validasi drift, dan tooling    |
+| Runtime OpenAPI endpoint | `/openapi.yaml`               | endpoint raw OpenAPI YAML untuk konsumsi tooling/browser pada service runtime |
+| Runtime Scalar reference | `/docs/api`                   | dokumentasi API interaktif berbasis Scalar API Reference                      |
+| Scalar Docs config       | `scalar.config.json`          | peta navigasi repo docs + OpenAPI untuk preview/publish Scalar Docs           |
+
+Halaman `/docs/api` merender Scalar dari CDN resmi dan memuat kontrak dari `/openapi.yaml`.
+Tidak ada prefilled credentials atau token pada konfigurasi UI.
+
 ## Client Contract Context
 
 API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint harus menjaga:
@@ -89,8 +103,11 @@ Detail berikut masih perlu source tambahan:
 - [API Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/api-compatibility-matrix.md)
 - [API Versioning Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/api-versioning.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
+- [API Docs Generation](/Users/macbookpro/Development/recova-backend-v2/docs/operations/api-docs-generation.md)
 
 ## Source Reference
 
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
 - [/Users/macbookpro/Development/bisakerja-api/docs/api-reference.md](/Users/macbookpro/Development/bisakerja-api/docs/api-reference.md)
+- [Scalar API Reference Getting Started](https://scalar.com/products/api-references/getting-started)
+- [Scalar Docs Navigation](https://scalar.com/products/docs/configuration/navigation)

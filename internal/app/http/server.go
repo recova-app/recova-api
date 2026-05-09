@@ -284,6 +284,8 @@ func (s *Server) registerRoutes(cfg config.Config) {
 		aiGroup := apiGroup.Group("/ai")
 		aimodule.RegisterRoutes(aiGroup, s.moduleDeps.AuthService, s.moduleDeps.AIService, aiRequestLimiter(cfg))
 	}
+
+	s.registerAPIDocsRoutes()
 }
 
 func (s *Server) registerFallbackRoutes() {

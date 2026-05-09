@@ -47,6 +47,7 @@ assert_fail env RECOVA_DB_INTEGRATION_URL='postgresql://postgres:postgres@localh
 
 # openapi.sh must fail for unsupported command.
 assert_fail ./scripts/openapi.sh unknown-command
+assert_fail ./scripts/scalar.sh unknown-command
 
 # compose-smoke.sh must fail for missing compose file.
 assert_fail env COMPOSE_FILE="$temp_dir/not-found.yml" ./scripts/compose-smoke.sh
@@ -54,6 +55,7 @@ assert_fail env COMPOSE_FILE="$temp_dir/not-found.yml" ./scripts/compose-smoke.s
 # openapi generate/check must pass on repository baseline.
 ./scripts/openapi.sh generate >/dev/null
 ./scripts/openapi.sh check >/dev/null
+./scripts/scalar.sh check >/dev/null
 
 # security-scan.sh must call provided govulncheck binary with target argument.
 fake_vuln_log="$temp_dir/fake-govulncheck.log"

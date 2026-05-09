@@ -35,6 +35,7 @@ RUN apk add --no-cache ca-certificates tzdata wget && \
 
 WORKDIR /app
 COPY --from=builder /out/recova-api /app/recova-api
+COPY --from=builder /src/docs/generated/openapi.yaml /app/docs/generated/openapi.yaml
 
 EXPOSE 3000
 
