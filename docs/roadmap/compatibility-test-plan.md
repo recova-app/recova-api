@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/roadmap/compatibility-test-plan.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Compatibility Test Plan
@@ -31,6 +31,7 @@ Dokumen ini memandu pengujian kompatibilitas kontrak API publik.
 - `/api/v1/education/*`
 - `/api/v1/content/daily`
 - `/api/v1/ai/*`
+- `/api/v1/achievements/*`
 - `/health/live`, `/health/ready`
 
 ## Compatibility Assertions
@@ -43,6 +44,14 @@ Setiap endpoint prioritas diuji untuk:
 - response envelope shape,
 - error code mapping utama,
 - pagination metadata (untuk list endpoint).
+- additive fields tidak merusak parser klien lama.
+
+Assertion tambahan untuk enhancement:
+
+- statistik lanjutan: field existing tetap ada, field baru additive,
+- threaded comments: depth/replyCount/parentCommentId konsisten,
+- achievements: katalog dan progress memakai code stabil,
+- AI persona preference: whitelist persona + fallback default aman.
 
 ## Test Strategy
 

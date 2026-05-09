@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/ai-safety.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # AI Safety Operations
@@ -52,6 +52,7 @@ Metadata log minimum:
 - output AI harus melewati pemeriksaan safety sebelum dikirim ke client,
 - jika output diklasifikasi berisiko, return error aman tanpa memantulkan teks sensitif,
 - tambahkan metadata internal untuk audit keputusan safety.
+- pemilihan persona tidak boleh mem-bypass kebijakan safety; persona hanya mengubah gaya bahasa, bukan batas keamanan.
 
 ## Retention and Deletion Direction
 
@@ -71,6 +72,7 @@ Implementasi runtime saat ini:
 - fallback hanya dijalankan untuk kegagalan `timeout` atau `unavailable`,
 - kegagalan validasi payload respons provider dihentikan sebagai `DOWNSTREAM_ERROR`,
 - request logger hanya mencatat metadata route (tanpa body prompt/jurnal).
+- fallback persona default aman dipakai saat preferensi user belum ada atau invalid.
 
 ## Incident Triage Matrix
 
@@ -88,6 +90,7 @@ Implementasi runtime saat ini:
 - verifikasi timeout AI aktif,
 - verifikasi fallback behavior sesuai kebijakan,
 - verifikasi endpoint AI tercakup rate limit,
+- verifikasi whitelist persona AI dan default persona aman,
 - verifikasi tidak ada prompt mentah pada log sampling.
 
 ## Related Documents

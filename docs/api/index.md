@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api/index.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend API
@@ -28,6 +28,7 @@ Halaman ini memetakan dokumentasi kontrak API layanan backend Recova yang dikons
 - [API Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/api-compatibility-matrix.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
 - [API Versioning Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/api-versioning.md)
+- [Product Enhancement Contract Draft](/Users/macbookpro/Development/recova-backend-v2/docs/api/product-enhancement-contract-draft.yaml)
 
 ## Related Sections
 

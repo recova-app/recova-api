@@ -1,6 +1,6 @@
 ---
 title: AI Coach Module
-description: Kontrak modul AI Coach untuk chat pendampingan, riwayat percakapan, ringkasan progres, dan analisis onboarding dengan kontrol keamanan data.
+description: Kontrak modul AI Coach untuk chat pendampingan, riwayat percakapan, ringkasan progres, analisis onboarding, dan preferensi persona respons.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/ai-coach.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # AI Coach Module
@@ -18,6 +18,7 @@ last_reviewed: 2026-05-08
 - menerima prompt pengguna,
 - memproses permintaan ke provider AI melalui abstraction layer,
 - menyajikan chat history dan ringkasan,
+- menyimpan preferensi persona AI per pengguna,
 - menjaga safety dan privasi data AI.
 
 ## API Contract
@@ -34,18 +35,22 @@ Route prefix:
 | `GET`  | `/api/v1/ai/chat-history`        | Bearer     | ambil riwayat percakapan         |
 | `GET`  | `/api/v1/ai/summary`             | Bearer     | ambil ringkasan progres pengguna |
 | `POST` | `/api/v1/ai/onboarding-analysis` | Bearer     | analisis onboarding pengguna     |
+| `GET`  | `/api/v1/ai/persona-preferences` | Bearer     | ambil preferensi persona user    |
+| `PUT`  | `/api/v1/ai/persona-preferences` | Bearer     | ubah preferensi persona user     |
 
 ## Database Model
 
 Entitas utama:
 
 - `ai_chats` untuk histori percakapan (`role=user|model`, `content`, `created_at`),
+- `user_ai_persona_preferences` untuk konfigurasi persona user,
 - metadata request AI (`provider`, `model`, `latency`, `status`),
 - relasi riwayat AI ke `user_id`.
 
 Constraint minimum:
 
 - data AI terikat ke pemilik akun,
+- preferensi persona terikat unik per `user_id`,
 - retensi histori mengikuti kebijakan privasi.
 
 ## Authentication and Authorization
@@ -60,13 +65,24 @@ Constraint minimum:
 - timeout request AI wajib eksplisit,
 - fallback provider optional hanya dipakai untuk failure `timeout/unavailable`,
 - safety filtering dijalankan sebelum respons dikirim.
+- jika preferensi persona kosong, fallback ke persona default aman,
+- persona aktif harus dipakai saat membangun system instruction AI,
+- respons `ask-coach` sebaiknya menyertakan `persona_used` agar audit troubleshooting mudah.
 
 ## Validation Rules
 
 - prompt tidak boleh kosong,
 - batas panjang prompt wajib ditegakkan,
+- enum persona wajib whitelist,
 - parameter mode/opsi harus whitelist,
 - input invalid dipetakan ke `VALIDATION_ERROR`.
+
+Whitelist persona minimum:
+
+- `supportive`,
+- `friendly`,
+- `concise`,
+- `direct`.
 
 ## Error Contract
 
@@ -77,6 +93,7 @@ Constraint minimum:
 | provider invalid/error | `502` | `DOWNSTREAM_ERROR`    |
 | provider timeout/down  | `503` | `SERVICE_UNAVAILABLE` |
 | akses tidak diizinkan  | `403` | `FORBIDDEN`           |
+| melebihi rate limit    | `429` | `RATE_LIMITED`        |
 | kegagalan internal     | `500` | `INTERNAL_ERROR`      |
 
 ## Observability Contract
@@ -87,6 +104,7 @@ Log field minimum:
 - `user_id`,
 - `provider`,
 - `model`,
+- `persona`,
 - `ai_action`,
 - `status_code`.
 
@@ -95,6 +113,7 @@ Metrik minimum:
 - request success rate,
 - provider error rate,
 - timeout rate,
+- persona usage distribution,
 - p95 latency AI endpoint.
 
 Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
@@ -102,6 +121,7 @@ Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
 ## Testing Requirements
 
 - unit test validator prompt,
+- unit test validator persona preference,
 - unit test mapping error provider,
 - handler test auth + ownership,
 - integration test provider abstraction dengan mock,
@@ -109,7 +129,8 @@ Prompt mentah dan data sensitif tidak boleh dicatat di log umum.
 
 ## Open Gaps
 
-- retensi final histori chat lintas environment.
+- retensi final histori chat lintas environment,
+- daftar final persona tambahan di luar baseline.
 
 ## Related Documents
 

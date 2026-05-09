@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/index.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Modules
@@ -32,6 +32,7 @@ Halaman ini menjadi entry point dokumentasi per modul domain agar boundary fungs
 - [Check-Ins Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/check-ins.md)
 - [Streaks Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/streaks.md)
 - [Statistics Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/statistics.md)
+- [Achievements Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/achievements.md)
 - [Journals Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/journals.md)
 - [Community Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community.md)
 - [Community Moderation Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community-moderation.md)

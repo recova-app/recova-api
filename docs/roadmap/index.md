@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/roadmap/index.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Documentation Roadmap
@@ -34,6 +34,7 @@ Halaman ini merangkum prioritas dokumen yang harus tersedia agar perubahan layan
 - [Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-strategy.md)
 - [Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-matrix.md)
 - [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
+- [Recovery Enhancement Data Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/recovery-enhancement-data-plan.md)
 - [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
 
 ## Migration Execution and Cutover

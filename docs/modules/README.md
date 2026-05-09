@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/README.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Module Documentation Guide
@@ -41,6 +41,7 @@ Setiap dokumen modul wajib memiliki section:
 - [Auth Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/auth.md)
 - [Users Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/users.md)
 - [Routine Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/routine.md)
+- [Achievements Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/achievements.md)
 - [Journals Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/journals.md)
 - [Community Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/community.md)
 - [Education Module](/Users/macbookpro/Development/recova-backend-v2/docs/modules/education.md)
