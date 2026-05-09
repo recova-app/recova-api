@@ -41,11 +41,11 @@ WORKDIR /app
 COPY --from=builder /out/recova-api /app/recova-api
 COPY --from=builder /src/docs/generated/openapi.yaml /app/docs/generated/openapi.yaml
 
-EXPOSE 3000
+EXPOSE 3001
 
 USER recova:recova
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT:-3000}/health/live" >/dev/null || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT:-3001}/health/live" >/dev/null || exit 1
 
 ENTRYPOINT ["/app/recova-api"]

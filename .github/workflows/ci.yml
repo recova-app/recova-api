@@ -156,7 +156,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: recova_compose_test
-          APP_PORT: 3000
+          APP_PORT: 3001
           DB_PORT: 5432
         run: ./scripts/compose-smoke.sh
 
@@ -215,7 +215,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: recova_stage_ci
-          APP_PORT: 3000
+          APP_PORT: 3001
           DB_PORT: 5432
         run: |
           ./scripts/staging-deploy.sh

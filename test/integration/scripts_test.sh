@@ -333,8 +333,8 @@ CUTOVER_EXECUTION_ID="exec-success" \
 ./scripts/cutover-wave.sh all >/dev/null
 
 assert_file_contains "$fake_cutover_staging_log" "staging-ok"
-assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3000/health/live"
-assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3000/health/ready"
+assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3001/health/live"
+assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3001/health/ready"
 assert_file_contains "$fake_cutover_go_log" "test -count=1 ./test/contract -run ^TestContract_HealthResponses_ValidAgainstOpenAPI$||"
 assert_file_contains "$fake_cutover_go_log" "test -count=1 ./test/contract -run ^TestContract_AuthRouteParity_ValidAgainstOpenAPI$||"
 assert_file_contains "$fake_cutover_e2e_log" "wave65|$cutover_artifact_dir/exec-success-wave-65-e2e.json"
@@ -679,7 +679,7 @@ MIGRATE_BIN="$remote_temp_dir/migrate" \
   "staging" \
   "staging" \
   "3000" \
-  "http://127.0.0.1:3000" >/dev/null
+  "http://127.0.0.1:3001" >/dev/null
 
 assert_file_contains "$fake_remote_log" "git fetch origin develop --prune"
 assert_file_contains "$fake_remote_log" "git checkout -B develop origin/develop"
@@ -687,7 +687,7 @@ assert_file_not_contains "$fake_remote_log" "git reset --hard"
 assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
-assert_file_contains "$fake_remote_log" "curl -fsS --retry 4 --retry-delay 2 http://127.0.0.1:3000/openapi.yaml"
+assert_file_contains "$fake_remote_log" "curl -fsS --retry 4 --retry-delay 2 http://127.0.0.1:3001/openapi.yaml"
 
 # remote-deploy.sh must fail when APP_ENV is not staging.
 cat > "$remote_repo_dir/.env.bad" <<'ENVFILE'
@@ -708,7 +708,7 @@ assert_fail env \
     "staging" \
     "staging" \
     "3000" \
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3001"
 
 # deploy-staging workflow must stay develop-only and use immutable sha tag.
 assert_file_contains .github/workflows/deploy-staging.yml "branches:"

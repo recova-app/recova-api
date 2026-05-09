@@ -43,7 +43,7 @@ postgres_user="${POSTGRES_USER:-postgres}"
 postgres_password="${POSTGRES_PASSWORD:-postgres}"
 postgres_db="${POSTGRES_DB:-recova_db}"
 db_port="${DB_PORT:-5432}"
-app_port="${APP_PORT:-3000}"
+app_port="${APP_PORT:-3001}"
 
 api_base_url="${API_BASE_URL:-http://127.0.0.1:${app_port}}"
 database_url="postgresql://${postgres_user}:${postgres_password}@127.0.0.1:${db_port}/${postgres_db}?sslmode=disable"

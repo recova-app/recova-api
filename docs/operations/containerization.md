@@ -85,7 +85,7 @@ Implementasi repository saat ini:
 
 Implementasi repository saat ini:
 
-- `Dockerfile` mendefinisikan `HEALTHCHECK` ke `http://127.0.0.1:${PORT:-3000}/health/live`,
+- `Dockerfile` mendefinisikan `HEALTHCHECK` ke `http://127.0.0.1:${PORT:-3001}/health/live`,
 - `docker-compose.local.yml` menunggu `db` sehat (`depends_on.condition=service_healthy`) sebelum start API,
 - service `api` juga punya healthcheck liveness berbasis endpoint yang sama.
 

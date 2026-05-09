@@ -114,6 +114,11 @@ type UserAchievementProgress struct {
 	UpdatedAt       time.Time  `gorm:"not null;default:now();index:idx_user_achievement_progress_user,priority:2,sort:desc"`
 }
 
+// TableName maps achievement progress model to legacy singular table name.
+func (UserAchievementProgress) TableName() string {
+	return "user_achievement_progress"
+}
+
 // EducationContent stores one educational content item metadata.
 type EducationContent struct {
 	ID           string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`

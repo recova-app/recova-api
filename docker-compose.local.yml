@@ -33,13 +33,14 @@ services:
       DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-recova_db}?sslmode=disable
       DATABASE_SSL_MODE: disable
       APP_ENV: ${APP_ENV:-local}
+      PORT: ${PORT:-3001}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3001}:${PORT:-3001}"
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${PORT:-3000}/health/live >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${PORT:-3001}/health/live >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10

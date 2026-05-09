@@ -4,7 +4,7 @@ set -eu
 wave_input="${1:-${CUTOVER_WAVE:-all}}"
 artifact_dir="${CUTOVER_ARTIFACT_DIR:-artifacts/cutover}"
 execution_id="${CUTOVER_EXECUTION_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
-api_base_url="${API_BASE_URL:-http://127.0.0.1:${APP_PORT:-3000}}"
+api_base_url="${API_BASE_URL:-http://127.0.0.1:${APP_PORT:-3001}}"
 go_bin="${GO_BIN:-go}"
 curl_bin="${CURL_BIN:-curl}"
 run_staging_deploy="${RUN_STAGING_DEPLOY:-auto}"

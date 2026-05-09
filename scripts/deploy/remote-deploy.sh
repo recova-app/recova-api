@@ -8,7 +8,7 @@ compose_file="${4:-docker-compose.staging.yml}"
 runtime_env_file="${5:-.env.staging}"
 deploy_target="${6:-staging}"
 expected_app_env="${7:-staging}"
-app_port="${8:-3000}"
+app_port="${8:-3001}"
 app_base_url="${9:-}"
 migrate_bin="${MIGRATE_BIN:-migrate}"
 

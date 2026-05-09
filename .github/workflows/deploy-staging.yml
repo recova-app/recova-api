@@ -17,7 +17,7 @@ env:
   EXPECTED_APP_ENV: staging
   COMPOSE_FILE: docker-compose.staging.yml
   RUNTIME_ENV_FILE: .env.staging
-  DEFAULT_APP_PORT: "3000"
+  DEFAULT_APP_PORT: "3001"
 
 permissions:
   contents: read
@@ -64,6 +64,11 @@ jobs:
           registry: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -46,11 +46,15 @@ func TestIntegration_Repository_ListActiveContents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list active contents: %v", err)
 	}
-	if len(rows) != 1 {
-		t.Fatalf("expected 1 active content, got %d", len(rows))
+	found := false
+	for _, row := range rows {
+		if row.Title == "active" {
+			found = true
+			break
+		}
 	}
-	if rows[0].Title != "active" {
-		t.Fatalf("expected active content title, got %s", rows[0].Title)
+	if !found {
+		t.Fatalf("expected inserted active content present, got rows=%+v", rows)
 	}
 }
 

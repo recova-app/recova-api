@@ -46,9 +46,9 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: recova_cutover_ci_test
-      APP_PORT: 3000
+      APP_PORT: 3001
       DB_PORT: 5432
-      API_BASE_URL: http://127.0.0.1:3000
+      API_BASE_URL: http://127.0.0.1:3001
       RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_cutover_ci_test?sslmode=disable
       CUTOVER_ARTIFACT_DIR: artifacts/cutover
       CUTOVER_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}

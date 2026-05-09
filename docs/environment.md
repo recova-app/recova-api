@@ -40,10 +40,10 @@ Prinsip inti:
 | `APP_NAME`   | Yes      | `recova-backend-v2`       | identitas service untuk startup log dan telemetry |
 | `APP_ENV`    | Yes      | `local`                   | allowed: `local`, `test`, `staging`, `production` |
 | `NODE_ENV`   | Yes      | `development`             | mode runtime standar ecosystem                    |
-| `PORT`       | Yes      | `3000`                    | port HTTP service                                 |
+| `PORT`       | Yes      | `3001`                    | port HTTP service                                 |
 | `API_PREFIX` | Yes      | `/api/v1`                 | prefix endpoint publik                            |
 | `DOCS_URL`   | Yes      | `https://docs.recova.app` | URL dokumentasi publik bila tersedia              |
-| `APP_URL`    | Yes      | `http://localhost:3000`   | base URL backend untuk callback/link              |
+| `APP_URL`    | Yes      | `http://localhost:3001`   | base URL backend untuk callback/link              |
 
 ## Database Variables
 
