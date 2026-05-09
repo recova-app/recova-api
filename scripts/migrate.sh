@@ -7,6 +7,8 @@ migration_version="${2:-}"
 migrate_bin="${MIGRATE_BIN:-migrate}"
 migrations_path="${MIGRATIONS_PATH:-migrations}"
 database_url="${DATABASE_URL:-}"
+docker_bin="${DOCKER_BIN:-docker}"
+migrate_image="${MIGRATE_IMAGE:-migrate/migrate:v4.19.0}"
 
 usage() {
   echo "usage: scripts/migrate.sh <up|down|status|check|force> [arg]" >&2
@@ -27,24 +29,47 @@ if [ ! -d "$migrations_path" ]; then
   exit 1
 fi
 
+runner_mode="binary"
+migrations_arg="$migrations_path"
 if ! command -v "$migrate_bin" >/dev/null 2>&1; then
-  echo "migrate binary not found: $migrate_bin" >&2
-  exit 1
+  if [ "$migrate_bin" != "migrate" ]; then
+    echo "migrate binary not found: $migrate_bin" >&2
+    exit 1
+  fi
+  if ! command -v "$docker_bin" >/dev/null 2>&1; then
+    echo "migrate binary not found and docker unavailable" >&2
+    exit 1
+  fi
+  migrations_abs="$(cd "$migrations_path" && pwd)"
+  runner_mode="docker"
+  migrations_arg="/migrations"
 fi
+
+run_migrate() {
+  if [ "$runner_mode" = "binary" ]; then
+    "$migrate_bin" -path "$migrations_arg" -database "$database_url" "$@"
+    return
+  fi
+
+  "$docker_bin" run --rm --network host \
+    -v "$migrations_abs:/migrations:ro" \
+    "$migrate_image" \
+    -path "$migrations_arg" -database "$database_url" "$@"
+}
 
 case "$command_name" in
   up)
-    exec "$migrate_bin" -path "$migrations_path" -database "$database_url" up
+    run_migrate up
     ;;
   down)
-    exec "$migrate_bin" -path "$migrations_path" -database "$database_url" down "$steps"
+    run_migrate down "$steps"
     ;;
   status)
-    exec "$migrate_bin" -path "$migrations_path" -database "$database_url" version
+    run_migrate version
     ;;
   check)
     set +e
-    output="$("$migrate_bin" -path "$migrations_path" -database "$database_url" version 2>&1)"
+    output="$(run_migrate version 2>&1)"
     status_code=$?
     set -e
     if [ "$status_code" -ne 0 ]; then
@@ -63,7 +88,7 @@ case "$command_name" in
       echo "force version must be provided" >&2
       exit 1
     fi
-    exec "$migrate_bin" -path "$migrations_path" -database "$database_url" force "$migration_version"
+    run_migrate force "$migration_version"
     ;;
   *)
     usage

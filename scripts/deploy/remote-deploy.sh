@@ -79,7 +79,6 @@ show_diagnostics() {
 require_command git
 require_command docker
 require_command curl
-require_command "$migrate_bin"
 
 cd "$app_dir"
 

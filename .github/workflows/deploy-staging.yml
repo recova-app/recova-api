@@ -175,5 +175,6 @@ jobs:
           script: |
             set +e
             cd "${{ secrets.DEPLOY_REMOTE_PATH }}"
+            export APP_IMAGE="${{ needs.build-and-push.outputs.image_ref }}"
             docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" ps
             docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" logs --tail=150 api
