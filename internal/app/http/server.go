@@ -389,7 +389,7 @@ func (s *Server) errorHandler(requestIDHeader string) fiber.ErrorHandler {
 		}
 
 		s.logger.Error("request failed",
-			"requestId", reqID,
+			"request_id", reqID,
 			"method", c.Method(),
 			"path", c.Path(),
 			"status", mapped.Status,

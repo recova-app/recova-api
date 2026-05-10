@@ -61,5 +61,5 @@ func (h *Handler) Logout(c fiber.Ctx) error {
 	}
 
 	c.Cookie(h.service.ExpiredRefreshCookie())
-	return c.Status(fiber.StatusOK).JSON(response.Success("Logout berhasil", fiber.Map{"loggedOut": true}, nil))
+	return c.Status(fiber.StatusOK).JSON(response.Success("Logout berhasil", fiber.Map{"logged_out": true}, nil))
 }

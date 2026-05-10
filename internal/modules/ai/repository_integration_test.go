@@ -55,7 +55,7 @@ func TestIntegration_Repository_ListRecentChats_UserScopedAndAscending(t *testin
 		t.Fatalf("expected rows scoped to userA, got %+v", rows)
 	}
 	if rows[0].CreatedAt.After(rows[1].CreatedAt) {
-		t.Fatalf("expected ascending createdAt order, got %s then %s", rows[0].CreatedAt, rows[1].CreatedAt)
+		t.Fatalf("expected ascending created_at order, got %s then %s", rows[0].CreatedAt, rows[1].CreatedAt)
 	}
 }
 

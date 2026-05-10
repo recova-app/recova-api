@@ -49,7 +49,7 @@ Setiap endpoint prioritas diuji untuk:
 Assertion tambahan untuk enhancement:
 
 - statistik lanjutan: field existing tetap ada, field baru additive,
-- threaded comments: depth/replyCount/parentCommentId konsisten,
+- threaded comments: depth/reply_count/parent_comment_id konsisten,
 - achievements: katalog dan progress memakai code stabil,
 - AI persona preference: whitelist persona + fallback default aman.
 

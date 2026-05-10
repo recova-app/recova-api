@@ -48,21 +48,21 @@ func (r *Repository) FindUserByID(ctx context.Context, userID string) (models.Us
 }
 
 // FindCheckInByUserAndDate loads check-in by user and UTC date.
-func (r *Repository) FindCheckInByUserAndDate(ctx context.Context, userID string, checkInDate time.Time) (models.CheckIn, error) {
-	var checkIn models.CheckIn
+func (r *Repository) FindCheckInByUserAndDate(ctx context.Context, userID string, check_in_date time.Time) (models.CheckIn, error) {
+	var check_in models.CheckIn
 	err := r.db.WithContext(ctx).
 		Where("user_id = ?", strings.TrimSpace(userID)).
-		Where("check_in_date = ?", checkInDate.UTC()).
-		First(&checkIn).Error
+		Where("check_in_date = ?", check_in_date.UTC()).
+		First(&check_in).Error
 	if err != nil {
 		return models.CheckIn{}, err
 	}
-	return checkIn, nil
+	return check_in, nil
 }
 
 // CreateCheckIn inserts a check-in row.
-func (r *Repository) CreateCheckIn(ctx context.Context, checkIn models.CheckIn) error {
-	return r.db.WithContext(ctx).Create(&checkIn).Error
+func (r *Repository) CreateCheckIn(ctx context.Context, check_in models.CheckIn) error {
+	return r.db.WithContext(ctx).Create(&check_in).Error
 }
 
 // CreateJournal inserts journal row linked with user/check-in.
@@ -102,20 +102,20 @@ func (r *Repository) CloseActiveStreak(ctx context.Context, streakID string, end
 
 // LatestSuccessfulCheckInBeforeDate returns latest successful check-in date before target date.
 func (r *Repository) LatestSuccessfulCheckInBeforeDate(ctx context.Context, userID string, targetDate time.Time) (*time.Time, error) {
-	var checkIn models.CheckIn
+	var check_in models.CheckIn
 	err := r.db.WithContext(ctx).
 		Where("user_id = ?", strings.TrimSpace(userID)).
 		Where("is_successful = ?", true).
 		Where("check_in_date < ?", targetDate.UTC()).
 		Order("check_in_date desc").
-		First(&checkIn).Error
+		First(&check_in).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	value := checkIn.CheckInDate.UTC()
+	value := check_in.CheckInDate.UTC()
 	return &value, nil
 }
 

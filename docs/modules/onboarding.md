@@ -45,7 +45,6 @@ Aturan:
 - request harus datang dari user terautentikasi,
 - semua field wajib divalidasi sebelum disimpan,
 - data onboarding tidak boleh menerima `user_id` dari client sebagai sumber kebenaran.
-- payload kompatibilitas juga menerima alias legacy `userWhy`, `checkinTime`, dan `dependencyLevel`.
 
 ## Onboarding Completion State
 

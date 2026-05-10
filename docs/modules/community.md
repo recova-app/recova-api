@@ -29,14 +29,14 @@ Route prefix:
 /api/v1/community
 ```
 
-| Method | Path                                                    | Auth class | Purpose               |
-| ------ | ------------------------------------------------------- | ---------- | --------------------- |
-| `GET`  | `/api/v1/community`                                     | Bearer     | ambil feed komunitas  |
-| `POST` | `/api/v1/community`                                     | Bearer     | buat post baru        |
-| `POST` | `/api/v1/community/:postId/comments`                    | Bearer     | tambah komentar       |
-| `GET`  | `/api/v1/community/:postId/comments`                    | Bearer     | ambil thread komentar |
-| `POST` | `/api/v1/community/:postId/comments/:commentId/replies` | Bearer     | tambah reply komentar |
-| `POST` | `/api/v1/community/:postId/like`                        | Bearer     | toggle like/unlike    |
+| Method | Path                                                      | Auth class | Purpose               |
+| ------ | --------------------------------------------------------- | ---------- | --------------------- |
+| `GET`  | `/api/v1/community`                                       | Bearer     | ambil feed komunitas  |
+| `POST` | `/api/v1/community`                                       | Bearer     | buat post baru        |
+| `POST` | `/api/v1/community/:post_id/comments`                     | Bearer     | tambah komentar       |
+| `GET`  | `/api/v1/community/:post_id/comments`                     | Bearer     | ambil thread komentar |
+| `POST` | `/api/v1/community/:post_id/comments/:comment_id/replies` | Bearer     | tambah reply komentar |
+| `POST` | `/api/v1/community/:post_id/like`                         | Bearer     | toggle like/unlike    |
 
 ## Database Model
 
@@ -76,8 +76,8 @@ Constraint minimum:
 - konten post/comment wajib non-empty,
 - kategori post yang diizinkan: `saran`, `motivasi`, `cerita`, `pertanyaan`, `bantuan`,
 - batas panjang konten ditegakkan,
-- `postId` harus valid,
-- `commentId` parent reply harus valid,
+- `post_id` harus valid,
+- `comment_id` parent reply harus valid,
 - parent reply harus berada di post yang sama,
 - payload invalid dipetakan ke `VALIDATION_ERROR`.
 
@@ -86,7 +86,7 @@ Constraint minimum:
 - struktur komentar memakai adjacency list (`parent_comment_id`) dengan traversal rekursif terkontrol,
 - batas kedalaman thread adalah `2` (root depth `0`, reply maksimal depth `2`),
 - query thread wajib deterministic by `created_at` lalu `id`,
-- response thread memuat `depth`, `parentCommentId`, `replyCount`,
+- response thread memuat `depth`, `parent_comment_id`, `reply_count`,
 - implementasi harus aman terhadap siklus data (cycle) lewat constraint/check query traversal.
 
 ## Error Contract

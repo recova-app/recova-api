@@ -60,7 +60,7 @@ type ListCommentThreadQuery struct {
 // AuthorPayload describes visible public author info on community feed.
 type AuthorPayload struct {
 	Nickname      string `json:"nickname"`
-	CurrentStreak int    `json:"currentStreak"`
+	CurrentStreak int    `json:"current_streak"`
 }
 
 // PostPayload is one community post payload.
@@ -69,58 +69,58 @@ type PostPayload struct {
 	Title        *string       `json:"title"`
 	Content      string        `json:"content"`
 	Category     string        `json:"category"`
-	CommentCount int           `json:"commentCount"`
-	LikeCount    int           `json:"likeCount"`
-	CreatedAt    string        `json:"createdAt"`
+	CommentCount int           `json:"comment_count"`
+	LikeCount    int           `json:"like_count"`
+	CreatedAt    string        `json:"created_at"`
 	Author       AuthorPayload `json:"author"`
 }
 
 // CommentPayload is payload for created comment response.
 type CommentPayload struct {
 	ID              string  `json:"id"`
-	PostID          string  `json:"postId"`
-	UserID          string  `json:"userId"`
-	ParentCommentID *string `json:"parentCommentId"`
+	PostID          string  `json:"post_id"`
+	UserID          string  `json:"user_id"`
+	ParentCommentID *string `json:"parent_comment_id"`
 	Content         string  `json:"content"`
 	Depth           int     `json:"depth"`
-	ReplyCount      int     `json:"replyCount"`
-	CreatedAt       string  `json:"createdAt"`
+	ReplyCount      int     `json:"reply_count"`
+	CreatedAt       string  `json:"created_at"`
 }
 
 // CommentThreadPayload is payload for one post comment thread.
 type CommentThreadPayload struct {
-	PostID   string               `json:"postId"`
+	PostID   string               `json:"post_id"`
 	Comments []CommentNodePayload `json:"comments"`
 }
 
 // CommentNodePayload is one threaded comment node.
 type CommentNodePayload struct {
 	ID              string               `json:"id"`
-	PostID          string               `json:"postId"`
-	UserID          string               `json:"userId"`
-	ParentCommentID *string              `json:"parentCommentId"`
+	PostID          string               `json:"post_id"`
+	UserID          string               `json:"user_id"`
+	ParentCommentID *string              `json:"parent_comment_id"`
 	Content         string               `json:"content"`
 	Depth           int                  `json:"depth"`
-	ReplyCount      int                  `json:"replyCount"`
-	CreatedAt       string               `json:"createdAt"`
+	ReplyCount      int                  `json:"reply_count"`
+	CreatedAt       string               `json:"created_at"`
 	Replies         []CommentNodePayload `json:"replies"`
 }
 
 // ReplyPayload is payload for one created reply.
 type ReplyPayload struct {
 	ID              string `json:"id"`
-	PostID          string `json:"postId"`
-	UserID          string `json:"userId"`
-	ParentCommentID string `json:"parentCommentId"`
+	PostID          string `json:"post_id"`
+	UserID          string `json:"user_id"`
+	ParentCommentID string `json:"parent_comment_id"`
 	Content         string `json:"content"`
 	Depth           int    `json:"depth"`
-	CreatedAt       string `json:"createdAt"`
+	CreatedAt       string `json:"created_at"`
 }
 
 // ToggleLikePayload is payload for toggle-like response.
 type ToggleLikePayload struct {
-	LikedCount int  `json:"likedCount"`
-	IsLiked    bool `json:"isLiked"`
+	LikedCount int  `json:"liked_count"`
+	IsLiked    bool `json:"is_liked"`
 }
 
 func formatRFC3339UTC(ts time.Time) string {

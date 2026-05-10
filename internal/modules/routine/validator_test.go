@@ -16,6 +16,6 @@ func TestNormalizeActivitySummaryWindow_ValidationError(t *testing.T) {
 	raw := 6
 	_, err := NormalizeActivitySummaryWindow(&raw)
 	if err == nil {
-		t.Fatal("expected validation error for windowDays < 7")
+		t.Fatal("expected validation error for window_days < 7")
 	}
 }

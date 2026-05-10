@@ -29,48 +29,48 @@ GET /api/v1/routine/statistics/activity-summary
 
 Field minimum `GET /api/v1/routine/statistics`:
 
-- `currentStreak`,
-- `longestStreak`,
-- `totalCheckins`,
-- `streakCalendar`,
-- `relapseCount`,
-- `relapseRate`,
-- `recoverySuccessRate`,
-- `checkinConsistencyScore`,
-- `weeklyProgress`,
-- `monthlyProgress`,
-- `moodTrend`.
+- `current_streak`,
+- `longest_streak`,
+- `total_checkins`,
+- `streak_calendar`,
+- `relapse_count`,
+- `relapse_rate`,
+- `recovery_success_rate`,
+- `checkin_consistency_score`,
+- `weekly_progress`,
+- `monthly_progress`,
+- `mood_trend`.
 
 Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 
-- `recentActivity`,
-- `windowDays`,
-- `successfulCheckins`,
+- `recent_activity`,
+- `window_days`,
+- `successful_checkins`,
 - `relapses`,
-- `activeDays`.
+- `active_days`.
 
-Contoh struktur `moodTrend`:
+Contoh struktur `mood_trend`:
 
 - `[]` berisi `{date, dominantMood, successfulRatio}`.
 
-Contoh struktur `weeklyProgress`/`monthlyProgress`:
+Contoh struktur `weekly_progress`/`monthly_progress`:
 
-- `{windowDays, currentSuccessfulCheckins, previousSuccessfulCheckins, delta, deltaRate}`.
+- `{window_days, current_successful_checkins, previous_successful_checkins, delta, delta_rate}`.
 
 ## Computation Rules
 
 - statistik dibaca dari sumber data check-in dan streak yang konsisten,
-- `totalCheckins` menghitung check-in sukses valid non-duplicate,
-- `relapseCount` menghitung check-in gagal valid non-duplicate,
-- `relapseRate` = `relapseCount / (successfulCheckins + relapseCount)`,
-- `recoverySuccessRate` = `successfulCheckins / (successfulCheckins + relapseCount)`,
-- `checkinConsistencyScore` memakai rasio hari aktif pada rolling 30 hari,
-- `weeklyProgress` dan `monthlyProgress` dihitung dari baseline window sebelumnya (week-over-week dan month-over-month),
+- `total_checkins` menghitung check-in sukses valid non-duplicate,
+- `relapse_count` menghitung check-in gagal valid non-duplicate,
+- `relapse_rate` = `relapse_count / (successful_checkins + relapse_count)`,
+- `recovery_success_rate` = `successful_checkins / (successful_checkins + relapse_count)`,
+- `checkin_consistency_score` memakai rasio hari aktif pada rolling 30 hari,
+- `weekly_progress` dan `monthly_progress` dihitung dari baseline window sebelumnya (week-over-week dan month-over-month),
 - semua angka statistik harus non-negatif,
 - data null pada pengguna baru harus dimap ke nilai nol yang aman.
 - boundary hitung harian memakai UTC,
 - semua rasio wajib dibulatkan konsisten (misalnya 2 desimal) sebelum dikirim ke client.
-- endpoint `activity-summary` memakai default `windowDays=30` jika query tidak dikirim.
+- endpoint `activity-summary` memakai default `window_days=30` jika query tidak dikirim.
 
 ## Freshness Rules
 
@@ -91,7 +91,7 @@ Contoh struktur `weeklyProgress`/`monthlyProgress`:
 
 ## Compatibility Rules
 
-- field statistik existing (`currentStreak`, `longestStreak`, `totalCheckins`, `streakCalendar`) tetap dipertahankan untuk kompatibilitas klien,
+- field statistik existing (`current_streak`, `longest_streak`, `total_checkins`, `streak_calendar`) tetap dipertahankan untuk kompatibilitas klien,
 - field baru bersifat additive dan optional-safe pada klien lama,
 - penghapusan atau rename field statistik existing harus dianggap breaking change.
 

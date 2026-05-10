@@ -79,7 +79,7 @@ func TestService_BuildUserPayload(t *testing.T) {
 			UserWhy:     &reason,
 			CheckInTime: &checkin,
 		},
-		onboardingCompleted: true,
+		onboarding_completed: true,
 	}
 	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
 
@@ -165,13 +165,13 @@ func (f *fakeTokenProvider) ExpiredRefreshCookie() *fiber.Cookie {
 func (f *fakeTokenProvider) RefreshCookieValue(_ fiber.Ctx) string { return "refresh-token" }
 
 type fakeAuthRepo struct {
-	userByGoogle        models.User
-	userByID            models.User
-	onboardingCompleted bool
-	storedRefresh       models.AuthRefreshToken
-	createdRefreshToken models.AuthRefreshToken
-	revokedTokenID      string
-	rotatedFromTokenID  string
+	userByGoogle         models.User
+	userByID             models.User
+	onboarding_completed bool
+	storedRefresh        models.AuthRefreshToken
+	createdRefreshToken  models.AuthRefreshToken
+	revokedTokenID       string
+	rotatedFromTokenID   string
 }
 
 func (r *fakeAuthRepo) FindOrCreateUserByGoogleIdentity(_ context.Context, _ GoogleIdentity) (models.User, error) {
@@ -189,7 +189,7 @@ func (r *fakeAuthRepo) FindUserByID(_ context.Context, _ string) (models.User, e
 }
 
 func (r *fakeAuthRepo) IsOnboardingCompleted(_ context.Context, _ string) (bool, error) {
-	return r.onboardingCompleted, nil
+	return r.onboarding_completed, nil
 }
 
 func (r *fakeAuthRepo) CreateRefreshToken(_ context.Context, token models.AuthRefreshToken) error {

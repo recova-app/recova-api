@@ -45,7 +45,7 @@ func (s *Service) GetCurrentUser(ctx context.Context, userID string) (UserProfil
 		return UserProfilePayload{}, errs.New(errs.CodeInternalError, "Gagal membaca profil pengguna", nil, err)
 	}
 
-	completed, err := s.onboardingCompleted(ctx, userID)
+	completed, err := s.onboarding_completed(ctx, userID)
 	if err != nil {
 		return UserProfilePayload{}, err
 	}
@@ -126,7 +126,7 @@ func (s *Service) ResetUserDataForTesting(ctx context.Context, userID string) er
 	return nil
 }
 
-func (s *Service) onboardingCompleted(ctx context.Context, userID string) (bool, error) {
+func (s *Service) onboarding_completed(ctx context.Context, userID string) (bool, error) {
 	_, err := s.repo.FindProfileByUserID(ctx, userID)
 	if err == nil {
 		return true, nil

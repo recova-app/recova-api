@@ -59,8 +59,12 @@ func main() {
 }
 
 func runGenerate() error {
-	if _, err := contractopenapi.LoadAndValidate(openAPISourcePath); err != nil {
+	sourceDoc, err := contractopenapi.LoadAndValidate(openAPISourcePath)
+	if err != nil {
 		return fmt.Errorf("source spec invalid: %w", err)
+	}
+	if err := contractopenapi.ValidateProductionReadiness(sourceDoc); err != nil {
+		return err
 	}
 
 	sourceBytes, err := contractopenapi.ReadSpecBytes(openAPISourcePath)
@@ -75,6 +79,11 @@ func runGenerate() error {
 	runtimeRouteSet, err := runtimeRouteSet()
 	if err != nil {
 		return err
+	}
+	specRouteSet := contractopenapi.SpecRouteSet(sourceDoc)
+	drift := contractopenapi.CompareRouteSets(runtimeRouteSet, specRouteSet)
+	if drift.HasDrift() {
+		return fmt.Errorf("route-spec drift detected\n%s", formatDrift(drift))
 	}
 
 	routesDoc := renderRouteInventory(runtimeRouteSet)
@@ -120,6 +129,12 @@ func runCheck() error {
 
 	if sourceDoc.OpenAPI == "" {
 		return errors.New("OpenAPI source must include the `openapi` field")
+	}
+	if err := contractopenapi.ValidateProductionReadiness(sourceDoc); err != nil {
+		return err
+	}
+	if err := contractopenapi.ValidateProductionReadiness(generatedDoc); err != nil {
+		return fmt.Errorf("generated spec production-readiness invalid: %w", err)
 	}
 
 	expectedRoutesDoc := renderRouteInventory(runtimeRouteSet)

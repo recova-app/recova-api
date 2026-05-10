@@ -27,8 +27,8 @@ type criticalFlowStep struct {
 type criticalFlowReport struct {
 	Suite       string             `json:"suite"`
 	Scope       string             `json:"scope"`
-	GeneratedAt string             `json:"generatedAt"`
-	DurationMs  int64              `json:"durationMs"`
+	GeneratedAt string             `json:"generated_at"`
+	DurationMs  int64              `json:"duration_ms"`
 	Status      string             `json:"status"`
 	Steps       []criticalFlowStep `json:"steps"`
 }
@@ -56,7 +56,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		writeJSONReport(t, os.Getenv("RECOVA_E2E_REPORT_PATH"), report)
 	})
 
-	var accessToken string
+	var access_token string
 	var refreshCookie string
 	var communityPostID string
 	var communityCommentID string
@@ -96,8 +96,8 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 		httpharness.RequireSuccessEnvelope(t, resp.JSON)
 
-		accessToken = readSessionAccessToken(resp.JSON)
-		if strings.TrimSpace(accessToken) == "" {
+		access_token = readSessionAccessToken(resp.JSON)
+		if strings.TrimSpace(access_token) == "" {
 			return fmt.Errorf("access token is empty")
 		}
 
@@ -117,8 +117,8 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		}
 		httpharness.RequireSuccessEnvelope(t, resp.JSON)
 
-		accessToken = readSessionAccessToken(resp.JSON)
-		if strings.TrimSpace(accessToken) == "" {
+		access_token = readSessionAccessToken(resp.JSON)
+		if strings.TrimSpace(access_token) == "" {
 			return fmt.Errorf("refreshed access token is empty")
 		}
 
@@ -138,70 +138,70 @@ func TestE2E_CriticalFlows(t *testing.T) {
 				"motivation": "keluarga",
 			},
 			"dependency_level": "Sedang",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if resp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("expected 201 got %d body=%s", resp.StatusCode, string(resp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, resp.JSON)
 
-		meResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/users/me", nil, bearerHeaders(accessToken))
+		meResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/users/me", nil, bearerHeaders(access_token))
 		if meResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("users/me expected 200 got %d body=%s", meResp.StatusCode, string(meResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, meResp.JSON)
 		if !readOnboardingCompleted(meResp.JSON) {
-			return fmt.Errorf("expected onboardingCompleted=true")
+			return fmt.Errorf("expected onboarding_completed=true")
 		}
 		return nil
 	})
 
 	runStep("daily checkin and statistics", func() error {
 		checkinResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/routine/checkin", map[string]any{
-			"mood":         "tenang",
-			"isSuccessful": true,
-			"commitment":   "fokus 10 menit",
-		}, bearerHeaders(accessToken))
+			"mood":          "tenang",
+			"is_successful": true,
+			"commitment":    "fokus 10 menit",
+		}, bearerHeaders(access_token))
 		if checkinResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("checkin expected 200 got %d body=%s", checkinResp.StatusCode, string(checkinResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, checkinResp.JSON)
 
-		statsResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/routine/statistics", nil, bearerHeaders(accessToken))
+		statsResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/routine/statistics", nil, bearerHeaders(access_token))
 		if statsResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("statistics expected 200 got %d body=%s", statsResp.StatusCode, string(statsResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, statsResp.JSON)
 
-		totalCheckins := readNestedFloat(statsResp.JSON, "data", "totalCheckins")
-		if totalCheckins < 1 {
-			return fmt.Errorf("expected totalCheckins >= 1, got %.0f", totalCheckins)
+		total_checkins := readNestedFloat(statsResp.JSON, "data", "total_checkins")
+		if total_checkins < 1 {
+			return fmt.Errorf("expected total_checkins >= 1, got %.0f", total_checkins)
 		}
 
-		summaryResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=30", nil, bearerHeaders(accessToken))
+		summaryResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/routine/statistics/activity-summary?window_days=30", nil, bearerHeaders(access_token))
 		if summaryResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("activity summary expected 200 got %d body=%s", summaryResp.StatusCode, string(summaryResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, summaryResp.JSON)
-		if readNestedFloat(summaryResp.JSON, "data", "windowDays") != 30 {
-			return fmt.Errorf("activity summary windowDays mismatch")
+		if readNestedFloat(summaryResp.JSON, "data", "window_days") != 30 {
+			return fmt.Errorf("activity summary window_days mismatch")
 		}
 		return nil
 	})
 
 	runStep("achievements catalog/progress/unlocked", func() error {
-		catalogResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/catalog", nil, bearerHeaders(accessToken))
+		catalogResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/catalog", nil, bearerHeaders(access_token))
 		if catalogResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("achievements catalog expected 200 got %d body=%s", catalogResp.StatusCode, string(catalogResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, catalogResp.JSON)
 
-		progressResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/progress", nil, bearerHeaders(accessToken))
+		progressResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/progress", nil, bearerHeaders(access_token))
 		if progressResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("achievements progress expected 200 got %d body=%s", progressResp.StatusCode, string(progressResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, progressResp.JSON)
 
-		unlockedResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/unlocked", nil, bearerHeaders(accessToken))
+		unlockedResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/achievements/unlocked", nil, bearerHeaders(access_token))
 		if unlockedResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("achievements unlocked expected 200 got %d body=%s", unlockedResp.StatusCode, string(unlockedResp.Body))
 		}
@@ -212,13 +212,13 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	runStep("journals create/list", func() error {
 		createResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/journals", map[string]any{
 			"content": "today I successfully resisted the urge",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if createResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("journals create expected 201 got %d body=%s", createResp.StatusCode, string(createResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, createResp.JSON)
 
-		listResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/journals", nil, bearerHeaders(accessToken))
+		listResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/journals", nil, bearerHeaders(access_token))
 		if listResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("journals list expected 200 got %d body=%s", listResp.StatusCode, string(listResp.Body))
 		}
@@ -233,7 +233,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		createResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community", map[string]any{
 			"content":  "stay strong, one day at a time",
 			"category": "motivasi",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if createResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("community create expected 201 got %d body=%s", createResp.StatusCode, string(createResp.Body))
 		}
@@ -245,7 +245,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		commentResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/comments", map[string]any{
 			"content": "supportive comment",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if commentResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("community comment expected 201 got %d body=%s", commentResp.StatusCode, string(commentResp.Body))
 		}
@@ -257,16 +257,16 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		replyResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/comments/"+communityCommentID+"/replies", map[string]any{
 			"content": "reply dukungan lanjutan",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if replyResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("community reply expected 201 got %d body=%s", replyResp.StatusCode, string(replyResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, replyResp.JSON)
-		if readNestedString(replyResp.JSON, "data", "parentCommentId") != communityCommentID {
-			return fmt.Errorf("reply parentCommentId mismatch")
+		if readNestedString(replyResp.JSON, "data", "parent_comment_id") != communityCommentID {
+			return fmt.Errorf("reply parent_comment_id mismatch")
 		}
 
-		threadResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/community/"+communityPostID+"/comments?limit=50", nil, bearerHeaders(accessToken))
+		threadResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/community/"+communityPostID+"/comments?limit=50", nil, bearerHeaders(access_token))
 		if threadResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("community thread expected 200 got %d body=%s", threadResp.StatusCode, string(threadResp.Body))
 		}
@@ -279,12 +279,12 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		if !ok {
 			return fmt.Errorf("community thread root is invalid")
 		}
-		replyCount, _ := root["replyCount"].(float64)
-		if int(replyCount) < 1 {
-			return fmt.Errorf("community thread replyCount did not increase")
+		reply_count, _ := root["reply_count"].(float64)
+		if int(reply_count) < 1 {
+			return fmt.Errorf("community thread reply_count did not increase")
 		}
 
-		likeResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/like", nil, bearerHeaders(accessToken))
+		likeResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community/"+communityPostID+"/like", nil, bearerHeaders(access_token))
 		if likeResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("community like expected 200 got %d body=%s", likeResp.StatusCode, string(likeResp.Body))
 		}
@@ -293,7 +293,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	})
 
 	runStep("education and daily content read", func() error {
-		educationResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/education", nil, bearerHeaders(accessToken))
+		educationResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/education", nil, bearerHeaders(access_token))
 		if educationResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("education list expected 200 got %d body=%s", educationResp.StatusCode, string(educationResp.Body))
 		}
@@ -302,7 +302,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 			return fmt.Errorf("expected education list not empty")
 		}
 
-		contentResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/content/daily", nil, bearerHeaders(accessToken))
+		contentResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/content/daily", nil, bearerHeaders(access_token))
 		if contentResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("daily content expected 200 got %d body=%s", contentResp.StatusCode, string(contentResp.Body))
 		}
@@ -317,7 +317,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	})
 
 	runStep("ai coach safe response and history", func() error {
-		getPersonaResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/persona-preferences", nil, bearerHeaders(accessToken))
+		getPersonaResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/persona-preferences", nil, bearerHeaders(access_token))
 		if getPersonaResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("persona preference get expected 200 got %d body=%s", getPersonaResp.StatusCode, string(getPersonaResp.Body))
 		}
@@ -325,7 +325,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		updatePersonaResp := sendJSONRequest(t, runtime, http.MethodPut, "/api/v1/ai/persona-preferences", map[string]any{
 			"persona": "direct",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if updatePersonaResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("persona preference put expected 200 got %d body=%s", updatePersonaResp.StatusCode, string(updatePersonaResp.Body))
 		}
@@ -336,7 +336,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		askResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/ai/ask-coach", map[string]any{
 			"message": "I feel close to relapse",
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if askResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("ask coach expected 200 got %d body=%s", askResp.StatusCode, string(askResp.Body))
 		}
@@ -349,11 +349,11 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		if strings.Contains(coachText, "token-e2e") {
 			return fmt.Errorf("response ai memuat token sensitif")
 		}
-		if readNestedString(askResp.JSON, "data", "personaUsed") != "direct" {
-			return fmt.Errorf("personaUsed mismatch")
+		if readNestedString(askResp.JSON, "data", "persona_used") != "direct" {
+			return fmt.Errorf("persona_used mismatch")
 		}
 
-		historyResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/chat-history", nil, bearerHeaders(accessToken))
+		historyResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/chat-history", nil, bearerHeaders(access_token))
 		if historyResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("chat history expected 200 got %d body=%s", historyResp.StatusCode, string(historyResp.Body))
 		}
@@ -362,7 +362,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 			return fmt.Errorf("expected chat history has >= 2 records")
 		}
 
-		summaryResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/summary", nil, bearerHeaders(accessToken))
+		summaryResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/ai/summary", nil, bearerHeaders(access_token))
 		if summaryResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("summary expected 200 got %d body=%s", summaryResp.StatusCode, string(summaryResp.Body))
 		}
@@ -373,12 +373,12 @@ func TestE2E_CriticalFlows(t *testing.T) {
 
 		analysisResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/ai/onboarding-analysis", map[string]any{
 			"answers": map[string]any{"q1": "hard to sleep when alone"},
-		}, bearerHeaders(accessToken))
+		}, bearerHeaders(access_token))
 		if analysisResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("onboarding analysis expected 200 got %d body=%s", analysisResp.StatusCode, string(analysisResp.Body))
 		}
 		httpharness.RequireSuccessEnvelope(t, analysisResp.JSON)
-		for _, key := range []string{"level", "title", "levelDescription", "patternAnalysis", "encouragement"} {
+		for _, key := range []string{"level", "title", "level_description", "pattern_analysis", "encouragement"} {
 			if strings.TrimSpace(readNestedString(analysisResp.JSON, "data", key)) == "" {
 				return fmt.Errorf("analysis field is empty: %s", key)
 			}
@@ -388,7 +388,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	})
 
 	runStep("auth logout and refresh invalidation", func() error {
-		logoutResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/logout", nil, mergeHeaders(bearerHeaders(accessToken), map[string]string{"Cookie": refreshCookie}))
+		logoutResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/logout", nil, mergeHeaders(bearerHeaders(access_token), map[string]string{"Cookie": refreshCookie}))
 		if logoutResp.StatusCode != fiber.StatusOK {
 			return fmt.Errorf("logout expected 200 got %d body=%s", logoutResp.StatusCode, string(logoutResp.Body))
 		}
@@ -453,9 +453,9 @@ func sendJSONRequest(t testing.TB, runtime *e2eharness.Runtime, method string, p
 	return result
 }
 
-func bearerHeaders(accessToken string) map[string]string {
+func bearerHeaders(access_token string) map[string]string {
 	return map[string]string{
-		"Authorization": "Bearer " + strings.TrimSpace(accessToken),
+		"Authorization": "Bearer " + strings.TrimSpace(access_token),
 	}
 }
 
@@ -479,7 +479,7 @@ func readSessionAccessToken(payload map[string]any) string {
 	if !ok {
 		return ""
 	}
-	value, _ := session["accessToken"].(string)
+	value, _ := session["access_token"].(string)
 	return strings.TrimSpace(value)
 }
 
@@ -488,7 +488,7 @@ func readOnboardingCompleted(payload map[string]any) bool {
 	if !ok {
 		return false
 	}
-	value, _ := data["onboardingCompleted"].(bool)
+	value, _ := data["onboarding_completed"].(bool)
 	return value
 }
 

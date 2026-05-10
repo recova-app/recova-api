@@ -3,8 +3,8 @@ package openapi
 import "testing"
 
 func TestFiberPathToOpenAPIPath_ConvertsNamedParams(t *testing.T) {
-	got := FiberPathToOpenAPIPath("/api/v1/community/:postId/comments")
-	if got != "/api/v1/community/{postId}/comments" {
+	got := FiberPathToOpenAPIPath("/api/v1/community/:post_id/comments")
+	if got != "/api/v1/community/{post_id}/comments" {
 		t.Fatalf("unexpected converted path: %s", got)
 	}
 }

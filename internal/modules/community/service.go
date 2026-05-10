@@ -199,7 +199,7 @@ func (s *Service) CreateReply(
 
 	if !strings.EqualFold(strings.TrimSpace(parent.PostID), strings.TrimSpace(postID)) {
 		return ReplyPayload{}, errs.New(errs.CodeValidationError, "Komentar parent tidak sesuai dengan postingan", []map[string]string{
-			{"field": "commentId", "message": "Komentar parent harus berada pada postingan yang sama"},
+			{"field": "comment_id", "message": "Komentar parent harus berada pada postingan yang sama"},
 		}, nil)
 	}
 
@@ -215,7 +215,7 @@ func (s *Service) CreateReply(
 			return ReplyPayload{}, errs.New(errs.CodeNotFound, "Postingan atau komentar parent tidak ditemukan", nil, err)
 		case errors.Is(err, errParentCommentPostMismatch):
 			return ReplyPayload{}, errs.New(errs.CodeValidationError, "Komentar parent tidak sesuai dengan postingan", []map[string]string{
-				{"field": "commentId", "message": "Komentar parent harus berada pada postingan yang sama"},
+				{"field": "comment_id", "message": "Komentar parent harus berada pada postingan yang sama"},
 			}, nil)
 		default:
 			return ReplyPayload{}, errs.New(errs.CodeInternalError, "Gagal menyimpan balasan komentar", nil, err)

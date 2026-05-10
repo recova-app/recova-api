@@ -20,7 +20,7 @@ func TestService_UpdateSettings_ValidationErrorWhenEmptyPayload(t *testing.T) {
 
 func TestService_CompleteOnboarding_IdempotentWhenSamePayload(t *testing.T) {
 	reason := "Fokus"
-	checkIn := "09:00"
+	check_in := "09:00"
 	answers := map[string]any{"a": "b"}
 	answersJSON, _ := json.Marshal(answers)
 
@@ -30,7 +30,7 @@ func TestService_CompleteOnboarding_IdempotentWhenSamePayload(t *testing.T) {
 			Email:       "user@example.test",
 			Nickname:    "tester",
 			UserWhy:     &reason,
-			CheckInTime: &checkIn,
+			CheckInTime: &check_in,
 		},
 		profile: models.Profile{
 			ID:      "profile-1",
@@ -56,7 +56,7 @@ func TestService_CompleteOnboarding_IdempotentWhenSamePayload(t *testing.T) {
 
 func TestService_CompleteOnboarding_ConflictWhenAlreadyCompletedDifferentPayload(t *testing.T) {
 	reason := "Fokus"
-	checkIn := "09:00"
+	check_in := "09:00"
 	answersJSON, _ := json.Marshal(map[string]any{"a": "b"})
 
 	repo := &fakeUsersRepo{
@@ -65,7 +65,7 @@ func TestService_CompleteOnboarding_ConflictWhenAlreadyCompletedDifferentPayload
 			Email:       "user@example.test",
 			Nickname:    "tester",
 			UserWhy:     &reason,
-			CheckInTime: &checkIn,
+			CheckInTime: &check_in,
 		},
 		profile: models.Profile{
 			ID:      "profile-1",

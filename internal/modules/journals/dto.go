@@ -13,7 +13,7 @@ type CreateJournalInput struct {
 // JournalPayload is API payload for one journal entry.
 type JournalPayload struct {
 	ID        string `json:"id"`
-	UserID    string `json:"userId"`
+	UserID    string `json:"user_id"`
 	Content   string `json:"content"`
-	CreatedAt string `json:"createdAt"`
+	CreatedAt string `json:"created_at"`
 }

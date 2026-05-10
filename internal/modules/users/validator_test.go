@@ -11,13 +11,13 @@ func TestNormalizeSettingsUpdate_EmptyPayload(t *testing.T) {
 
 func TestNormalizeSettingsUpdate_Success(t *testing.T) {
 	nickname := "tester"
-	recoveryReason := "fokus pulih"
-	checkIn := "08:15"
+	recovery_reason := "fokus pulih"
+	check_in := "08:15"
 
 	updates, err := NormalizeSettingsUpdate(SettingsUpdateRequest{
 		Nickname:         &nickname,
-		RecoveryReason:   &recoveryReason,
-		DailyCheckInTime: &checkIn,
+		RecoveryReason:   &recovery_reason,
+		DailyCheckInTime: &check_in,
 	})
 	if err != nil {
 		t.Fatalf("normalize settings: %v", err)
@@ -33,13 +33,13 @@ func TestNormalizeSettingsUpdate_Success(t *testing.T) {
 	}
 }
 
-func TestNormalizeOnboardingRequest_UsesLegacyFields(t *testing.T) {
+func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 	input, err := NormalizeOnboardingRequest(OnboardingRequest{
-		Nickname:               "tester",
-		RecoveryReasonLegacy:   "konsisten",
-		DailyCheckInTimeLegacy: "06:45",
-		DependencyLevelLegacy:  "low",
-		Answers:                map[string]any{"q1": "a1"},
+		Nickname:         "tester",
+		RecoveryReason:   "konsisten",
+		DailyCheckInTime: "06:45",
+		DependencyLevel:  "low",
+		Answers:          map[string]any{"q1": "a1"},
 	})
 	if err != nil {
 		t.Fatalf("normalize onboarding: %v", err)

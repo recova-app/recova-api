@@ -35,10 +35,10 @@ func TestIntegration_Repository_DuplicateCheckInReturnsUniqueViolation(t *testin
 		t.Fatalf("create user: %v", err)
 	}
 
-	checkInDate := time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC)
+	check_in_date := time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC)
 	err = repo.CreateCheckIn(ctx, models.CheckIn{
 		UserID:       user.ID,
-		CheckInDate:  checkInDate,
+		CheckInDate:  check_in_date,
 		Mood:         "fokus",
 		IsSuccessful: true,
 	})
@@ -48,7 +48,7 @@ func TestIntegration_Repository_DuplicateCheckInReturnsUniqueViolation(t *testin
 
 	err = repo.CreateCheckIn(ctx, models.CheckIn{
 		UserID:       user.ID,
-		CheckInDate:  checkInDate,
+		CheckInDate:  check_in_date,
 		Mood:         "fokus",
 		IsSuccessful: false,
 	})

@@ -138,7 +138,7 @@ func validateReplyDepth(parentDepth int16) (int16, error) {
 	nextDepth := parentDepth + 1
 	if int(nextDepth) > maxThreadDepth {
 		return 0, errs.New(errs.CodeValidationError, "Balasan komentar melewati batas kedalaman thread", []map[string]string{
-			{"field": "commentId", "message": "Kedalaman balasan komentar maksimal 2"},
+			{"field": "comment_id", "message": "Kedalaman balasan komentar maksimal 2"},
 		}, nil)
 	}
 	return nextDepth, nil

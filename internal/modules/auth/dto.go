@@ -9,9 +9,9 @@ type GoogleLoginRequest struct {
 
 // SessionPayload is API payload for active access-token session.
 type SessionPayload struct {
-	AccessToken string `json:"accessToken"`
-	TokenType   string `json:"tokenType"`
-	ExpiresIn   int64  `json:"expiresIn"`
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int64  `json:"expires_in"`
 }
 
 // UserPayload is API payload for authenticated user summary.
@@ -19,9 +19,9 @@ type UserPayload struct {
 	ID                  string  `json:"id"`
 	Email               string  `json:"email"`
 	Nickname            string  `json:"nickname"`
-	RecoveryReason      *string `json:"recoveryReason"`
-	DailyCheckInTime    *string `json:"dailyCheckInTime"`
-	OnboardingCompleted bool    `json:"onboardingCompleted"`
+	RecoveryReason      *string `json:"recovery_reason"`
+	DailyCheckInTime    *string `json:"daily_checkin_time"`
+	OnboardingCompleted bool    `json:"onboarding_completed"`
 }
 
 // AuthResponseData contains combined user and session response payload.
@@ -32,14 +32,11 @@ type AuthResponseData struct {
 
 // OnboardingRequest is request payload to complete onboarding.
 type OnboardingRequest struct {
-	Nickname               string         `json:"nickname"`
-	RecoveryReason         string         `json:"recovery_reason"`
-	RecoveryReasonLegacy   string         `json:"userWhy"`
-	DailyCheckInTime       string         `json:"daily_checkin_time"`
-	DailyCheckInTimeLegacy string         `json:"checkinTime"`
-	Answers                map[string]any `json:"answers"`
-	DependencyLevel        string         `json:"dependency_level"`
-	DependencyLevelLegacy  string         `json:"dependencyLevel"`
+	Nickname         string         `json:"nickname"`
+	RecoveryReason   string         `json:"recovery_reason"`
+	DailyCheckInTime string         `json:"daily_checkin_time"`
+	Answers          map[string]any `json:"answers"`
+	DependencyLevel  string         `json:"dependency_level"`
 }
 
 // OnboardingInput is normalized validated onboarding input for service layer.

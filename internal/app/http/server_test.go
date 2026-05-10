@@ -103,8 +103,8 @@ func TestNewServer_NotFound_UsesStandardErrorEnvelope(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "NOT_FOUND")
 
 	errorPayload := resp.JSON["error"].(map[string]any)
-	if errorPayload["requestId"] != "req-notfound-1" {
-		t.Fatalf("expected request id propagation, got: %v", errorPayload["requestId"])
+	if errorPayload["request_id"] != "req-notfound-1" {
+		t.Fatalf("expected request id propagation, got: %v", errorPayload["request_id"])
 	}
 }
 

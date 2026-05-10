@@ -38,22 +38,22 @@ Dokumen ini mendefinisikan bentuk response API publik yang konsisten.
   "error": {
     "code": "VALIDATION_ERROR",
     "details": [],
-    "requestId": "req_123"
+    "request_id": "req_123"
   }
 }
 ```
 
 ## Field Rules
 
-| Field             | Rule                                                                        |
-| ----------------- | --------------------------------------------------------------------------- |
-| `success`         | wajib ada pada semua response JSON                                          |
-| `message`         | ringkas, aman, dan **berbahasa Indonesia** untuk konsumsi user aplikasi     |
-| `data`            | objek/array pada sukses, `null` pada error                                  |
-| `meta`            | metadata tambahan atau `null`                                               |
-| `error.code`      | machine-readable code stabil, tetap English uppercase                       |
-| `error.details`   | detail aman untuk klien, gunakan bahasa Indonesia untuk teks human-readable |
-| `error.requestId` | wajib untuk korelasi log                                                    |
+| Field              | Rule                                                                        |
+| ------------------ | --------------------------------------------------------------------------- |
+| `success`          | wajib ada pada semua response JSON                                          |
+| `message`          | ringkas, aman, dan **berbahasa Indonesia** untuk konsumsi user aplikasi     |
+| `data`             | objek/array pada sukses, `null` pada error                                  |
+| `meta`             | metadata tambahan atau `null`                                               |
+| `error.code`       | machine-readable code stabil, tetap English uppercase                       |
+| `error.details`    | detail aman untuk klien, gunakan bahasa Indonesia untuk teks human-readable |
+| `error.request_id` | wajib untuk korelasi log                                                    |
 
 ## Pagination Metadata
 

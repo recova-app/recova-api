@@ -145,29 +145,29 @@ func (r *Repository) ToggleLike(ctx context.Context, userID string, postID strin
 			if err := txRepo.DeleteLike(ctx, userID, postID); err != nil {
 				return err
 			}
-			likedCount, err := txRepo.UpdateLikeCountByDelta(ctx, postID, -1)
+			liked_count, err := txRepo.UpdateLikeCountByDelta(ctx, postID, -1)
 			if err != nil {
 				return err
 			}
-			result = ToggleLikePayload{LikedCount: likedCount, IsLiked: false}
+			result = ToggleLikePayload{LikedCount: liked_count, IsLiked: false}
 			return nil
 		case IsRecordNotFound(err):
 			if err := txRepo.CreateLike(ctx, userID, postID); err != nil {
 				if IsUniqueViolation(err) {
-					likedCount, cntErr := txRepo.UpdateLikeCountByDelta(ctx, postID, 0)
+					liked_count, cntErr := txRepo.UpdateLikeCountByDelta(ctx, postID, 0)
 					if cntErr != nil {
 						return cntErr
 					}
-					result = ToggleLikePayload{LikedCount: likedCount, IsLiked: true}
+					result = ToggleLikePayload{LikedCount: liked_count, IsLiked: true}
 					return nil
 				}
 				return err
 			}
-			likedCount, err := txRepo.UpdateLikeCountByDelta(ctx, postID, 1)
+			liked_count, err := txRepo.UpdateLikeCountByDelta(ctx, postID, 1)
 			if err != nil {
 				return err
 			}
-			result = ToggleLikePayload{LikedCount: likedCount, IsLiked: true}
+			result = ToggleLikePayload{LikedCount: liked_count, IsLiked: true}
 			return nil
 		default:
 			return err

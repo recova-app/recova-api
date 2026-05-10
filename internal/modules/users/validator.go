@@ -29,9 +29,9 @@ func NormalizeSettingsUpdate(req SettingsUpdateRequest) (map[string]any, error) 
 		updates["nickname"] = nickname
 	}
 
-	recoveryReason := firstNonEmptyPointer(req.RecoveryReason, req.RecoveryLegacy)
-	if recoveryReason != nil {
-		normalized := strings.TrimSpace(*recoveryReason)
+	recovery_reason := firstNonEmptyPointer(req.RecoveryReason)
+	if recovery_reason != nil {
+		normalized := strings.TrimSpace(*recovery_reason)
 		if len([]rune(normalized)) < minRecoveryReasonLength {
 			return nil, errs.New(errs.CodeValidationError, "Alasan pemulihan tidak valid", []map[string]string{
 				{"field": "recovery_reason", "message": "Alasan pemulihan minimal 3 karakter"},
@@ -40,7 +40,7 @@ func NormalizeSettingsUpdate(req SettingsUpdateRequest) (map[string]any, error) 
 		updates["user_why"] = normalized
 	}
 
-	timeRaw := firstNonEmptyPointer(req.DailyCheckInTime, req.CheckInLegacy)
+	timeRaw := firstNonEmptyPointer(req.DailyCheckInTime)
 	if timeRaw != nil {
 		parsed, err := time.Parse(timeOfDayLayout, strings.TrimSpace(*timeRaw))
 		if err != nil {
@@ -69,20 +69,14 @@ func NormalizeOnboardingRequest(req OnboardingRequest) (OnboardingInput, error) 
 		}, nil)
 	}
 
-	recoveryReason := strings.TrimSpace(req.RecoveryReason)
-	if recoveryReason == "" {
-		recoveryReason = strings.TrimSpace(req.RecoveryReasonLegacy)
-	}
-	if len([]rune(recoveryReason)) < minRecoveryReasonLength {
+	recovery_reason := strings.TrimSpace(req.RecoveryReason)
+	if len([]rune(recovery_reason)) < minRecoveryReasonLength {
 		return OnboardingInput{}, errs.New(errs.CodeValidationError, "Alasan pemulihan wajib diisi", []map[string]string{
 			{"field": "recovery_reason", "message": "Alasan pemulihan minimal 3 karakter"},
 		}, nil)
 	}
 
 	checkInRaw := strings.TrimSpace(req.DailyCheckInTime)
-	if checkInRaw == "" {
-		checkInRaw = strings.TrimSpace(req.DailyCheckInTimeLegacy)
-	}
 	if checkInRaw == "" {
 		return OnboardingInput{}, errs.New(errs.CodeValidationError, "Waktu check-in harian wajib diisi", []map[string]string{
 			{"field": "daily_checkin_time", "message": "Waktu check-in harian wajib diisi"},
@@ -102,13 +96,10 @@ func NormalizeOnboardingRequest(req OnboardingRequest) (OnboardingInput, error) 
 	}
 
 	dependency := strings.TrimSpace(req.DependencyLevel)
-	if dependency == "" {
-		dependency = strings.TrimSpace(req.DependencyLevelLegacy)
-	}
 
 	input := OnboardingInput{
 		Nickname:        nickname,
-		RecoveryReason:  recoveryReason,
+		RecoveryReason:  recovery_reason,
 		DailyCheckInRaw: checkInRaw,
 		DailyCheckIn:    checkInTime,
 		Answers:         answers,

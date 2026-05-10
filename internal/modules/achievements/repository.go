@@ -171,7 +171,7 @@ func (r *Repository) ComputeEvaluationMetrics(ctx context.Context, userID string
 	if err != nil {
 		return evaluationMetrics{}, err
 	}
-	onboardingCompleted, err := r.onboardingCompletionScore(ctx, userID)
+	onboarding_completed, err := r.onboardingCompletionScore(ctx, userID)
 	if err != nil {
 		return evaluationMetrics{}, err
 	}
@@ -182,7 +182,7 @@ func (r *Repository) ComputeEvaluationMetrics(ctx context.Context, userID string
 		JournalConsistency:     journalCount,
 		RelapseRecovery:        relapseRecovery,
 		CommunityParticipation: communityCount,
-		OnboardingCompletion:   onboardingCompleted,
+		OnboardingCompletion:   onboarding_completed,
 	}, nil
 }
 

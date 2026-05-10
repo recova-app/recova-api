@@ -37,7 +37,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `GET` | `/api/v1/ai/persona-preferences` | `api-v1` |
 | `GET` | `/api/v1/ai/summary` | `api-v1` |
 | `GET` | `/api/v1/community` | `api-v1` |
-| `GET` | `/api/v1/community/{postId}/comments` | `api-v1` |
+| `GET` | `/api/v1/community/{post_id}/comments` | `api-v1` |
 | `GET` | `/api/v1/content/daily` | `api-v1` |
 | `GET` | `/api/v1/education` | `api-v1` |
 | `GET` | `/api/v1/journals` | `api-v1` |
@@ -57,9 +57,9 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST` | `/api/v1/auth/onboarding` | `api-v1` |
 | `POST` | `/api/v1/auth/refresh` | `api-v1` |
 | `POST` | `/api/v1/community` | `api-v1` |
-| `POST` | `/api/v1/community/{postId}/comments` | `api-v1` |
-| `POST` | `/api/v1/community/{postId}/comments/{commentId}/replies` | `api-v1` |
-| `POST` | `/api/v1/community/{postId}/like` | `api-v1` |
+| `POST` | `/api/v1/community/{post_id}/comments` | `api-v1` |
+| `POST` | `/api/v1/community/{post_id}/comments/{comment_id}/replies` | `api-v1` |
+| `POST` | `/api/v1/community/{post_id}/like` | `api-v1` |
 | `POST` | `/api/v1/journals` | `api-v1` |
 | `POST` | `/api/v1/routine/checkin` | `api-v1` |
 | `PUT` | `/api/v1/ai/persona-preferences` | `api-v1` |

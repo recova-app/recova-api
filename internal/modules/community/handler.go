@@ -69,10 +69,10 @@ func (h *Handler) CreateComment(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	postID := strings.TrimSpace(c.Params("postId"))
+	postID := strings.TrimSpace(c.Params("post_id"))
 	if postID == "" {
 		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
-			"field": "postId", "message": "ID postingan wajib diisi",
+			"field": "post_id", "message": "ID postingan wajib diisi",
 		}}, nil)
 	}
 
@@ -96,10 +96,10 @@ func (h *Handler) ListCommentThread(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	postID := strings.TrimSpace(c.Params("postId"))
+	postID := strings.TrimSpace(c.Params("post_id"))
 	if postID == "" {
 		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
-			"field": "postId", "message": "ID postingan wajib diisi",
+			"field": "post_id", "message": "ID postingan wajib diisi",
 		}}, nil)
 	}
 
@@ -123,17 +123,17 @@ func (h *Handler) CreateReply(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	postID := strings.TrimSpace(c.Params("postId"))
+	postID := strings.TrimSpace(c.Params("post_id"))
 	if postID == "" {
 		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
-			"field": "postId", "message": "ID postingan wajib diisi",
+			"field": "post_id", "message": "ID postingan wajib diisi",
 		}}, nil)
 	}
 
-	commentID := strings.TrimSpace(c.Params("commentId"))
+	commentID := strings.TrimSpace(c.Params("comment_id"))
 	if commentID == "" {
 		return errs.New(errs.CodeValidationError, "ID komentar parent wajib diisi", []map[string]string{{
-			"field": "commentId", "message": "ID komentar parent wajib diisi",
+			"field": "comment_id", "message": "ID komentar parent wajib diisi",
 		}}, nil)
 	}
 
@@ -157,10 +157,10 @@ func (h *Handler) ToggleLike(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	postID := strings.TrimSpace(c.Params("postId"))
+	postID := strings.TrimSpace(c.Params("post_id"))
 	if postID == "" {
 		return errs.New(errs.CodeValidationError, "ID postingan wajib diisi", []map[string]string{{
-			"field": "postId", "message": "ID postingan wajib diisi",
+			"field": "post_id", "message": "ID postingan wajib diisi",
 		}}, nil)
 	}
 

@@ -67,7 +67,7 @@ Constraint minimum:
 - safety filtering dijalankan sebelum respons dikirim.
 - jika preferensi persona kosong, fallback ke persona default aman,
 - persona aktif harus dipakai saat membangun system instruction AI,
-- respons `ask-coach` menyertakan `personaUsed` agar audit troubleshooting mudah.
+- respons `ask-coach` menyertakan `persona_used` agar audit troubleshooting mudah.
 
 ## Validation Rules
 

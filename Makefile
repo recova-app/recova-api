@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check openapi-autogen openapi-autogen-watch openapi-autogen-install-hook scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
 
 preflight:
 	@./scripts/preflight.sh
@@ -61,6 +61,15 @@ openapi-generate:
 
 openapi-check:
 	@./scripts/openapi.sh check
+
+openapi-autogen:
+	@./scripts/openapi-autogen.sh generate
+
+openapi-autogen-watch:
+	@./scripts/openapi-autogen.sh watch
+
+openapi-autogen-install-hook:
+	@./scripts/openapi-autogen.sh install-hook
 
 scalar-check:
 	@./scripts/scalar.sh check

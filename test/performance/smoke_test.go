@@ -34,19 +34,19 @@ type perfScenarioResult struct {
 	Name      string  `json:"name"`
 	Requests  int     `json:"requests"`
 	Failures  int     `json:"failures"`
-	ErrorRate float64 `json:"errorRate"`
-	P50Ms     float64 `json:"p50Ms"`
-	P95Ms     float64 `json:"p95Ms"`
-	MaxMs     float64 `json:"maxMs"`
+	ErrorRate float64 `json:"error_rate"`
+	P50Ms     float64 `json:"p50_ms"`
+	P95Ms     float64 `json:"p95_ms"`
+	MaxMs     float64 `json:"max_ms"`
 }
 
 type perfSmokeReport struct {
 	Suite           string               `json:"suite"`
-	GeneratedAt     string               `json:"generatedAt"`
-	DurationMs      int64                `json:"durationMs"`
+	GeneratedAt     string               `json:"generated_at"`
+	DurationMs      int64                `json:"duration_ms"`
 	Status          string               `json:"status"`
 	Thresholds      map[string]float64   `json:"thresholds"`
-	ReadinessChecks map[string]int64     `json:"readinessChecks"`
+	ReadinessChecks map[string]int64     `json:"readiness_checks"`
 	Scenarios       []perfScenarioResult `json:"scenarios"`
 }
 
@@ -68,11 +68,11 @@ func TestPerformance_LoadSmoke(t *testing.T) {
 	start := time.Now()
 	reportStatus := "passed"
 
-	accessToken, _, err := loginAndRefresh(t, runtime)
+	access_token, _, err := loginAndRefresh(t, runtime)
 	if err != nil {
 		t.Fatalf("prepare auth session for performance test: %v", err)
 	}
-	communityPostID, err := prepareCommunityThread(runtime, accessToken)
+	communityPostID, err := prepareCommunityThread(runtime, access_token)
 	if err != nil {
 		t.Fatalf("prepare community thread for performance test: %v", err)
 	}
@@ -80,13 +80,13 @@ func TestPerformance_LoadSmoke(t *testing.T) {
 	scenarios := []perfScenario{
 		{name: "health_live", method: http.MethodGet, path: "/health/live", expectedStatus: fiber.StatusOK},
 		{name: "health_ready", method: http.MethodGet, path: "/health/ready", expectedStatus: fiber.StatusOK},
-		{name: "users_me", method: http.MethodGet, path: "/api/v1/users/me", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "daily_content", method: http.MethodGet, path: "/api/v1/content/daily", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "routine_activity_summary", method: http.MethodGet, path: "/api/v1/routine/statistics/activity-summary?windowDays=30", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "achievements_catalog", method: http.MethodGet, path: "/api/v1/achievements/catalog", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "community_comment_thread", method: http.MethodGet, path: "/api/v1/community/" + communityPostID + "/comments?limit=50", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "ai_persona_preferences", method: http.MethodGet, path: "/api/v1/ai/persona-preferences", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
-		{name: "ai_summary", method: http.MethodGet, path: "/api/v1/ai/summary", expectedStatus: fiber.StatusOK, headers: bearerHeaders(accessToken)},
+		{name: "users_me", method: http.MethodGet, path: "/api/v1/users/me", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "daily_content", method: http.MethodGet, path: "/api/v1/content/daily", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "routine_activity_summary", method: http.MethodGet, path: "/api/v1/routine/statistics/activity-summary?window_days=30", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "achievements_catalog", method: http.MethodGet, path: "/api/v1/achievements/catalog", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "community_comment_thread", method: http.MethodGet, path: "/api/v1/community/" + communityPostID + "/comments?limit=50", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "ai_persona_preferences", method: http.MethodGet, path: "/api/v1/ai/persona-preferences", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
+		{name: "ai_summary", method: http.MethodGet, path: "/api/v1/ai/summary", expectedStatus: fiber.StatusOK, headers: bearerHeaders(access_token)},
 	}
 
 	probeCtx, cancelProbe := context.WithCancel(context.Background())
@@ -298,7 +298,7 @@ func loginAndRefresh(t testing.TB, runtime *e2eharness.Runtime) (string, string,
 	}
 	httpharness.RequireSuccessEnvelope(t, loginResp.JSON)
 
-	accessToken := readSessionAccessToken(loginResp.JSON)
+	access_token := readSessionAccessToken(loginResp.JSON)
 	refreshCookie := extractCookiePair(loginResp.Header, "recova_refresh_e2e")
 	if strings.TrimSpace(refreshCookie) == "" {
 		return "", "", fmt.Errorf("refresh cookie not found")
@@ -312,26 +312,26 @@ func loginAndRefresh(t testing.TB, runtime *e2eharness.Runtime) (string, string,
 
 	newAccess := readSessionAccessToken(refreshResp.JSON)
 	if strings.TrimSpace(newAccess) != "" {
-		accessToken = newAccess
+		access_token = newAccess
 	}
-	if strings.TrimSpace(accessToken) == "" {
+	if strings.TrimSpace(access_token) == "" {
 		return "", "", fmt.Errorf("access token empty")
 	}
 
-	return accessToken, refreshCookie, nil
+	return access_token, refreshCookie, nil
 }
 
-func bearerHeaders(accessToken string) map[string]string {
+func bearerHeaders(access_token string) map[string]string {
 	return map[string]string{
-		"Authorization": "Bearer " + strings.TrimSpace(accessToken),
+		"Authorization": "Bearer " + strings.TrimSpace(access_token),
 	}
 }
 
-func prepareCommunityThread(runtime *e2eharness.Runtime, accessToken string) (string, error) {
+func prepareCommunityThread(runtime *e2eharness.Runtime, access_token string) (string, error) {
 	createPostResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community", map[string]any{
 		"content":  "load smoke community post",
 		"category": "motivasi",
-	}, bearerHeaders(accessToken))
+	}, bearerHeaders(access_token))
 	if createPostResp.StatusCode != fiber.StatusCreated {
 		return "", fmt.Errorf("create post failed: status=%d body=%s", createPostResp.StatusCode, string(createPostResp.Body))
 	}
@@ -342,7 +342,7 @@ func prepareCommunityThread(runtime *e2eharness.Runtime, accessToken string) (st
 
 	createCommentResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community/"+postID+"/comments", map[string]any{
 		"content": "load smoke root comment",
-	}, bearerHeaders(accessToken))
+	}, bearerHeaders(access_token))
 	if createCommentResp.StatusCode != fiber.StatusCreated {
 		return "", fmt.Errorf("create comment failed: status=%d body=%s", createCommentResp.StatusCode, string(createCommentResp.Body))
 	}
@@ -353,7 +353,7 @@ func prepareCommunityThread(runtime *e2eharness.Runtime, accessToken string) (st
 
 	createReplyResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community/"+postID+"/comments/"+commentID+"/replies", map[string]any{
 		"content": "load smoke reply comment",
-	}, bearerHeaders(accessToken))
+	}, bearerHeaders(access_token))
 	if createReplyResp.StatusCode != fiber.StatusCreated {
 		return "", fmt.Errorf("create reply failed: status=%d body=%s", createReplyResp.StatusCode, string(createReplyResp.Body))
 	}
@@ -370,7 +370,7 @@ func readSessionAccessToken(payload map[string]any) string {
 	if !ok {
 		return ""
 	}
-	value, _ := session["accessToken"].(string)
+	value, _ := session["access_token"].(string)
 	return strings.TrimSpace(value)
 }
 

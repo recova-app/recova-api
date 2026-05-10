@@ -397,32 +397,21 @@ func parseOnboardingAnalysisJSON(raw string) (OnboardingAnalysisResponseData, er
 	}
 
 	var parsed struct {
-		Level                 string `json:"level"`
-		Title                 string `json:"title"`
-		LevelDescription      string `json:"levelDescription"`
-		LevelDescriptionSnake string `json:"level_description"`
-		PatternAnalysis       string `json:"patternAnalysis"`
-		PatternAnalysisSnake  string `json:"pattern_analysis"`
-		Encouragement         string `json:"encouragement"`
+		Level            string `json:"level"`
+		Title            string `json:"title"`
+		LevelDescription string `json:"level_description"`
+		PatternAnalysis  string `json:"pattern_analysis"`
+		Encouragement    string `json:"encouragement"`
 	}
 	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
 		return OnboardingAnalysisResponseData{}, err
 	}
 
-	levelDescription := strings.TrimSpace(parsed.LevelDescription)
-	if levelDescription == "" {
-		levelDescription = strings.TrimSpace(parsed.LevelDescriptionSnake)
-	}
-	patternAnalysis := strings.TrimSpace(parsed.PatternAnalysis)
-	if patternAnalysis == "" {
-		patternAnalysis = strings.TrimSpace(parsed.PatternAnalysisSnake)
-	}
-
 	result := OnboardingAnalysisResponseData{
 		Level:            strings.TrimSpace(parsed.Level),
 		Title:            strings.TrimSpace(parsed.Title),
-		LevelDescription: levelDescription,
-		PatternAnalysis:  patternAnalysis,
+		LevelDescription: strings.TrimSpace(parsed.LevelDescription),
+		PatternAnalysis:  strings.TrimSpace(parsed.PatternAnalysis),
 		Encouragement:    strings.TrimSpace(parsed.Encouragement),
 	}
 

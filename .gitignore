@@ -10,5 +10,8 @@
 
 # Other
 tasks
-artifacts
 references
+
+# Generated files
+.openapi-watch-files
+artifacts

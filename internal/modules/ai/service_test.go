@@ -179,7 +179,7 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if payload.PersonaUsed != "friendly" {
-		t.Fatalf("expected personaUsed friendly, got %q", payload.PersonaUsed)
+		t.Fatalf("expected persona_used friendly, got %q", payload.PersonaUsed)
 	}
 	if provider.lastReq.Persona != "friendly" {
 		t.Fatalf("expected provider persona friendly, got %q", provider.lastReq.Persona)

@@ -28,7 +28,7 @@ type ErrorEnvelope struct {
 type ErrorPayload struct {
 	Code      string `json:"code"`
 	Details   any    `json:"details"`
-	RequestID string `json:"requestId"`
+	RequestID string `json:"request_id"`
 }
 
 // Success builds a standard success envelope.

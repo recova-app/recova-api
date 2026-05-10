@@ -67,17 +67,17 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		t.Fatalf("expected data object, got %T", resp.JSON["data"])
 	}
 	for _, key := range []string{
-		"currentStreak",
-		"longestStreak",
-		"totalCheckins",
-		"streakCalendar",
-		"relapseCount",
-		"relapseRate",
-		"recoverySuccessRate",
-		"checkinConsistencyScore",
-		"weeklyProgress",
-		"monthlyProgress",
-		"moodTrend",
+		"current_streak",
+		"longest_streak",
+		"total_checkins",
+		"streak_calendar",
+		"relapse_count",
+		"relapse_rate",
+		"recovery_success_rate",
+		"checkin_consistency_score",
+		"weekly_progress",
+		"monthly_progress",
+		"mood_trend",
 	} {
 		if _, exists := data[key]; !exists {
 			t.Fatalf("expected statistics field %s", key)
@@ -94,7 +94,7 @@ func TestRegisterRoutes_GetActivitySummaryValidationError(t *testing.T) {
 	app := newRoutineTestApp()
 	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
 
-	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=3", nil, map[string]string{
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?window_days=3", nil, map[string]string{
 		"Authorization": "Bearer access-token",
 	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
@@ -120,7 +120,7 @@ func TestRegisterRoutes_GetActivitySummarySuccess(t *testing.T) {
 	app := newRoutineTestApp()
 	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
 
-	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?windowDays=30", nil, map[string]string{
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/statistics/activity-summary?window_days=30", nil, map[string]string{
 		"Authorization": "Bearer access-token",
 	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
@@ -131,11 +131,11 @@ func TestRegisterRoutes_GetActivitySummarySuccess(t *testing.T) {
 		t.Fatalf("expected data object, got %T", resp.JSON["data"])
 	}
 	for _, key := range []string{
-		"windowDays",
-		"successfulCheckins",
+		"window_days",
+		"successful_checkins",
 		"relapses",
-		"activeDays",
-		"recentActivity",
+		"active_days",
+		"recent_activity",
 	} {
 		if _, exists := data[key]; !exists {
 			t.Fatalf("expected activity summary field %s", key)

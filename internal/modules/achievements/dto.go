@@ -27,12 +27,12 @@ type ProgressResponse struct {
 
 // ProgressItem describes one achievement progress row.
 type ProgressItem struct {
-	AchievementCode string  `json:"achievementCode"`
+	AchievementCode string  `json:"achievement_code"`
 	Category        string  `json:"category"`
 	Threshold       float64 `json:"threshold"`
-	ProgressValue   float64 `json:"progressValue"`
+	ProgressValue   float64 `json:"progress_value"`
 	Unlocked        bool    `json:"unlocked"`
-	UnlockedAt      *string `json:"unlockedAt,omitempty"`
+	UnlockedAt      *string `json:"unlocked_at,omitempty"`
 }
 
 // UnlockedResponse is API payload for unlocked achievements endpoint.
@@ -42,11 +42,11 @@ type UnlockedResponse struct {
 
 // UnlockedItem describes one unlocked achievement.
 type UnlockedItem struct {
-	AchievementCode string  `json:"achievementCode"`
+	AchievementCode string  `json:"achievement_code"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Category        string  `json:"category"`
 	Threshold       float64 `json:"threshold"`
-	ProgressValue   float64 `json:"progressValue"`
-	UnlockedAt      string  `json:"unlockedAt"`
+	ProgressValue   float64 `json:"progress_value"`
+	UnlockedAt      string  `json:"unlocked_at"`
 }

@@ -27,28 +27,28 @@ Dokumen ini menetapkan status kompatibilitas setiap endpoint publik.
 
 ## Matrix
 
-| Method   | Path                                 | Status      | Notes                                            |
-| -------- | ------------------------------------ | ----------- | ------------------------------------------------ |
-| `POST`   | `/api/v1/auth/google`                | `preserve`  | kontrak login publik inti                        |
-| `POST`   | `/api/v1/auth/onboarding`            | `preserve`  | onboarding flow inti                             |
-| `GET`    | `/api/v1/users/me`                   | `preserve`  | profil pengguna aktif                            |
-| `PUT`    | `/api/v1/users/settings`             | `preserve`  | pengaturan pengguna aktif                        |
-| `DELETE` | `/api/v1/users/me/reset-data`        | `deprecate` | dev-only endpoint; tidak boleh aktif di produksi |
-| `POST`   | `/api/v1/ai/ask-coach`               | `preserve`  | endpoint inti AI Coach                           |
-| `GET`    | `/api/v1/ai/chat-history`            | `preserve`  | kontrak histori AI tetap                         |
-| `GET`    | `/api/v1/ai/summary`                 | `preserve`  | ringkasan rutin terhubung AI                     |
-| `POST`   | `/api/v1/ai/onboarding-analysis`     | `preserve`  | analisis onboarding AI                           |
-| `POST`   | `/api/v1/routine/checkin`            | `preserve`  | kontrak check-in harian inti                     |
-| `GET`    | `/api/v1/routine/statistics`         | `preserve`  | statistik pengguna inti                          |
-| `GET`    | `/api/v1/routine/relapses`           | `preserve`  | histori relapse inti                             |
-| `GET`    | `/api/v1/journals`                   | `preserve`  | jurnal pribadi inti                              |
-| `POST`   | `/api/v1/journals`                   | `preserve`  | penulisan jurnal inti                            |
-| `GET`    | `/api/v1/community`                  | `preserve`  | feed komunitas inti                              |
-| `POST`   | `/api/v1/community`                  | `preserve`  | posting komunitas inti                           |
-| `POST`   | `/api/v1/community/:postId/comments` | `preserve`  | interaksi komentar inti                          |
-| `POST`   | `/api/v1/community/:postId/like`     | `preserve`  | interaksi like inti                              |
-| `GET`    | `/api/v1/education`                  | `preserve`  | konten edukasi inti                              |
-| `GET`    | `/api/v1/content/daily`              | `preserve`  | konten harian inti                               |
+| Method   | Path                                  | Status      | Notes                                            |
+| -------- | ------------------------------------- | ----------- | ------------------------------------------------ |
+| `POST`   | `/api/v1/auth/google`                 | `preserve`  | kontrak login publik inti                        |
+| `POST`   | `/api/v1/auth/onboarding`             | `preserve`  | onboarding flow inti                             |
+| `GET`    | `/api/v1/users/me`                    | `preserve`  | profil pengguna aktif                            |
+| `PUT`    | `/api/v1/users/settings`              | `preserve`  | pengaturan pengguna aktif                        |
+| `DELETE` | `/api/v1/users/me/reset-data`         | `deprecate` | dev-only endpoint; tidak boleh aktif di produksi |
+| `POST`   | `/api/v1/ai/ask-coach`                | `preserve`  | endpoint inti AI Coach                           |
+| `GET`    | `/api/v1/ai/chat-history`             | `preserve`  | kontrak histori AI tetap                         |
+| `GET`    | `/api/v1/ai/summary`                  | `preserve`  | ringkasan rutin terhubung AI                     |
+| `POST`   | `/api/v1/ai/onboarding-analysis`      | `preserve`  | analisis onboarding AI                           |
+| `POST`   | `/api/v1/routine/checkin`             | `preserve`  | kontrak check-in harian inti                     |
+| `GET`    | `/api/v1/routine/statistics`          | `preserve`  | statistik pengguna inti                          |
+| `GET`    | `/api/v1/routine/relapses`            | `preserve`  | histori relapse inti                             |
+| `GET`    | `/api/v1/journals`                    | `preserve`  | jurnal pribadi inti                              |
+| `POST`   | `/api/v1/journals`                    | `preserve`  | penulisan jurnal inti                            |
+| `GET`    | `/api/v1/community`                   | `preserve`  | feed komunitas inti                              |
+| `POST`   | `/api/v1/community`                   | `preserve`  | posting komunitas inti                           |
+| `POST`   | `/api/v1/community/:post_id/comments` | `preserve`  | interaksi komentar inti                          |
+| `POST`   | `/api/v1/community/:post_id/like`     | `preserve`  | interaksi like inti                              |
+| `GET`    | `/api/v1/education`                   | `preserve`  | konten edukasi inti                              |
+| `GET`    | `/api/v1/content/daily`               | `preserve`  | konten harian inti                               |
 
 ## Compatibility Guardrails
 

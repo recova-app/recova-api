@@ -146,10 +146,10 @@ func (m *TokenManager) RefreshCookieValue(c fiber.Ctx) string {
 	return strings.TrimSpace(c.Cookies(m.cookieName))
 }
 
-func (m *TokenManager) newClaims(userID string, tokenType string, ttl time.Duration) SessionClaims {
+func (m *TokenManager) newClaims(userID string, token_type string, ttl time.Duration) SessionClaims {
 	now := time.Now().UTC()
 	return SessionClaims{
-		TokenType: tokenType,
+		TokenType: token_type,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Audience:  jwt.ClaimStrings{m.audience},

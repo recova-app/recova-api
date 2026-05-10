@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -104,9 +106,9 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 			method: http.MethodPost,
 			path:   "/api/v1/routine/checkin",
 			body: map[string]any{
-				"mood":         "tenang",
-				"isSuccessful": true,
-				"commitment":   "fokus",
+				"mood":          "tenang",
+				"is_successful": true,
+				"commitment":    "fokus",
 			},
 		},
 		{name: "routine statistics", method: http.MethodGet, path: "/api/v1/routine/statistics"},
@@ -250,6 +252,35 @@ func TestContract_APIV1UnknownRoute_UsesStandardEnvelope(t *testing.T) {
 
 	httpharness.RequireStatus(t, httpResp.StatusCode, fiber.StatusNotFound)
 	httpharness.RequireErrorEnvelope(t, payload, "NOT_FOUND")
+}
+
+func TestContract_OpenAPI_NoGenericPlaceholderResponseSchema(t *testing.T) {
+	raw, err := os.ReadFile(generatedOpenAPIPath)
+	if err != nil {
+		t.Fatalf("read generated openapi: %v", err)
+	}
+	text := string(raw)
+
+	if strings.Contains(text, "additionalProperty") {
+		t.Fatal("openapi must not contain generic example placeholder `additionalProperty`")
+	}
+	if strings.Contains(strings.ToLower(text), "anything") {
+		t.Fatal("openapi must not contain generic placeholder `anything`")
+	}
+	if strings.Contains(text, "data:\n          type: object\n          additionalProperties: true") {
+		t.Fatal("success envelope data must use concrete schema, not generic object")
+	}
+}
+
+func TestContract_OpenAPI_ProductionReadiness(t *testing.T) {
+	doc, err := contractopenapi.LoadAndValidate(generatedOpenAPIPath)
+	if err != nil {
+		t.Fatalf("load openapi: %v", err)
+	}
+
+	if err := contractopenapi.ValidateProductionReadiness(doc); err != nil {
+		t.Fatalf("openapi production-readiness invalid: %v", err)
+	}
 }
 
 func buildOpenAPIRouter(t testing.TB) routers.Router {

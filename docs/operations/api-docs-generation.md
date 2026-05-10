@@ -52,6 +52,9 @@ Gunakan command berikut:
 
 - `make openapi-generate`
 - `make openapi-check`
+- `make openapi-autogen` (generate sekali),
+- `make openapi-autogen-watch` (watch file dan auto-regenerate),
+- `make openapi-autogen-install-hook` (pasang pre-commit hook auto-regenerate),
 - `make scalar-check`
 - `make scalar-preview` (untuk membuka runtime docs di `/docs/api`)
 

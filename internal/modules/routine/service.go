@@ -17,8 +17,8 @@ type routineRepository interface {
 	DB() *gorm.DB
 	CloneTx(tx *gorm.DB) routineRepository
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
-	FindCheckInByUserAndDate(ctx context.Context, userID string, checkInDate time.Time) (models.CheckIn, error)
-	CreateCheckIn(ctx context.Context, checkIn models.CheckIn) error
+	FindCheckInByUserAndDate(ctx context.Context, userID string, check_in_date time.Time) (models.CheckIn, error)
+	CreateCheckIn(ctx context.Context, check_in models.CheckIn) error
 	CreateJournal(ctx context.Context, journal models.Journal) error
 	FindActiveStreak(ctx context.Context, userID string) (models.Streak, error)
 	CreateStreak(ctx context.Context, streak models.Streak) error
@@ -55,7 +55,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 		return CheckInResponseData{}, err
 	}
 
-	checkInDate := utcDayStart(s.now())
+	check_in_date := utcDayStart(s.now())
 
 	var stored models.CheckIn
 	err = database.WithTransaction(ctx, s.repo.DB(), func(tx *gorm.DB) error {
@@ -70,7 +70,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 
 		row := models.CheckIn{
 			UserID:       strings.TrimSpace(userID),
-			CheckInDate:  checkInDate,
+			CheckInDate:  check_in_date,
 			Mood:         input.Mood,
 			IsSuccessful: input.IsSuccessful,
 		}
@@ -81,7 +81,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 			return errs.New(errs.CodeInternalError, "Gagal menyimpan check-in harian", nil, err)
 		}
 
-		created, err := txRepo.FindCheckInByUserAndDate(ctx, userID, checkInDate)
+		created, err := txRepo.FindCheckInByUserAndDate(ctx, userID, check_in_date)
 		if err != nil {
 			return errs.New(errs.CodeInternalError, "Gagal membaca check-in terbaru", nil, err)
 		}
@@ -97,7 +97,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 			}
 		}
 
-		if err := s.syncStreak(ctx, txRepo, userID, checkInDate, input.IsSuccessful); err != nil {
+		if err := s.syncStreak(ctx, txRepo, userID, check_in_date, input.IsSuccessful); err != nil {
 			return err
 		}
 		return nil
@@ -143,13 +143,13 @@ func (s *Service) GetActivitySummary(ctx context.Context, userID string, query A
 		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	windowDays, err := NormalizeActivitySummaryWindow(query.WindowDays)
+	window_days, err := NormalizeActivitySummaryWindow(query.WindowDays)
 	if err != nil {
 		return ActivitySummaryPayload{}, err
 	}
 
 	endDate := utcDayStart(s.now())
-	startDate := endDate.AddDate(0, 0, -(windowDays - 1))
+	startDate := endDate.AddDate(0, 0, -(window_days - 1))
 	checkIns, err := s.repo.ListCheckInsByUserWithinDateRange(ctx, userID, startDate, endDate)
 	if err != nil {
 		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
@@ -161,7 +161,7 @@ func (s *Service) GetActivitySummary(ctx context.Context, userID string, query A
 		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
 	}
 
-	return computeActivitySummary(windowDays, checkIns, journals), nil
+	return computeActivitySummary(window_days, checkIns, journals), nil
 }
 
 // GetRelapses returns user relapse history (failed check-ins).
@@ -217,22 +217,22 @@ func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayl
 	return result, nil
 }
 
-func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID string, checkInDate time.Time, isSuccessful bool) error {
+func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID string, check_in_date time.Time, is_successful bool) error {
 	active, err := repo.FindActiveStreak(ctx, userID)
 	if err != nil && !IsRecordNotFound(err) {
 		return errs.New(errs.CodeInternalError, "Gagal membaca status streak", nil, err)
 	}
 
-	if !isSuccessful {
+	if !is_successful {
 		if err == nil {
-			if closeErr := repo.CloseActiveStreak(ctx, active.ID, checkInDate); closeErr != nil {
+			if closeErr := repo.CloseActiveStreak(ctx, active.ID, check_in_date); closeErr != nil {
 				return errs.New(errs.CodeInternalError, "Gagal menutup streak aktif", nil, closeErr)
 			}
 		}
 		return nil
 	}
 
-	previousSuccessfulDate, err := repo.LatestSuccessfulCheckInBeforeDate(ctx, userID, checkInDate)
+	previousSuccessfulDate, err := repo.LatestSuccessfulCheckInBeforeDate(ctx, userID, check_in_date)
 	if err != nil {
 		return errs.New(errs.CodeInternalError, "Gagal membaca histori check-in", nil, err)
 	}
@@ -240,7 +240,7 @@ func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID
 	if err != nil || IsRecordNotFound(err) {
 		if createErr := repo.CreateStreak(ctx, models.Streak{
 			UserID:    strings.TrimSpace(userID),
-			StartDate: checkInDate,
+			StartDate: check_in_date,
 			IsActive:  true,
 		}); createErr != nil {
 			return errs.New(errs.CodeInternalError, "Gagal membuat streak baru", nil, createErr)
@@ -251,7 +251,7 @@ func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID
 	if active.ID == "" {
 		if createErr := repo.CreateStreak(ctx, models.Streak{
 			UserID:    strings.TrimSpace(userID),
-			StartDate: checkInDate,
+			StartDate: check_in_date,
 			IsActive:  true,
 		}); createErr != nil {
 			return errs.New(errs.CodeInternalError, "Gagal membuat streak baru", nil, createErr)
@@ -259,17 +259,17 @@ func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID
 		return nil
 	}
 
-	yesterday := checkInDate.AddDate(0, 0, -1)
+	yesterday := check_in_date.AddDate(0, 0, -1)
 	if previousSuccessfulDate != nil && sameUTCDate(*previousSuccessfulDate, yesterday) {
 		return nil
 	}
 
-	if err := repo.CloseActiveStreak(ctx, active.ID, checkInDate); err != nil {
+	if err := repo.CloseActiveStreak(ctx, active.ID, check_in_date); err != nil {
 		return errs.New(errs.CodeInternalError, "Gagal menutup streak aktif", nil, err)
 	}
 	if err := repo.CreateStreak(ctx, models.Streak{
 		UserID:    strings.TrimSpace(userID),
-		StartDate: checkInDate,
+		StartDate: check_in_date,
 		IsActive:  true,
 	}); err != nil {
 		return errs.New(errs.CodeInternalError, "Gagal membuat streak baru", nil, err)
@@ -309,9 +309,9 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time) Statistics
 
 	successDates := make([]time.Time, 0, len(checkIns))
 	calendar := make([]string, 0, len(checkIns))
-	activeDays := map[string]struct{}{}
+	active_days := map[string]struct{}{}
 	successCount := 0
-	relapseCount := 0
+	relapse_count := 0
 	moodByDay := map[string]map[string]int{}
 	successCountByDay := map[string]int{}
 	totalCountByDay := map[string]int{}
@@ -319,7 +319,7 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time) Statistics
 	for _, row := range checkIns {
 		day := utcDayStart(row.CheckInDate)
 		dayKey := day.Format("2006-01-02")
-		activeDays[dayKey] = struct{}{}
+		active_days[dayKey] = struct{}{}
 		totalCountByDay[dayKey]++
 
 		if _, exists := moodByDay[dayKey]; !exists {
@@ -338,48 +338,48 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time) Statistics
 			calendar = append(calendar, dayKey)
 			continue
 		}
-		relapseCount++
+		relapse_count++
 	}
 
-	totalAttempts := successCount + relapseCount
-	recoverySuccessRate := safeRatio(successCount, totalAttempts)
-	relapseRate := safeRatio(relapseCount, totalAttempts)
+	totalAttempts := successCount + relapse_count
+	recovery_success_rate := safeRatio(successCount, totalAttempts)
+	relapse_rate := safeRatio(relapse_count, totalAttempts)
 
-	currentStreak, longestStreak := computeStreaks(successDates, todayUTC)
-	checkinConsistencyScore := safeRatio(len(activeDays), 30)
-	weeklyProgress := computeProgressPayload(checkIns, todayUTC, 7)
-	monthlyProgress := computeProgressPayload(checkIns, todayUTC, 30)
-	moodTrend := buildMoodTrendPayload(moodByDay, successCountByDay, totalCountByDay)
+	current_streak, longest_streak := computeStreaks(successDates, todayUTC)
+	checkin_consistency_score := safeRatio(len(active_days), 30)
+	weekly_progress := computeProgressPayload(checkIns, todayUTC, 7)
+	monthly_progress := computeProgressPayload(checkIns, todayUTC, 30)
+	mood_trend := buildMoodTrendPayload(moodByDay, successCountByDay, totalCountByDay)
 
 	return StatisticsPayload{
-		CurrentStreak:           currentStreak,
-		LongestStreak:           longestStreak,
+		CurrentStreak:           current_streak,
+		LongestStreak:           longest_streak,
 		TotalCheckins:           successCount,
 		StreakCalendar:          calendar,
-		RelapseCount:            relapseCount,
-		RelapseRate:             relapseRate,
-		RecoverySuccessRate:     recoverySuccessRate,
-		CheckinConsistencyScore: checkinConsistencyScore,
-		WeeklyProgress:          weeklyProgress,
-		MonthlyProgress:         monthlyProgress,
-		MoodTrend:               moodTrend,
+		RelapseCount:            relapse_count,
+		RelapseRate:             relapse_rate,
+		RecoverySuccessRate:     recovery_success_rate,
+		CheckinConsistencyScore: checkin_consistency_score,
+		WeeklyProgress:          weekly_progress,
+		MonthlyProgress:         monthly_progress,
+		MoodTrend:               mood_trend,
 	}
 }
 
-func computeActivitySummary(windowDays int, checkIns []models.CheckIn, journals []models.Journal) ActivitySummaryPayload {
-	successfulCheckins := 0
+func computeActivitySummary(window_days int, checkIns []models.CheckIn, journals []models.Journal) ActivitySummaryPayload {
+	successful_checkins := 0
 	relapses := 0
-	activeDays := map[string]struct{}{}
+	active_days := map[string]struct{}{}
 	checkinByID := make(map[string]models.CheckIn, len(checkIns))
 	activities := make([]activityTimelineItem, 0, len(checkIns)+len(journals))
 
 	for _, row := range checkIns {
 		day := utcDayStart(row.CheckInDate).Format("2006-01-02")
-		activeDays[day] = struct{}{}
+		active_days[day] = struct{}{}
 		checkinByID[strings.TrimSpace(row.ID)] = row
 
 		if row.IsSuccessful {
-			successfulCheckins++
+			successful_checkins++
 		} else {
 			relapses++
 		}
@@ -405,7 +405,7 @@ func computeActivitySummary(windowDays int, checkIns []models.CheckIn, journals 
 
 	for _, journal := range journals {
 		day := utcDayStart(journal.CreatedAt).Format("2006-01-02")
-		activeDays[day] = struct{}{}
+		active_days[day] = struct{}{}
 
 		var moodPtr *string
 		if journal.CheckInID != nil {
@@ -430,9 +430,9 @@ func computeActivitySummary(windowDays int, checkIns []models.CheckIn, journals 
 		return activities[i].Timestamp.After(activities[j].Timestamp)
 	})
 
-	recentActivity := make([]ActivityItemPayload, 0, len(activities))
+	recent_activity := make([]ActivityItemPayload, 0, len(activities))
 	for _, item := range activities {
-		recentActivity = append(recentActivity, ActivityItemPayload{
+		recent_activity = append(recent_activity, ActivityItemPayload{
 			Date: item.Date,
 			Type: item.Type,
 			Mood: item.Mood,
@@ -440,11 +440,11 @@ func computeActivitySummary(windowDays int, checkIns []models.CheckIn, journals 
 	}
 
 	return ActivitySummaryPayload{
-		WindowDays:         windowDays,
-		SuccessfulCheckins: successfulCheckins,
+		WindowDays:         window_days,
+		SuccessfulCheckins: successful_checkins,
 		Relapses:           relapses,
-		ActiveDays:         len(activeDays),
-		RecentActivity:     recentActivity,
+		ActiveDays:         len(active_days),
+		RecentActivity:     recent_activity,
 	}
 }
 
@@ -493,11 +493,11 @@ func computeStreaks(successDates []time.Time, todayUTC time.Time) (current int, 
 	return current, longest
 }
 
-func computeProgressPayload(checkIns []models.CheckIn, todayUTC time.Time, windowDays int) ProgressPayload {
+func computeProgressPayload(checkIns []models.CheckIn, todayUTC time.Time, window_days int) ProgressPayload {
 	currentEnd := todayUTC
-	currentStart := currentEnd.AddDate(0, 0, -(windowDays - 1))
+	currentStart := currentEnd.AddDate(0, 0, -(window_days - 1))
 	previousEnd := currentStart.AddDate(0, 0, -1)
-	previousStart := previousEnd.AddDate(0, 0, -(windowDays - 1))
+	previousStart := previousEnd.AddDate(0, 0, -(window_days - 1))
 
 	currentSuccess := countSuccessfulCheckInsInRange(checkIns, currentStart, currentEnd)
 	previousSuccess := countSuccessfulCheckInsInRange(checkIns, previousStart, previousEnd)
@@ -508,7 +508,7 @@ func computeProgressPayload(checkIns []models.CheckIn, todayUTC time.Time, windo
 	}
 
 	return ProgressPayload{
-		WindowDays:                 windowDays,
+		WindowDays:                 window_days,
 		CurrentSuccessfulCheckins:  currentSuccess,
 		PreviousSuccessfulCheckins: previousSuccess,
 		Delta:                      delta,
@@ -516,9 +516,9 @@ func computeProgressPayload(checkIns []models.CheckIn, todayUTC time.Time, windo
 	}
 }
 
-func zeroProgressPayload(windowDays int) ProgressPayload {
+func zeroProgressPayload(window_days int) ProgressPayload {
 	return ProgressPayload{
-		WindowDays:                 windowDays,
+		WindowDays:                 window_days,
 		CurrentSuccessfulCheckins:  0,
 		PreviousSuccessfulCheckins: 0,
 		Delta:                      0,

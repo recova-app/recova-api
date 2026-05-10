@@ -79,11 +79,11 @@ func (s *Service) LoginWithGoogle(ctx context.Context, req GoogleLoginRequest) (
 		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal memproses login Google", nil, err)
 	}
 
-	accessToken, sessionPayload, err := s.tokens.IssueAccessToken(user.ID)
+	access_token, sessionPayload, err := s.tokens.IssueAccessToken(user.ID)
 	if err != nil {
 		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi akses", nil, err)
 	}
-	_ = accessToken
+	_ = access_token
 
 	refreshToken, refreshClaims, err := s.tokens.IssueRefreshToken(user.ID)
 	if err != nil {
@@ -138,11 +138,11 @@ func (s *Service) RefreshSession(ctx context.Context, rawRefreshToken string) (R
 		return RefreshSessionResult{}, errs.New(errs.CodeUnauthenticated, "Sesi login sudah berakhir", nil, nil)
 	}
 
-	accessToken, sessionPayload, err := s.tokens.IssueAccessToken(stored.UserID)
+	access_token, sessionPayload, err := s.tokens.IssueAccessToken(stored.UserID)
 	if err != nil {
 		return RefreshSessionResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi akses", nil, err)
 	}
-	_ = accessToken
+	_ = access_token
 
 	newRefreshToken, newClaims, err := s.tokens.IssueRefreshToken(stored.UserID)
 	if err != nil {

@@ -64,7 +64,7 @@ Constraint minimum:
 
 - `mood` wajib dalam enum/format yang didukung,
 - `commitment` wajib valid sesuai batas panjang,
-- `windowDays` pada endpoint activity summary bersifat opsional dengan rentang `7..90`,
+- `window_days` pada endpoint activity summary bersifat opsional dengan rentang `7..90`,
 - timestamp/check-in time harus valid,
 - request invalid dipetakan ke error validation standar.
 
@@ -102,7 +102,7 @@ Metrik minimum:
 - integration test transaksi check-in + streak,
 - handler test auth, validation, idempotency,
 - contract test response statistics (field existing + field additive),
-- test endpoint activity summary untuk default window dan validasi `windowDays`.
+- test endpoint activity summary untuk default window dan validasi `window_days`.
 
 ## Open Gaps
 

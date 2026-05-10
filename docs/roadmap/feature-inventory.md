@@ -24,7 +24,7 @@ Dokumen ini berisi inventaris fitur backend yang saat ini sudah dinyatakan aktif
 | AI Coach                      | Interaksi tanya-jawab dengan coach, riwayat chat, ringkasan check-in, analisis onboarding    | `/api/v1/ai`        | `POST /ask-coach`, `GET /chat-history`, `GET /summary`, `POST /onboarding-analysis` |
 | Routine and Recovery Progress | Check-in harian, statistik progres, riwayat relapse                                          | `/api/v1/routine`   | `POST /checkin`, `GET /statistics`, `GET /relapses`                                 |
 | Journaling                    | Pengambilan dan pembuatan entri jurnal pengguna                                              | `/api/v1/journals`  | `GET /`, `POST /`                                                                   |
-| Community                     | Daftar dan pembuatan posting komunitas, komentar, dan like posting                           | `/api/v1/community` | `GET /`, `POST /`, `POST /:postId/comments`, `POST /:postId/like`                   |
+| Community                     | Daftar dan pembuatan posting komunitas, komentar, dan like posting                           | `/api/v1/community` | `GET /`, `POST /`, `POST /:post_id/comments`, `POST /:post_id/like`                 |
 | Education                     | Pengambilan konten edukasi                                                                   | `/api/v1/education` | `GET /`                                                                             |
 | Daily Content                 | Pengambilan konten harian                                                                    | `/api/v1/content`   | `GET /daily`                                                                        |
 

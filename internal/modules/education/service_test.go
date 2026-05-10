@@ -58,7 +58,7 @@ func TestService_ListContents_ListError(t *testing.T) {
 }
 
 func TestService_ListContents_Success(t *testing.T) {
-	publishedAt := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
+	published_at := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
 	svc := NewService(&fakeEducationRepo{
 		listRows: []models.EducationContent{
 			{
@@ -68,7 +68,7 @@ func TestService_ListContents_Success(t *testing.T) {
 				URL:          "https://example.test/edu",
 				ThumbnailURL: ptrString("https://example.test/img.png"),
 				Category:     "mindset",
-				PublishedAt:  &publishedAt,
+				PublishedAt:  &published_at,
 			},
 		},
 	})
@@ -84,7 +84,7 @@ func TestService_ListContents_Success(t *testing.T) {
 		t.Fatalf("unexpected id: %s", rows[0].ID)
 	}
 	if rows[0].PublishedAt == nil {
-		t.Fatal("expected publishedAt payload")
+		t.Fatal("expected published_at payload")
 	}
 }
 

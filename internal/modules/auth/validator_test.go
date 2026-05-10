@@ -27,13 +27,13 @@ func TestNormalizeAndValidateOnboardingRequest_EmptyNickname(t *testing.T) {
 	}
 }
 
-func TestNormalizeAndValidateOnboardingRequest_UsesLegacyFields(t *testing.T) {
+func TestNormalizeAndValidateOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 	input, err := NormalizeAndValidateOnboardingRequest(OnboardingRequest{
-		Nickname:               "tester",
-		RecoveryReasonLegacy:   "fokus sehat",
-		DailyCheckInTimeLegacy: "07:30",
-		DependencyLevelLegacy:  "medium",
-		Answers:                map[string]any{"q1": "a1"},
+		Nickname:         "tester",
+		RecoveryReason:   "fokus sehat",
+		DailyCheckInTime: "07:30",
+		DependencyLevel:  "medium",
+		Answers:          map[string]any{"q1": "a1"},
 	})
 	if err != nil {
 		t.Fatalf("normalize onboarding: %v", err)

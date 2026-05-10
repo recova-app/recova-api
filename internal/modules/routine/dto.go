@@ -3,7 +3,7 @@ package routine
 // DailyCheckInRequest is request payload for daily check-in submission.
 type DailyCheckInRequest struct {
 	Mood         string  `json:"mood"`
-	IsSuccessful *bool   `json:"isSuccessful"`
+	IsSuccessful *bool   `json:"is_successful"`
 	Commitment   *string `json:"commitment"`
 	Content      *string `json:"content"`
 }
@@ -18,57 +18,57 @@ type DailyCheckInInput struct {
 // CheckInPayload is API payload for stored check-in record.
 type CheckInPayload struct {
 	ID           string  `json:"id"`
-	UserID       string  `json:"userId"`
-	CheckInDate  string  `json:"checkInDate"`
+	UserID       string  `json:"user_id"`
+	CheckInDate  string  `json:"check_in_date"`
 	Mood         string  `json:"mood"`
-	IsSuccessful bool    `json:"isSuccessful"`
+	IsSuccessful bool    `json:"is_successful"`
 	Commitment   *string `json:"commitment"`
-	CreatedAt    string  `json:"createdAt"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 // StatisticsPayload is API payload for routine statistics.
 type StatisticsPayload struct {
-	CurrentStreak           int                `json:"currentStreak"`
-	LongestStreak           int                `json:"longestStreak"`
-	TotalCheckins           int                `json:"totalCheckins"`
-	StreakCalendar          []string           `json:"streakCalendar"`
-	RelapseCount            int                `json:"relapseCount"`
-	RelapseRate             float64            `json:"relapseRate"`
-	RecoverySuccessRate     float64            `json:"recoverySuccessRate"`
-	CheckinConsistencyScore float64            `json:"checkinConsistencyScore"`
-	WeeklyProgress          ProgressPayload    `json:"weeklyProgress"`
-	MonthlyProgress         ProgressPayload    `json:"monthlyProgress"`
-	MoodTrend               []MoodTrendPayload `json:"moodTrend"`
+	CurrentStreak           int                `json:"current_streak"`
+	LongestStreak           int                `json:"longest_streak"`
+	TotalCheckins           int                `json:"total_checkins"`
+	StreakCalendar          []string           `json:"streak_calendar"`
+	RelapseCount            int                `json:"relapse_count"`
+	RelapseRate             float64            `json:"relapse_rate"`
+	RecoverySuccessRate     float64            `json:"recovery_success_rate"`
+	CheckinConsistencyScore float64            `json:"checkin_consistency_score"`
+	WeeklyProgress          ProgressPayload    `json:"weekly_progress"`
+	MonthlyProgress         ProgressPayload    `json:"monthly_progress"`
+	MoodTrend               []MoodTrendPayload `json:"mood_trend"`
 }
 
 // ProgressPayload is periodic progress summary payload.
 type ProgressPayload struct {
-	WindowDays                 int     `json:"windowDays"`
-	CurrentSuccessfulCheckins  int     `json:"currentSuccessfulCheckins"`
-	PreviousSuccessfulCheckins int     `json:"previousSuccessfulCheckins"`
+	WindowDays                 int     `json:"window_days"`
+	CurrentSuccessfulCheckins  int     `json:"current_successful_checkins"`
+	PreviousSuccessfulCheckins int     `json:"previous_successful_checkins"`
 	Delta                      int     `json:"delta"`
-	DeltaRate                  float64 `json:"deltaRate"`
+	DeltaRate                  float64 `json:"delta_rate"`
 }
 
 // MoodTrendPayload is mood trend bucket payload.
 type MoodTrendPayload struct {
 	Date            string  `json:"date"`
-	DominantMood    string  `json:"dominantMood"`
-	SuccessfulRatio float64 `json:"successfulRatio"`
+	DominantMood    string  `json:"dominant_mood"`
+	SuccessfulRatio float64 `json:"successful_ratio"`
 }
 
 // ActivitySummaryQuery captures query parameters for periodic activity summary endpoint.
 type ActivitySummaryQuery struct {
-	WindowDays *int `query:"windowDays"`
+	WindowDays *int `query:"window_days"`
 }
 
 // ActivitySummaryPayload is summary payload for periodic activity endpoint.
 type ActivitySummaryPayload struct {
-	WindowDays         int                   `json:"windowDays"`
-	SuccessfulCheckins int                   `json:"successfulCheckins"`
+	WindowDays         int                   `json:"window_days"`
+	SuccessfulCheckins int                   `json:"successful_checkins"`
 	Relapses           int                   `json:"relapses"`
-	ActiveDays         int                   `json:"activeDays"`
-	RecentActivity     []ActivityItemPayload `json:"recentActivity"`
+	ActiveDays         int                   `json:"active_days"`
+	RecentActivity     []ActivityItemPayload `json:"recent_activity"`
 }
 
 // ActivityItemPayload is one activity timeline item.
@@ -80,15 +80,15 @@ type ActivityItemPayload struct {
 
 // CheckInResponseData combines check-in detail and current statistics.
 type CheckInResponseData struct {
-	CheckIn    CheckInPayload    `json:"checkIn"`
+	CheckIn    CheckInPayload    `json:"check_in"`
 	Statistics StatisticsPayload `json:"statistics"`
 }
 
 // RelapsePayload is API payload for one relapse history record.
 type RelapsePayload struct {
-	CheckInID   string  `json:"checkInId"`
-	CheckInDate string  `json:"checkInDate"`
+	CheckInID   string  `json:"check_in_id"`
+	CheckInDate string  `json:"check_in_date"`
 	Mood        string  `json:"mood"`
 	Commitment  *string `json:"commitment"`
-	CreatedAt   string  `json:"createdAt"`
+	CreatedAt   string  `json:"created_at"`
 }

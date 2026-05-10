@@ -48,14 +48,14 @@ func (r *educationRouteRepo) FindUserByID(_ context.Context, _ string) (models.U
 }
 
 func (r *educationRouteRepo) ListActiveContents(_ context.Context) ([]models.EducationContent, error) {
-	publishedAt := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	published_at := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
 	return []models.EducationContent{{
 		ID:          "education-1",
 		Title:       "judul",
 		Description: ptrStringEducation("deskripsi"),
 		URL:         "https://example.test/edu",
 		Category:    "mindset",
-		PublishedAt: &publishedAt,
+		PublishedAt: &published_at,
 	}}, nil
 }
 

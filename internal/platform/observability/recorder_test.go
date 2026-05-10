@@ -60,7 +60,7 @@ func TestAuditAction_KnownRoutes(t *testing.T) {
 		{method: "POST", path: "/api/v1/auth/refresh", action: "auth.refresh"},
 		{method: "PUT", path: "/api/v1/users/settings", action: "users.settings.update"},
 		{method: "PUT", path: "/api/v1/ai/persona-preferences", action: "ai.persona.preference.update"},
-		{method: "POST", path: "/api/v1/community/:postId/comments/:commentId/replies", action: "community.comment.reply"},
+		{method: "POST", path: "/api/v1/community/:post_id/comments/:comment_id/replies", action: "community.comment.reply"},
 	}
 
 	for _, tc := range cases {

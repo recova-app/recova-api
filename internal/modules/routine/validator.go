@@ -30,7 +30,7 @@ func NormalizeDailyCheckInRequest(req DailyCheckInRequest) (DailyCheckInInput, e
 
 	if req.IsSuccessful == nil {
 		return DailyCheckInInput{}, errs.New(errs.CodeValidationError, "Status check-in wajib diisi", []map[string]string{
-			{"field": "isSuccessful", "message": "Status check-in wajib diisi"},
+			{"field": "is_successful", "message": "Status check-in wajib diisi"},
 		}, nil)
 	}
 
@@ -68,13 +68,13 @@ func NormalizeActivitySummaryWindow(raw *int) (int, error) {
 		return defaultWindowDays, nil
 	}
 	if *raw < minWindowDays {
-		return 0, errs.New(errs.CodeValidationError, "Nilai windowDays tidak valid", []map[string]string{
-			{"field": "windowDays", "message": "windowDays minimal 7"},
+		return 0, errs.New(errs.CodeValidationError, "Nilai window_days tidak valid", []map[string]string{
+			{"field": "window_days", "message": "window_days minimal 7"},
 		}, nil)
 	}
 	if *raw > maxWindowDays {
-		return 0, errs.New(errs.CodeValidationError, "Nilai windowDays tidak valid", []map[string]string{
-			{"field": "windowDays", "message": "windowDays maksimal 90"},
+		return 0, errs.New(errs.CodeValidationError, "Nilai window_days tidak valid", []map[string]string{
+			{"field": "window_days", "message": "window_days maksimal 90"},
 		}, nil)
 	}
 	return *raw, nil

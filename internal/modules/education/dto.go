@@ -8,9 +8,9 @@ type ContentPayload struct {
 	Title        string  `json:"title"`
 	Description  *string `json:"description"`
 	URL          string  `json:"url"`
-	ThumbnailURL *string `json:"thumbnailUrl"`
+	ThumbnailURL *string `json:"thumbnail_url"`
 	Category     string  `json:"category"`
-	PublishedAt  *string `json:"publishedAt"`
+	PublishedAt  *string `json:"published_at"`
 }
 
 func formatPublishedAt(ts *time.Time) *string {
