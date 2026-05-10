@@ -33,41 +33,43 @@ func TestIntegration_SeedSQL_Idempotent(t *testing.T) {
 	if err := client.Gorm().WithContext(ctx).Exec(string(seedSQL)).Error; err != nil {
 		t.Fatalf("run first seed: %v", err)
 	}
-	firstEducation := countRows(t, client, "education_contents")
-	firstMotivation := countRows(t, client, "daily_motivations")
-	firstChallenge := countRows(t, client, "daily_challenges")
-	firstAchievements := countRows(t, client, "achievements")
+	firstCounts := captureSeedCounts(t, client)
 
 	if err := client.Gorm().WithContext(ctx).Exec(string(seedSQL)).Error; err != nil {
 		t.Fatalf("run second seed: %v", err)
 	}
-	secondEducation := countRows(t, client, "education_contents")
-	secondMotivation := countRows(t, client, "daily_motivations")
-	secondChallenge := countRows(t, client, "daily_challenges")
-	secondAchievements := countRows(t, client, "achievements")
+	secondCounts := captureSeedCounts(t, client)
 
-	if firstEducation != secondEducation || firstMotivation != secondMotivation || firstChallenge != secondChallenge || firstAchievements != secondAchievements {
-		t.Fatalf(
-			"seed is not idempotent: first=(%d,%d,%d,%d) second=(%d,%d,%d,%d)",
-			firstEducation,
-			firstMotivation,
-			firstChallenge,
-			firstAchievements,
-			secondEducation,
-			secondMotivation,
-			secondChallenge,
-			secondAchievements,
-		)
+	for table, first := range firstCounts {
+		second := secondCounts[table]
+		if first != second {
+			t.Fatalf("seed is not idempotent for %s: first=%d second=%d", table, first, second)
+		}
 	}
 
-	if secondEducation < 8 || secondMotivation < 10 || secondChallenge < 10 || secondAchievements < 10 {
-		t.Fatalf(
-			"seed minimum catalog size not met: education=%d motivation=%d challenge=%d achievements=%d",
-			secondEducation,
-			secondMotivation,
-			secondChallenge,
-			secondAchievements,
-		)
+	minimum := map[string]int64{
+		"users":                       6,
+		"profiles":                    6,
+		"streaks":                     11,
+		"check_ins":                   84,
+		"journals":                    84,
+		"community_posts":             12,
+		"community_comments":          25,
+		"community_post_likes":        20,
+		"education_contents":          23,
+		"daily_motivations":           35,
+		"daily_challenges":            35,
+		"achievements":                15,
+		"user_achievement_progress":   24,
+		"user_ai_persona_preferences": 6,
+		"ai_chats":                    18,
+	}
+
+	for table, minCount := range minimum {
+		got := secondCounts[table]
+		if got < minCount {
+			t.Fatalf("seed minimum size not met for %s: got=%d min=%d", table, got, minCount)
+		}
 	}
 }
 
@@ -92,4 +94,31 @@ func countRows(t testing.TB, client *database.Client, tableName string) int64 {
 		t.Fatalf("count %s: %v", tableName, err)
 	}
 	return count
+}
+
+func captureSeedCounts(t testing.TB, client *database.Client) map[string]int64 {
+	t.Helper()
+	tables := []string{
+		"users",
+		"profiles",
+		"streaks",
+		"check_ins",
+		"journals",
+		"community_posts",
+		"community_comments",
+		"community_post_likes",
+		"education_contents",
+		"daily_motivations",
+		"daily_challenges",
+		"achievements",
+		"user_achievement_progress",
+		"user_ai_persona_preferences",
+		"ai_chats",
+	}
+
+	counts := make(map[string]int64, len(tables))
+	for _, table := range tables {
+		counts[table] = countRows(t, client, table)
+	}
+	return counts
 }

@@ -57,6 +57,57 @@ query_db_count() {
   compose exec -T db psql -U "$postgres_user" -d "$postgres_db" -At -v ON_ERROR_STOP=1 -c "$query"
 }
 
+seed_tables="
+users
+profiles
+streaks
+check_ins
+journals
+community_posts
+community_comments
+community_post_likes
+education_contents
+daily_motivations
+daily_challenges
+achievements
+user_achievement_progress
+user_ai_persona_preferences
+ai_chats
+"
+
+seed_min_count() {
+  table="$1"
+  case "$table" in
+    users) echo 6 ;;
+    profiles) echo 6 ;;
+    streaks) echo 11 ;;
+    check_ins) echo 84 ;;
+    journals) echo 84 ;;
+    community_posts) echo 12 ;;
+    community_comments) echo 25 ;;
+    community_post_likes) echo 20 ;;
+    education_contents) echo 23 ;;
+    daily_motivations) echo 35 ;;
+    daily_challenges) echo 35 ;;
+    achievements) echo 15 ;;
+    user_achievement_progress) echo 24 ;;
+    user_ai_persona_preferences) echo 6 ;;
+    ai_chats) echo 18 ;;
+    *)
+      echo "unknown seed table: $table" >&2
+      exit 1
+      ;;
+  esac
+}
+
+capture_seed_counts() {
+  prefix="$1"
+  for table in $seed_tables; do
+    count="$(query_db_count "SELECT COUNT(*) FROM $table;")"
+    eval "${prefix}_${table}=${count}"
+  done
+}
+
 cleanup() {
   if [ "$keep_stack" = "true" ]; then
     echo "[staging-deploy] KEEP_STACK=true, stack remains running"
@@ -93,34 +144,38 @@ fi
 echo "[staging-deploy] run seed pass #1"
 ./scripts/seed.sh
 
-education_first="$(query_db_count 'SELECT COUNT(*) FROM education_contents;')"
-motivation_first="$(query_db_count 'SELECT COUNT(*) FROM daily_motivations;')"
-challenge_first="$(query_db_count 'SELECT COUNT(*) FROM daily_challenges;')"
-achievements_first="$(query_db_count 'SELECT COUNT(*) FROM achievements;')"
+capture_seed_counts first
 
 echo "[staging-deploy] run seed pass #2"
 ./scripts/seed.sh
 
-education_second="$(query_db_count 'SELECT COUNT(*) FROM education_contents;')"
-motivation_second="$(query_db_count 'SELECT COUNT(*) FROM daily_motivations;')"
-challenge_second="$(query_db_count 'SELECT COUNT(*) FROM daily_challenges;')"
-achievements_second="$(query_db_count 'SELECT COUNT(*) FROM achievements;')"
+capture_seed_counts second
 
-if [ "$education_first" != "$education_second" ] || [ "$motivation_first" != "$motivation_second" ] || [ "$challenge_first" != "$challenge_second" ] || [ "$achievements_first" != "$achievements_second" ]; then
-  echo "[staging-deploy] seed idempotency failed: before=($education_first,$motivation_first,$challenge_first,$achievements_first) after=($education_second,$motivation_second,$challenge_second,$achievements_second)" >&2
-  exit 1
-fi
-
-if [ "$education_second" -le 0 ] || [ "$motivation_second" -le 0 ] || [ "$challenge_second" -le 0 ] || [ "$achievements_second" -le 0 ]; then
-  echo "[staging-deploy] integrity failed: reference content empty" >&2
-  exit 1
-fi
+for table in $seed_tables; do
+  eval "first_count=\${first_${table}}"
+  eval "second_count=\${second_${table}}"
+  if [ "$first_count" != "$second_count" ]; then
+    echo "[staging-deploy] seed idempotency failed on $table: before=$first_count after=$second_count" >&2
+    exit 1
+  fi
+  min_count="$(seed_min_count "$table")"
+  if [ "$second_count" -lt "$min_count" ]; then
+    echo "[staging-deploy] integrity failed on $table: got=$second_count min=$min_count" >&2
+    exit 1
+  fi
+done
 
 motivation_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_motivations GROUP BY content HAVING COUNT(*) > 1) dup;')"
 challenge_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_challenges GROUP BY content HAVING COUNT(*) > 1) dup;')"
 achievement_code_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT code FROM achievements GROUP BY code HAVING COUNT(*) > 1) dup;')"
+users_google_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT google_id FROM users GROUP BY google_id HAVING COUNT(*) > 1) dup;')"
+users_email_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1) dup;')"
+profiles_user_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT user_id FROM profiles GROUP BY user_id HAVING COUNT(*) > 1) dup;')"
+checkins_unique_conflicts="$(query_db_count 'SELECT COUNT(*) FROM (SELECT user_id, check_in_date FROM check_ins GROUP BY user_id, check_in_date HAVING COUNT(*) > 1) dup;')"
+journals_checkin_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT check_in_id FROM journals WHERE check_in_id IS NOT NULL GROUP BY check_in_id HAVING COUNT(*) > 1) dup;')"
+achievement_progress_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT user_id, achievement_id FROM user_achievement_progress GROUP BY user_id, achievement_id HAVING COUNT(*) > 1) dup;')"
 
-if [ "$motivation_duplicates" -ne 0 ] || [ "$challenge_duplicates" -ne 0 ] || [ "$achievement_code_duplicates" -ne 0 ]; then
+if [ "$motivation_duplicates" -ne 0 ] || [ "$challenge_duplicates" -ne 0 ] || [ "$achievement_code_duplicates" -ne 0 ] || [ "$users_google_duplicates" -ne 0 ] || [ "$users_email_duplicates" -ne 0 ] || [ "$profiles_user_duplicates" -ne 0 ] || [ "$checkins_unique_conflicts" -ne 0 ] || [ "$journals_checkin_duplicates" -ne 0 ] || [ "$achievement_progress_duplicates" -ne 0 ]; then
   echo "[staging-deploy] integrity failed: duplicate reference content detected" >&2
   exit 1
 fi

@@ -219,17 +219,50 @@ cat > "$temp_dir/docker-staging" <<'SCRIPT'
 printf '%s\n' "$*" >> "$FAKE_STAGING_DOCKER_LOG"
 
 case "$*" in
+  *"SELECT COUNT(*) FROM users;"*)
+    printf '6\n'
+    ;;
+  *"SELECT COUNT(*) FROM profiles;"*)
+    printf '6\n'
+    ;;
+  *"SELECT COUNT(*) FROM streaks;"*)
+    printf '11\n'
+    ;;
+  *"SELECT COUNT(*) FROM check_ins;"*)
+    printf '84\n'
+    ;;
+  *"SELECT COUNT(*) FROM journals;"*)
+    printf '84\n'
+    ;;
+  *"SELECT COUNT(*) FROM community_posts;"*)
+    printf '12\n'
+    ;;
+  *"SELECT COUNT(*) FROM community_comments;"*)
+    printf '25\n'
+    ;;
+  *"SELECT COUNT(*) FROM community_post_likes;"*)
+    printf '20\n'
+    ;;
   *"SELECT COUNT(*) FROM education_contents;"*)
-    printf '8\n'
+    printf '23\n'
     ;;
   *"SELECT COUNT(*) FROM daily_motivations;"*)
-    printf '10\n'
+    printf '35\n'
     ;;
   *"SELECT COUNT(*) FROM daily_challenges;"*)
-    printf '10\n'
+    printf '35\n'
     ;;
   *"SELECT COUNT(*) FROM achievements;"*)
-    printf '10\n'
+    printf '15\n'
+    ;;
+  *"SELECT COUNT(*) FROM user_achievement_progress;"*)
+    printf '24\n'
+    ;;
+  *"SELECT COUNT(*) FROM user_ai_persona_preferences;"*)
+    printf '6\n'
+    ;;
+  *"SELECT COUNT(*) FROM ai_chats;"*)
+    printf '18\n'
     ;;
   *"daily_motivations GROUP BY content HAVING COUNT(*) > 1"*)
     printf '0\n'
@@ -238,6 +271,24 @@ case "$*" in
     printf '0\n'
     ;;
   *"achievements GROUP BY code HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"users GROUP BY google_id HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"users GROUP BY email HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"profiles GROUP BY user_id HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"check_ins GROUP BY user_id, check_in_date HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"check_in_id FROM journals WHERE check_in_id IS NOT NULL GROUP BY check_in_id HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"user_achievement_progress GROUP BY user_id, achievement_id HAVING COUNT(*) > 1"*)
     printf '0\n'
     ;;
 esac
@@ -290,6 +341,8 @@ assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test ps"
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test down -v --remove-orphans"
 assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM achievements;"
+assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM users;"
+assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM community_posts;"
 assert_file_contains "$fake_staging_docker_log" "daily_motivations GROUP BY content HAVING COUNT(*) > 1"
 assert_file_contains "$fake_staging_docker_log" "achievements GROUP BY code HAVING COUNT(*) > 1"
 
