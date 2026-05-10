@@ -100,11 +100,18 @@ assert_file_contains "$fake_docker_log" "compose --env-file .env.example -f dock
 env_file="$temp_dir/local.env"
 cat > "$env_file" <<'ENVFILE'
 INTEGRATION_ENV_CHECK=from-dotenv
+QUOTED_ENV_CHECK="from-quoted-dotenv"
+SINGLE_QUOTED_ENV_CHECK='from-single-quoted-dotenv'
 ENVFILE
 
 loaded_value="$(ENV_FILE="$env_file" ./scripts/with-env.sh sh -c 'printf "%s" "${INTEGRATION_ENV_CHECK:-}"')"
 if [ "$loaded_value" != "from-dotenv" ]; then
   echo "expected with-env.sh to load env file value, got: $loaded_value" >&2
+  exit 1
+fi
+quoted_loaded_value="$(ENV_FILE="$env_file" ./scripts/with-env.sh sh -c 'printf "%s|%s" "${QUOTED_ENV_CHECK:-}" "${SINGLE_QUOTED_ENV_CHECK:-}"')"
+if [ "$quoted_loaded_value" != "from-quoted-dotenv|from-single-quoted-dotenv" ]; then
+  echo "expected with-env.sh to strip surrounding env quotes, got: $quoted_loaded_value" >&2
   exit 1
 fi
 
@@ -126,6 +133,13 @@ SCRIPT
 chmod +x "$temp_dir/migrate"
 
 DATABASE_URL='postgres://user:pass@localhost:5432/recova?sslmode=disable' \
+MIGRATE_BIN="$temp_dir/migrate" \
+FAKE_MIGRATE_LOG="$fake_log" \
+./scripts/migrate.sh up
+
+assert_file_contains "$fake_log" "-path migrations -database postgres://user:pass@localhost:5432/recova?sslmode=disable up"
+
+DATABASE_URL='postgresql://user:pass@localhost:5432/recova?sslmode=disable' \
 MIGRATE_BIN="$temp_dir/migrate" \
 FAKE_MIGRATE_LOG="$fake_log" \
 ./scripts/migrate.sh up
@@ -270,9 +284,9 @@ assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test ps"
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test down -v --remove-orphans"
 
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable up"
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable down 1"
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable version"
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable up"
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable down 1"
+assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable version"
 
 assert_file_contains "$fake_staging_psql_log" "postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable -v ON_ERROR_STOP=1 -f migrations/seeds/000001_baseline_seed.sql"
 assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/live"
@@ -616,7 +630,7 @@ chmod +x "$remote_repo_dir/scripts/migrate.sh" "$remote_repo_dir/scripts/deploy/
 touch "$remote_repo_dir/docker-compose.staging.yml"
 cat > "$remote_repo_dir/.env.staging" <<'ENVFILE'
 APP_ENV=staging
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable"
 ENVFILE
 
 fake_remote_log="$remote_temp_dir/fake-remote.log"
@@ -685,8 +699,8 @@ assert_file_contains "$fake_remote_log" "git fetch origin develop --prune"
 assert_file_contains "$fake_remote_log" "git checkout -B develop origin/develop"
 assert_file_not_contains "$fake_remote_log" "git reset --hard"
 assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
-assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
-assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
+assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
+assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
 assert_file_contains "$fake_remote_log" "curl -fsS --retry 4 --retry-delay 2 http://127.0.0.1:3001/openapi.yaml"
 
 # remote-deploy.sh must fail when APP_ENV is not staging.

@@ -124,6 +124,13 @@ jobs:
       - name: Integration and contract test gate with DB
         run: go test -p 1 ./...
 
+      - name: Prepare release validation artifact directory
+        run: |
+          mkdir -p artifacts/release-confidence
+          cat > artifacts/release-confidence/manifest.json <<EOF
+          {"workflow":"${GITHUB_WORKFLOW}","runId":"${GITHUB_RUN_ID}","runAttempt":"${GITHUB_RUN_ATTEMPT}"}
+          EOF
+
       - name: E2E critical flow release validation
         env:
           RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
@@ -137,11 +144,12 @@ jobs:
         run: make test-performance
 
       - name: Upload release validation reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-confidence-reports
           path: artifacts/release-confidence
-          if-no-files-found: error
+          if-no-files-found: warn
 
   container-compose-smoke:
     name: Container Compose Smoke

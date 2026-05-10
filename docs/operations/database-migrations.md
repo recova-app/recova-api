@@ -42,6 +42,8 @@ Catatan env local:
 
 - command `make migrate-*` auto-load `.env` lewat `scripts/with-env.sh`,
 - untuk override profile env, jalankan `ENV_FILE=<path> make migrate-up`.
+- env database aplikasi memakai format canonical `postgresql://`.
+- wrapper `scripts/migrate.sh` menormalisasi URL khusus untuk argumen `golang-migrate` agar compatible dengan binary/driver PostgreSQL yang tersedia.
 
 ## File Naming Convention
 
@@ -125,6 +127,7 @@ Catatan penting:
 
 - `force V` hanya mengatur versi migrasi dan mengabaikan dirty flag,
 - `force V` tidak mengeksekusi migration SQL, jadi verifikasi manual wajib.
+- jika error menyebut driver database tidak dikenal, periksa quote pembungkus env dan hasil normalisasi URL pada wrapper migrasi sebelum mengulang rollout.
 
 ## Change Safety Rules
 
@@ -153,5 +156,6 @@ Sebelum perubahan schema dianggap siap:
 ## Source Reference
 
 - [golang-migrate CLI Usage](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+- [golang-migrate PostgreSQL Driver](https://github.com/golang-migrate/migrate/tree/master/database/postgres)
 - [PostgreSQL Constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
 - [PostgreSQL Indexes](https://www.postgresql.org/docs/current/indexes.html)

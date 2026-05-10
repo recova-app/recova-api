@@ -37,6 +37,7 @@ require_file() {
 read_env_value() {
   key="$1"
   awk -v lookup_key="$key" '
+    BEGIN { single_quote=sprintf("%c", 39) }
     /^[[:space:]]*#/ { next }
     {
       line=$0
@@ -52,6 +53,11 @@ read_env_value() {
       }
       env_value=substr(line, eq+1)
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", env_value)
+      first=substr(env_value, 1, 1)
+      last=substr(env_value, length(env_value), 1)
+      if ((first == "\"" && last == "\"") || (first == single_quote && last == single_quote)) {
+        env_value=substr(env_value, 2, length(env_value)-2)
+      }
       print env_value
       exit
     }

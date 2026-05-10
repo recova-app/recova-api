@@ -95,7 +95,7 @@ Untuk jalur staging yang mereplikasi deployment production-style:
 
 Remote runner mengeksekusi urutan:
 
-1. validasi precondition host (`git`, `docker`, `curl`, `migrate`, repo clean),
+1. validasi precondition host (`git`, `docker`, `curl`, repo clean),
 2. validasi `APP_ENV=staging` dan `DATABASE_URL` dari env file staging,
 3. sinkronisasi checkout ke `origin/develop`,
 4. update `APP_IMAGE` ke tag immutable `sha-<commit-sha>`,
@@ -103,6 +103,13 @@ Remote runner mengeksekusi urutan:
 6. `docker compose up -d --wait` untuk service API,
 7. smoke checks: liveness, readiness, OpenAPI route, unauthorized reject pada route protected,
 8. diagnostics otomatis saat gagal (`compose ps`, log tail, migration status, health output).
+
+Catatan database URL:
+
+- env staging tetap memakai format canonical `postgresql://`,
+- nilai env file boleh memakai quote pembungkus,
+- runner deploy menghapus quote pembungkus sebelum mengekspor `DATABASE_URL`,
+- wrapper migrasi dapat memakai `postgres://` hanya sebagai argumen internal `golang-migrate`.
 
 Catatan: `docker-compose.local.yml` tidak digunakan sebagai target runtime deploy staging/production.
 
@@ -196,4 +203,5 @@ Setiap deploy harus punya bukti:
 - [docker compose pull](https://docs.docker.com/reference/cli/docker/compose/pull/)
 - [docker compose up](https://docs.docker.com/reference/cli/docker/compose/up/)
 - [golang-migrate](https://github.com/golang-migrate/migrate)
+- [golang-migrate PostgreSQL Driver](https://github.com/golang-migrate/migrate/tree/master/database/postgres)
 - [PostgreSQL Backup and Restore](https://www.postgresql.org/docs/current/backup.html)

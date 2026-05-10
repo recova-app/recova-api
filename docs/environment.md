@@ -59,6 +59,13 @@ Jika deployment memisahkan URL direct migration, definisikan juga:
 
 - `DIRECT_DATABASE_URL`.
 
+Aturan URL database:
+
+- gunakan `postgresql://` sebagai format canonical pada env aplikasi dan workflow,
+- nilai boleh ditulis tanpa quote atau dengan quote pembungkus (`DATABASE_URL="postgresql://..."`),
+- loader lokal dan runner deploy harus menghapus quote pembungkus sebelum mengekspor env,
+- wrapper migrasi boleh menormalisasi URL khusus argumen `golang-migrate` tanpa mengubah env asli.
+
 ## Authentication Variables
 
 | Variable                | Required | Example value                       | Notes                                                |
@@ -140,3 +147,4 @@ Untuk workflow development lokal:
 - [references/README.md](/Users/macbookpro/Development/recova-backend-v2/references/README.md)
 - [/Users/macbookpro/Development/bisakerja-api/docs/environment.md](/Users/macbookpro/Development/bisakerja-api/docs/environment.md)
 - [Google OAuth 2.0 Web Server Flow](https://developers.google.com/identity/protocols/oauth2/web-server)
+- [golang-migrate PostgreSQL Driver](https://github.com/golang-migrate/migrate/tree/master/database/postgres)

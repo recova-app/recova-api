@@ -29,6 +29,13 @@ if [ ! -d "$migrations_path" ]; then
   exit 1
 fi
 
+migrate_database_url="$database_url"
+case "$migrate_database_url" in
+  postgresql://*)
+    migrate_database_url="postgres://${migrate_database_url#postgresql://}"
+    ;;
+esac
+
 runner_mode="binary"
 migrations_arg="$migrations_path"
 if ! command -v "$migrate_bin" >/dev/null 2>&1; then
@@ -47,14 +54,14 @@ fi
 
 run_migrate() {
   if [ "$runner_mode" = "binary" ]; then
-    "$migrate_bin" -path "$migrations_arg" -database "$database_url" "$@"
+    "$migrate_bin" -path "$migrations_arg" -database "$migrate_database_url" "$@"
     return
   fi
 
   "$docker_bin" run --rm --network host \
     -v "$migrations_abs:/migrations:ro" \
     "$migrate_image" \
-    -path "$migrations_arg" -database "$database_url" "$@"
+    -path "$migrations_arg" -database "$migrate_database_url" "$@"
 }
 
 case "$command_name" in

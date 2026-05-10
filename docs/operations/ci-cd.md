@@ -135,10 +135,16 @@ Workflow `.github/workflows/deploy-staging.yml`:
 - `make migrate-up`,
 - `make migrate-check`,
 - rollback smoke (`make migrate-down` lalu `make migrate-up`),
-- `go test ./...` dengan `RECOVA_DB_INTEGRATION_URL`,
+- `go test -p 1 ./...` dengan `RECOVA_DB_INTEGRATION_URL`,
 - `make test-e2e` dengan output report `artifacts/release-confidence/e2e-critical-flows.json`,
 - `make test-performance` dengan output report `artifacts/release-confidence/performance-smoke.json`,
 - upload artifact `release-confidence-reports`.
+
+Catatan:
+
+- `RECOVA_DB_INTEGRATION_URL`, `DATABASE_URL`, dan `DIRECT_DATABASE_URL` memakai format canonical `postgresql://`,
+- wrapper migrasi menangani normalisasi driver untuk `golang-migrate`,
+- direktori `artifacts/release-confidence` dibuat sebelum release validation agar upload artifact tidak menghasilkan failure sekunder saat report gagal dibuat.
 
 `container-compose-smoke`:
 
