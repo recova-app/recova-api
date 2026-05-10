@@ -95,14 +95,15 @@ Untuk jalur staging yang mereplikasi deployment production-style:
 
 Remote runner mengeksekusi urutan:
 
-1. validasi precondition host (`git`, `docker`, `curl`, repo clean),
-2. validasi `APP_ENV=staging` dan `DATABASE_URL` dari env file staging,
-3. sinkronisasi checkout ke `origin/develop`,
-4. update `APP_IMAGE` ke tag immutable `sha-<commit-sha>`,
-5. pull image terbaru dan apply migration (`up` + `check`),
-6. `docker compose up -d --wait` untuk service API,
-7. smoke checks: liveness, readiness, OpenAPI route, unauthorized reject pada route protected,
-8. diagnostics otomatis saat gagal (`compose ps`, log tail, migration status, health output).
+1. sinkronisasi checkout remote ke `origin/develop` sebelum menulis env file agar script deploy terbaru selalu dipakai,
+2. tulis env file staging dari GitHub secret,
+3. validasi precondition host (`git`, `docker`, `curl`, repo clean),
+4. validasi `APP_ENV=staging` dan `DATABASE_URL` dari env file staging,
+5. update `APP_IMAGE` ke tag immutable `sha-<commit-sha>`,
+6. pull image terbaru dan apply migration (`up` + `check`),
+7. `docker compose up -d --wait` untuk service API,
+8. smoke checks: liveness, readiness, OpenAPI route, unauthorized reject pada route protected,
+9. diagnostics otomatis saat gagal (`compose ps`, log tail, migration status, health output).
 
 Catatan database URL:
 
@@ -110,6 +111,7 @@ Catatan database URL:
 - nilai env file boleh memakai quote pembungkus,
 - runner deploy menghapus quote pembungkus sebelum mengekspor `DATABASE_URL`,
 - wrapper migrasi dapat memakai `postgres://` hanya sebagai argumen internal `golang-migrate`.
+- health/OpenAPI/protected-route smoke dan diagnostics memakai bounded `curl` timeout agar domain publik yang tidak reachable tidak menggantung lama.
 
 Catatan: `docker-compose.local.yml` tidak digunakan sebagai target runtime deploy staging/production.
 

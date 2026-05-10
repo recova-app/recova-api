@@ -701,7 +701,10 @@ assert_file_not_contains "$fake_remote_log" "git reset --hard"
 assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
-assert_file_contains "$fake_remote_log" "curl -fsS --retry 4 --retry-delay 2 http://127.0.0.1:3001/openapi.yaml"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3001/health/live"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3001/health/ready"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 4 --retry-delay 2 http://127.0.0.1:3001/openapi.yaml"
+assert_file_contains "$fake_remote_log" "curl -sS --connect-timeout 5 --max-time 10 -o /dev/null -w %{http_code} http://127.0.0.1:3001/api/v1/users/me"
 
 # remote-deploy.sh must fail when APP_ENV is not staging.
 cat > "$remote_repo_dir/.env.bad" <<'ENVFILE'
@@ -729,3 +732,5 @@ assert_file_contains .github/workflows/deploy-staging.yml "branches:"
 assert_file_contains .github/workflows/deploy-staging.yml "- develop"
 assert_file_contains .github/workflows/deploy-staging.yml 'image_tag_sha="sha-${source_sha}"'
 assert_file_contains .github/workflows/deploy-staging.yml "name: staging"
+assert_file_contains .github/workflows/deploy-staging.yml 'git checkout -B "${{ env.DEPLOY_BRANCH }}" "origin/${{ env.DEPLOY_BRANCH }}"'
+assert_file_contains .github/workflows/deploy-staging.yml 'cat <<'"'"'ENVEOF'"'"' > "$remote_path/$runtime_env_file"'

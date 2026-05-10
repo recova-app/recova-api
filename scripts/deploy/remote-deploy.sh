@@ -11,6 +11,8 @@ expected_app_env="${7:-staging}"
 app_port="${8:-3001}"
 app_base_url="${9:-}"
 migrate_bin="${MIGRATE_BIN:-migrate}"
+curl_connect_timeout="${CURL_CONNECT_TIMEOUT:-5}"
+curl_max_time="${CURL_MAX_TIME:-10}"
 
 if [ -z "$app_base_url" ]; then
   app_base_url="http://127.0.0.1:${app_port}"
@@ -77,9 +79,9 @@ show_diagnostics() {
   log "diagnostics: migrate status"
   DATABASE_URL="$database_url" MIGRATE_BIN="$migrate_bin" ./scripts/migrate.sh status || true
   log "diagnostics: health/live"
-  curl -fsS "$app_base_url/health/live" || true
+  curl -fsS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" "$app_base_url/health/live" || true
   log "diagnostics: health/ready"
-  curl -fsS "$app_base_url/health/ready" || true
+  curl -fsS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" "$app_base_url/health/ready" || true
 }
 
 require_command git
@@ -151,14 +153,14 @@ log "start api"
 compose up -d --wait --wait-timeout 180 api
 
 log "smoke health"
-curl -fsS --retry 6 --retry-delay 2 --retry-connrefused "$app_base_url/health/live" >/dev/null
-curl -fsS --retry 6 --retry-delay 2 --retry-connrefused "$app_base_url/health/ready" >/dev/null
+curl -fsS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" --retry 6 --retry-delay 2 --retry-connrefused "$app_base_url/health/live" >/dev/null
+curl -fsS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" --retry 6 --retry-delay 2 --retry-connrefused "$app_base_url/health/ready" >/dev/null
 
 log "smoke openapi"
-curl -fsS --retry 4 --retry-delay 2 "$app_base_url/openapi.yaml" >/dev/null
+curl -fsS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" --retry 4 --retry-delay 2 "$app_base_url/openapi.yaml" >/dev/null
 
 log "smoke protected route unauthorized"
-status_code="$(curl -sS -o /dev/null -w '%{http_code}' "$app_base_url/api/v1/users/me")"
+status_code="$(curl -sS --connect-timeout "$curl_connect_timeout" --max-time "$curl_max_time" -o /dev/null -w '%{http_code}' "$app_base_url/api/v1/users/me")"
 if [ "$status_code" != "401" ] && [ "$status_code" != "403" ]; then
   printf '[remote-deploy] expected protected route reject (401/403), got %s\n' "$status_code" >&2
   exit 1
