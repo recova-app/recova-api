@@ -36,6 +36,7 @@ func TestIntegration_SeedSQL_Idempotent(t *testing.T) {
 	firstEducation := countRows(t, client, "education_contents")
 	firstMotivation := countRows(t, client, "daily_motivations")
 	firstChallenge := countRows(t, client, "daily_challenges")
+	firstAchievements := countRows(t, client, "achievements")
 
 	if err := client.Gorm().WithContext(ctx).Exec(string(seedSQL)).Error; err != nil {
 		t.Fatalf("run second seed: %v", err)
@@ -43,9 +44,30 @@ func TestIntegration_SeedSQL_Idempotent(t *testing.T) {
 	secondEducation := countRows(t, client, "education_contents")
 	secondMotivation := countRows(t, client, "daily_motivations")
 	secondChallenge := countRows(t, client, "daily_challenges")
+	secondAchievements := countRows(t, client, "achievements")
 
-	if firstEducation != secondEducation || firstMotivation != secondMotivation || firstChallenge != secondChallenge {
-		t.Fatalf("seed is not idempotent: first=(%d,%d,%d) second=(%d,%d,%d)", firstEducation, firstMotivation, firstChallenge, secondEducation, secondMotivation, secondChallenge)
+	if firstEducation != secondEducation || firstMotivation != secondMotivation || firstChallenge != secondChallenge || firstAchievements != secondAchievements {
+		t.Fatalf(
+			"seed is not idempotent: first=(%d,%d,%d,%d) second=(%d,%d,%d,%d)",
+			firstEducation,
+			firstMotivation,
+			firstChallenge,
+			firstAchievements,
+			secondEducation,
+			secondMotivation,
+			secondChallenge,
+			secondAchievements,
+		)
+	}
+
+	if secondEducation < 8 || secondMotivation < 10 || secondChallenge < 10 || secondAchievements < 10 {
+		t.Fatalf(
+			"seed minimum catalog size not met: education=%d motivation=%d challenge=%d achievements=%d",
+			secondEducation,
+			secondMotivation,
+			secondChallenge,
+			secondAchievements,
+		)
 	}
 }
 

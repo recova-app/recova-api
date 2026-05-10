@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/community.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-10
 ---
 
 # Community Module
@@ -74,6 +74,7 @@ Constraint minimum:
 ## Validation Rules
 
 - konten post/comment wajib non-empty,
+- kategori post yang diizinkan: `saran`, `motivasi`, `cerita`, `pertanyaan`, `bantuan`,
 - batas panjang konten ditegakkan,
 - `postId` harus valid,
 - `commentId` parent reply harus valid,

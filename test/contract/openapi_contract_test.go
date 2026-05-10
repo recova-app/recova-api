@@ -121,7 +121,7 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 			path:   "/api/v1/community",
 			body: map[string]any{
 				"content":  "konten komunitas uji valid",
-				"category": "motivation",
+				"category": "motivasi",
 			},
 		},
 		{name: "community comment", method: http.MethodPost, path: "/api/v1/community/post-1/comments", body: map[string]any{"content": "uji"}},

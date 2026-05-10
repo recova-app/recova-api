@@ -167,18 +167,18 @@ func seedReferenceContent(ctx context.Context, client *database.Client) error {
 	statements := []string{
 		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, is_active, published_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111','Understanding Triggers and Routines','Core basics to identify daily triggers and build healthier responses.','https://recova.app/education/memahami-trigger-dan-rutinitas',NULL,'mindset',true,now()),
-  ('22222222-2222-2222-2222-222222222222','Grounding Technique 5-4-3-2-1','A simple exercise to regain focus when urges appear.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'coping',true,now())
+  ('11111111-1111-1111-1111-111111111111','Memahami Pemicu dan Pola Harian','Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.','https://recova.app/education/memahami-pemicu-dan-pola-harian',NULL,'pola_pikir',true,now()),
+  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'regulasi_emosi',true,now())
 ON CONFLICT (id) DO NOTHING;`,
 		`INSERT INTO daily_motivations (id, content, is_active, created_at)
 VALUES
-  ('33333333-3333-3333-3333-333333333333','One healthy choice today still matters.',true,now()),
-  ('44444444-4444-4444-4444-444444444444','Small consistent progress is stronger than short-lived intention.',true,now())
+  ('33333333-3333-3333-3333-333333333333','Satu langkah kecil hari ini tetap berarti untuk masa depanmu.',true,now()),
+  ('44444444-4444-4444-4444-444444444444','Konsisten tidak harus sempurna, yang penting terus bergerak.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 		`INSERT INTO daily_challenges (id, content, is_active, created_at)
 VALUES
-  ('55555555-5555-5555-5555-555555555555','Write down one main trigger today and your response plan.',true,now()),
-  ('66666666-6666-6666-6666-666666666666','Take a 60-second pause before reacting when urges appear.',true,now())
+  ('55555555-5555-5555-5555-555555555555','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.',true,now()),
+  ('66666666-6666-6666-6666-666666666666','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 	}
 

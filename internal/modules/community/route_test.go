@@ -46,13 +46,30 @@ func TestRegisterRoutes_CreateValidationError(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
 }
 
+func TestRegisterRoutes_CreateLegacyEnglishCategoryRejected(t *testing.T) {
+	authService := buildCommunityAuthService(t, "user-1")
+	service := NewService(&communityRouteRepo{})
+
+	app := newCommunityTestApp()
+	RegisterRoutes(app.Group("/api/v1/community"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community", map[string]any{
+		"content":  "valid community content with enough length",
+		"category": "motivation",
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
 func TestRegisterRoutes_ListSuccess(t *testing.T) {
 	authService := buildCommunityAuthService(t, "user-1")
 	service := NewService(&communityRouteRepo{
 		posts: []communityPostListRow{{
 			ID:             "post-1",
 			Content:        "long sample community content",
-			Category:       "motivation",
+			Category:       "motivasi",
 			CommentCount:   1,
 			LikeCount:      1,
 			CreatedAt:      time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC),
@@ -170,13 +187,13 @@ func TestRegisterRoutes_WriteRateLimited(t *testing.T) {
 	headers := map[string]string{"Authorization": "Bearer access-token"}
 	first := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community", map[string]any{
 		"content":  "valid community content with enough length",
-		"category": "advice",
+		"category": "saran",
 	}, headers)
 	httpharness.RequireStatus(t, first.StatusCode, fiber.StatusCreated)
 
 	second := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/community", map[string]any{
 		"content":  "valid community content with enough length",
-		"category": "advice",
+		"category": "saran",
 	}, headers)
 	httpharness.RequireStatus(t, second.StatusCode, fiber.StatusTooManyRequests)
 	httpharness.RequireErrorEnvelope(t, second.JSON, "RATE_LIMITED")

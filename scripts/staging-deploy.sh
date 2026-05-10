@@ -96,6 +96,7 @@ echo "[staging-deploy] run seed pass #1"
 education_first="$(query_db_count 'SELECT COUNT(*) FROM education_contents;')"
 motivation_first="$(query_db_count 'SELECT COUNT(*) FROM daily_motivations;')"
 challenge_first="$(query_db_count 'SELECT COUNT(*) FROM daily_challenges;')"
+achievements_first="$(query_db_count 'SELECT COUNT(*) FROM achievements;')"
 
 echo "[staging-deploy] run seed pass #2"
 ./scripts/seed.sh
@@ -103,21 +104,23 @@ echo "[staging-deploy] run seed pass #2"
 education_second="$(query_db_count 'SELECT COUNT(*) FROM education_contents;')"
 motivation_second="$(query_db_count 'SELECT COUNT(*) FROM daily_motivations;')"
 challenge_second="$(query_db_count 'SELECT COUNT(*) FROM daily_challenges;')"
+achievements_second="$(query_db_count 'SELECT COUNT(*) FROM achievements;')"
 
-if [ "$education_first" != "$education_second" ] || [ "$motivation_first" != "$motivation_second" ] || [ "$challenge_first" != "$challenge_second" ]; then
-  echo "[staging-deploy] seed idempotency failed: before=($education_first,$motivation_first,$challenge_first) after=($education_second,$motivation_second,$challenge_second)" >&2
+if [ "$education_first" != "$education_second" ] || [ "$motivation_first" != "$motivation_second" ] || [ "$challenge_first" != "$challenge_second" ] || [ "$achievements_first" != "$achievements_second" ]; then
+  echo "[staging-deploy] seed idempotency failed: before=($education_first,$motivation_first,$challenge_first,$achievements_first) after=($education_second,$motivation_second,$challenge_second,$achievements_second)" >&2
   exit 1
 fi
 
-if [ "$education_second" -le 0 ] || [ "$motivation_second" -le 0 ] || [ "$challenge_second" -le 0 ]; then
+if [ "$education_second" -le 0 ] || [ "$motivation_second" -le 0 ] || [ "$challenge_second" -le 0 ] || [ "$achievements_second" -le 0 ]; then
   echo "[staging-deploy] integrity failed: reference content empty" >&2
   exit 1
 fi
 
 motivation_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_motivations GROUP BY content HAVING COUNT(*) > 1) dup;')"
 challenge_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_challenges GROUP BY content HAVING COUNT(*) > 1) dup;')"
+achievement_code_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT code FROM achievements GROUP BY code HAVING COUNT(*) > 1) dup;')"
 
-if [ "$motivation_duplicates" -ne 0 ] || [ "$challenge_duplicates" -ne 0 ]; then
+if [ "$motivation_duplicates" -ne 0 ] || [ "$challenge_duplicates" -ne 0 ] || [ "$achievement_code_duplicates" -ne 0 ]; then
   echo "[staging-deploy] integrity failed: duplicate reference content detected" >&2
   exit 1
 fi

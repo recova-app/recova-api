@@ -63,7 +63,7 @@ type CommunityPost struct {
 	UserID       string `gorm:"type:uuid;column:user_id;not null;index"`
 	Title        *string
 	Content      string    `gorm:"not null"`
-	Category     string    `gorm:"not null;default:advice"`
+	Category     string    `gorm:"not null;default:saran"`
 	CommentCount int       `gorm:"column:comment_count;not null;default:0"`
 	LikeCount    int       `gorm:"column:like_count;not null;default:0"`
 	CreatedAt    time.Time `gorm:"not null;default:now()"`

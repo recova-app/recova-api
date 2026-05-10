@@ -330,7 +330,7 @@ func bearerHeaders(accessToken string) map[string]string {
 func prepareCommunityThread(runtime *e2eharness.Runtime, accessToken string) (string, error) {
 	createPostResp := sendRequest(nil, runtime, http.MethodPost, "/api/v1/community", map[string]any{
 		"content":  "load smoke community post",
-		"category": "motivation",
+		"category": "motivasi",
 	}, bearerHeaders(accessToken))
 	if createPostResp.StatusCode != fiber.StatusCreated {
 		return "", fmt.Errorf("create post failed: status=%d body=%s", createPostResp.StatusCode, string(createPostResp.Body))

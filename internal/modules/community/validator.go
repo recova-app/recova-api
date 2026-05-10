@@ -17,11 +17,11 @@ const (
 )
 
 var allowedCategories = map[PostCategory]struct{}{
-	PostCategoryAdvice:     {},
-	PostCategoryMotivation: {},
-	PostCategoryStory:      {},
-	PostCategoryQuestion:   {},
-	PostCategoryAssistance: {},
+	PostCategorySaran:      {},
+	PostCategoryMotivasi:   {},
+	PostCategoryCerita:     {},
+	PostCategoryPertanyaan: {},
+	PostCategoryBantuan:    {},
 }
 
 // NormalizeListPostsQuery validates list-post query and returns normalized category.
@@ -36,7 +36,7 @@ func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, error) {
 	}
 	if !isAllowedCategory(category) {
 		return nil, errs.New(errs.CodeValidationError, "Kategori postingan tidak valid", []map[string]string{
-			{"field": "category", "message": "Kategori harus salah satu dari advice, motivation, story, question, assistance"},
+			{"field": "category", "message": "Kategori harus salah satu dari saran, motivasi, cerita, pertanyaan, bantuan"},
 		}, nil)
 	}
 
@@ -70,7 +70,7 @@ func NormalizeCreatePostRequest(req CreatePostRequest) (CreatePostInput, error) 
 	}
 	if !isAllowedCategory(category) {
 		return CreatePostInput{}, errs.New(errs.CodeValidationError, "Kategori postingan tidak valid", []map[string]string{
-			{"field": "category", "message": "Kategori harus salah satu dari advice, motivation, story, question, assistance"},
+			{"field": "category", "message": "Kategori harus salah satu dari saran, motivasi, cerita, pertanyaan, bantuan"},
 		}, nil)
 	}
 

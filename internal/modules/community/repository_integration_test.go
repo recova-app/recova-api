@@ -45,7 +45,7 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 		UserID:   author.ID,
 		Title:    ptrString("Test title"),
 		Content:  "valid community content for integration test",
-		Category: "motivation",
+		Category: "motivasi",
 	})
 	if err != nil {
 		t.Fatalf("create post: %v", err)
@@ -71,7 +71,7 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 		t.Fatalf("unexpected second like payload: %+v", secondLike)
 	}
 
-	category := PostCategoryMotivation
+	category := PostCategoryMotivasi
 	rows, err := repo.ListPosts(ctx, &category)
 	if err != nil {
 		t.Fatalf("list posts: %v", err)
@@ -122,7 +122,7 @@ func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 	post, err := repo.CreatePost(ctx, models.CommunityPost{
 		UserID:   author.ID,
 		Content:  "post for thread comment integration",
-		Category: "story",
+		Category: "cerita",
 	})
 	if err != nil {
 		t.Fatalf("create post: %v", err)
@@ -166,7 +166,7 @@ func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 	otherPost, err := repo.CreatePost(ctx, models.CommunityPost{
 		UserID:   author.ID,
 		Content:  "other post",
-		Category: "advice",
+		Category: "saran",
 	})
 	if err != nil {
 		t.Fatalf("create other post: %v", err)

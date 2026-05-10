@@ -6,11 +6,11 @@ import "time"
 type PostCategory string
 
 const (
-	PostCategoryAdvice     PostCategory = "advice"
-	PostCategoryMotivation PostCategory = "motivation"
-	PostCategoryStory      PostCategory = "story"
-	PostCategoryQuestion   PostCategory = "question"
-	PostCategoryAssistance PostCategory = "assistance"
+	PostCategorySaran      PostCategory = "saran"
+	PostCategoryMotivasi   PostCategory = "motivasi"
+	PostCategoryCerita     PostCategory = "cerita"
+	PostCategoryPertanyaan PostCategory = "pertanyaan"
+	PostCategoryBantuan    PostCategory = "bantuan"
 )
 
 // ListPostsQuery captures list-posts query parameters.

@@ -220,18 +220,24 @@ printf '%s\n' "$*" >> "$FAKE_STAGING_DOCKER_LOG"
 
 case "$*" in
   *"SELECT COUNT(*) FROM education_contents;"*)
-    printf '2\n'
+    printf '8\n'
     ;;
   *"SELECT COUNT(*) FROM daily_motivations;"*)
-    printf '2\n'
+    printf '10\n'
     ;;
   *"SELECT COUNT(*) FROM daily_challenges;"*)
-    printf '2\n'
+    printf '10\n'
+    ;;
+  *"SELECT COUNT(*) FROM achievements;"*)
+    printf '10\n'
     ;;
   *"daily_motivations GROUP BY content HAVING COUNT(*) > 1"*)
     printf '0\n'
     ;;
   *"daily_challenges GROUP BY content HAVING COUNT(*) > 1"*)
+    printf '0\n'
+    ;;
+  *"achievements GROUP BY code HAVING COUNT(*) > 1"*)
     printf '0\n'
     ;;
 esac
@@ -283,6 +289,9 @@ assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test up -d api --build --wait --wait-timeout 180"
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test ps"
 assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test down -v --remove-orphans"
+assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM achievements;"
+assert_file_contains "$fake_staging_docker_log" "daily_motivations GROUP BY content HAVING COUNT(*) > 1"
+assert_file_contains "$fake_staging_docker_log" "achievements GROUP BY code HAVING COUNT(*) > 1"
 
 assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable up"
 assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable down 1"

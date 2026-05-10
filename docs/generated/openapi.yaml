@@ -1280,11 +1280,11 @@ components:
     CommunityCategory:
       type: string
       enum:
-        - advice
-        - motivation
-        - story
-        - question
-        - assistance
+        - saran
+        - motivasi
+        - cerita
+        - pertanyaan
+        - bantuan
     CommunityCreatePostRequest:
       type: object
       required:

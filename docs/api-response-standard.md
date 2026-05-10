@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api-response-standard.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-10
 ---
 
 # Recova Backend API Response Standard
@@ -113,6 +113,9 @@ Response API tidak boleh mengandung:
 - logger internal, pesan debug, dan error non-response wajib menggunakan bahasa Inggris,
 - jangan campur istilah user-facing English jika padanan Indonesia tersedia,
 - pertahankan konsistensi agar client mobile tidak perlu fallback parsing per bahasa.
+
+Untuk enum yang ditampilkan ke pengguna aplikasi, gunakan istilah Indonesia yang konsisten.
+Contoh: kategori komunitas memakai `saran`, `motivasi`, `cerita`, `pertanyaan`, `bantuan`.
 
 ## Mapping Guidance (High-Level)
 

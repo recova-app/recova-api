@@ -232,7 +232,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 	runStep("community post/comment/like", func() error {
 		createResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/community", map[string]any{
 			"content":  "stay strong, one day at a time",
-			"category": "motivation",
+			"category": "motivasi",
 		}, bearerHeaders(accessToken))
 		if createResp.StatusCode != fiber.StatusCreated {
 			return fmt.Errorf("community create expected 201 got %d body=%s", createResp.StatusCode, string(createResp.Body))

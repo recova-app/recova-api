@@ -19,14 +19,27 @@ func TestNormalizeCreatePostRequest_InvalidCategory(t *testing.T) {
 	}
 }
 
+func TestNormalizeCreatePostRequest_LegacyEnglishCategoryRejected(t *testing.T) {
+	_, err := NormalizeCreatePostRequest(CreatePostRequest{
+		Content:  "content that is long enough",
+		Category: "motivation",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected validation error code, got: %s", errs.Map(err).Code)
+	}
+}
+
 func TestNormalizeListPostsQuery_ValidCategory(t *testing.T) {
-	category := "motivation"
+	category := "motivasi"
 	value, err := NormalizeListPostsQuery(ListPostsQuery{Category: &category})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if value == nil || *value != PostCategoryMotivation {
-		t.Fatalf("expected motivation category, got: %#v", value)
+	if value == nil || *value != PostCategoryMotivasi {
+		t.Fatalf("expected motivasi category, got: %#v", value)
 	}
 }
 

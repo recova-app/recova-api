@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS community_posts (
   user_id uuid NOT NULL,
   title text,
   content text NOT NULL,
-  category text NOT NULL DEFAULT 'advice',
+  category text NOT NULL DEFAULT 'saran',
   comment_count integer NOT NULL DEFAULT 0,
   like_count integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),

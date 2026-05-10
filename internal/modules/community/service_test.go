@@ -20,7 +20,7 @@ func TestService_ListPosts_Success(t *testing.T) {
 			{
 				ID:              "post-1",
 				Content:         "long sample community content",
-				Category:        "motivation",
+				Category:        "motivasi",
 				CommentCount:    2,
 				LikeCount:       3,
 				CreatedAt:       now,
@@ -32,7 +32,7 @@ func TestService_ListPosts_Success(t *testing.T) {
 	service := NewService(repo)
 	service.now = func() time.Time { return now }
 
-	category := "motivation"
+	category := "motivasi"
 	result, err := service.ListPosts(context.Background(), ListPostsQuery{Category: &category})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -51,7 +51,7 @@ func TestService_CreatePost_UserNotFound(t *testing.T) {
 
 	_, err := service.CreatePost(context.Background(), "user-1", CreatePostRequest{
 		Content:  "valid community content with enough length",
-		Category: "advice",
+		Category: "saran",
 	})
 	if err == nil {
 		t.Fatal("expected error")
