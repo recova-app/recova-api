@@ -693,7 +693,7 @@ MIGRATE_BIN="$remote_temp_dir/migrate" \
   "staging" \
   "staging" \
   "3000" \
-  "http://127.0.0.1:3001" >/dev/null
+  "https://public.example.test" >/dev/null
 
 assert_file_contains "$fake_remote_log" "git fetch origin develop --prune"
 assert_file_contains "$fake_remote_log" "git checkout -B develop origin/develop"
@@ -701,10 +701,11 @@ assert_file_not_contains "$fake_remote_log" "git reset --hard"
 assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
 assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3001/health/live"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3001/health/ready"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 4 --retry-delay 2 http://127.0.0.1:3001/openapi.yaml"
-assert_file_contains "$fake_remote_log" "curl -sS --connect-timeout 5 --max-time 10 -o /dev/null -w %{http_code} http://127.0.0.1:3001/api/v1/users/me"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/health/live"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/health/ready"
+assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 4 --retry-delay 2 http://127.0.0.1:3000/openapi.yaml"
+assert_file_contains "$fake_remote_log" "curl -sS --connect-timeout 5 --max-time 10 -o /dev/null -w %{http_code} http://127.0.0.1:3000/api/v1/users/me"
+assert_file_not_contains "$fake_remote_log" "https://public.example.test/health/live"
 
 # remote-deploy.sh must fail when APP_ENV is not staging.
 cat > "$remote_repo_dir/.env.bad" <<'ENVFILE'

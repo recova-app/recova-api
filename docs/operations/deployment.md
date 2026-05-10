@@ -111,7 +111,9 @@ Catatan database URL:
 - nilai env file boleh memakai quote pembungkus,
 - runner deploy menghapus quote pembungkus sebelum mengekspor `DATABASE_URL`,
 - wrapper migrasi dapat memakai `postgres://` hanya sebagai argumen internal `golang-migrate`.
-- health/OpenAPI/protected-route smoke dan diagnostics memakai bounded `curl` timeout agar domain publik yang tidak reachable tidak menggantung lama.
+- health/OpenAPI/protected-route smoke utama memakai loopback host (`127.0.0.1:<port>`) agar deploy tidak bergantung pada kemampuan VPS melakukan hairpin request ke domain publiknya sendiri.
+- public health smoke bersifat opsional melalui `RUN_PUBLIC_SMOKE=true`; diagnostics public health hanya informasi dan tidak menggagalkan deploy.
+- semua smoke dan diagnostics memakai bounded `curl` timeout agar target yang tidak reachable tidak menggantung lama.
 
 Catatan: `docker-compose.local.yml` tidak digunakan sebagai target runtime deploy staging/production.
 
