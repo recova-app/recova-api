@@ -184,7 +184,7 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if provider.lastReq.Persona != "friendly" {
 		t.Fatalf("expected provider persona friendly, got %q", provider.lastReq.Persona)
 	}
-	if !strings.Contains(provider.lastReq.SystemInstruction, "persona name: friendly") {
+	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
 }

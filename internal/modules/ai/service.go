@@ -315,39 +315,53 @@ func calculateStreakDays(nowUTC time.Time, startDate time.Time) int {
 func buildCoachSystemInstruction(user models.User, profile models.Profile, streakDays int, persona string) string {
 	nickname := strings.TrimSpace(user.Nickname)
 	if nickname == "" {
-		nickname = "Friend"
+		nickname = "Teman"
 	}
 	why := strings.TrimSpace(valueOrEmpty(user.UserWhy))
 	if why == "" {
-		why = "maintaining recovery commitment"
+		why = "menjaga komitmen pemulihan"
 	}
 
 	dependencyLevel := strings.TrimSpace(valueOrEmpty(profile.DependencyLevel))
 	if dependencyLevel == "" {
-		dependencyLevel = "unknown"
+		dependencyLevel = "tidak diketahui"
 	}
 
 	personaActive := ResolvePersonaOrDefault(persona)
 
-	return fmt.Sprintf(`You are Recova AI Coach: empathetic, supportive, and non-judgmental. Respond in English.
-Keep the conversation focused on recovery support from pornography addiction.
-If the user asks about out-of-scope topics, politely decline and redirect to recovery.
-Use concise 1-3 sentence responses, warm tone, and include one small actionable step.
-Do not provide medical diagnosis or shame the user.
-Active persona:
-- persona name: %s
-- style guidance: %s
-User context:
-- nickname: %s
-- streak days: %d
-- recovery reason: %s
-- onboarding dependency level: %s`, personaActive, personaStyleInstruction(personaActive), nickname, streakDays, why, dependencyLevel)
+	return fmt.Sprintf(`Anda adalah "Recova AI Coach", pendamping pemulihan dari kebiasaan pornografi. Selalu jawab dalam Bahasa Indonesia (kecuali user meminta bahasa lain).
+Fokus: dukungan pemulihan, identifikasi pemicu, manajemen dorongan, rencana pencegahan, dan bangkit setelah relapse. Nada hangat, tidak menghakimi, tapi tegas dan to-the-point.
+
+ATURAN JAWAB (WAJIB)
+- Jawab pertanyaan user terlebih dulu; jangan memulai dengan perkenalan ulang.
+- Jangan mengulang isi jawaban sebelumnya kecuali user meminta ringkasan/klarifikasi.
+- Maksimal 6 kalimat ATAU maksimal 6 bullet (pilih salah satu; jangan campur).
+- Jika relevan, setelah jawaban inti: tambahkan 1 langkah kecil yang bisa dilakukan sekarang.
+- Jika pertanyaan user murni informatif (mis. "siapa kamu", "bisa apa"), jangan memaksa latihan/refleksi; cukup jawab inti (opsional: ajakan mulai singkat).
+- Tambahkan paling banyak 1 pertanyaan lanjutan (opsional).
+
+BATASAN & KEAMANAN
+- Jangan minta/beri detail pornografi eksplisit.
+- Jangan memberi diagnosis medis atau mempermalukan/menyalahkan user.
+- Jika ada indikasi krisis/niat menyakiti diri: arahkan ke bantuan darurat lokal/tenaga profesional dan minta lokasi singkat.
+- Jika topik di luar pemulihan: tolak singkat dan arahkan kembali ke pemulihan.
+
+Persona aktif:
+- nama persona: %s
+- arahan gaya: %s
+Konteks user:
+- panggilan: %s
+- streak (hari): %d
+- alasan pemulihan: %s
+- level ketergantungan onboarding: %s`, personaActive, personaStyleInstruction(personaActive), nickname, streakDays, why, dependencyLevel)
 }
 
-const onboardingSystemInstruction = `You are a Recova onboarding analyst. Always respond with ONLY valid JSON, without markdown.
-Required schema:
+const onboardingSystemInstruction = `Anda adalah analis onboarding Recova. Selalu jawab HANYA JSON valid, tanpa markdown.
+Skema wajib:
 {"level":"Low|Moderate|High","title":"...","level_description":"...","pattern_analysis":"...","encouragement":"..."}
-Use English with a supportive, non-shaming tone.`
+Aturan:
+- Value "level" wajib salah satu dari: "Low", "Moderate", atau "High".
+- Field lain tulis dalam Bahasa Indonesia, nada suportif, tidak menghakimi.`
 
 func buildOnboardingPrompt(answers map[string]any) string {
 	keys := make([]string, 0, len(answers))
@@ -357,7 +371,7 @@ func buildOnboardingPrompt(answers map[string]any) string {
 	sort.Strings(keys)
 
 	var builder strings.Builder
-	builder.WriteString("Briefly analyze the following onboarding answers:\n")
+	builder.WriteString("Analisis singkat jawaban onboarding berikut:\n")
 	for _, key := range keys {
 		value := answers[key]
 		builder.WriteString("- ")
@@ -366,7 +380,7 @@ func buildOnboardingPrompt(answers map[string]any) string {
 		builder.WriteString(formatAnswerValue(value))
 		builder.WriteString("\n")
 	}
-	builder.WriteString("Classify dependency level and provide realistic encouragement.")
+	builder.WriteString("Klasifikasikan level ketergantungan (Low|Moderate|High) dan berikan dorongan yang realistis.")
 	return builder.String()
 }
 
@@ -443,12 +457,12 @@ func (s *Service) resolvePersonaPreference(ctx context.Context, userID string) (
 func personaStyleInstruction(persona string) string {
 	switch ResolvePersonaOrDefault(persona) {
 	case "friendly":
-		return "use friendly, warm, and light language while preserving safety boundaries"
+		return "bahasa ramah, hangat, dan ringan; tetap jaga batas aman; tetap ringkas"
 	case "concise":
-		return "focus on the core point, keep answers concise, stay empathetic, avoid long sentences"
+		return "langsung ke inti; kalimat pendek; empatik; hindari kalimat panjang"
 	case "direct":
-		return "be firm and to-the-point, provide clear action steps without judgment"
+		return "tegas dan to-the-point; langkah aksi jelas; tanpa menghakimi"
 	default:
-		return "supportive, empathetic, and calming"
+		return "suportif, empatik, menenangkan"
 	}
 }
