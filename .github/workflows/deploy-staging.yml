@@ -37,17 +37,41 @@ jobs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
       source_sha: ${{ steps.meta.outputs.source_sha }}
     steps:
-      - name: Checkout
+      - name: Checkout source (git)
+        id: checkout_git
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.DEPLOY_BRANCH }}
+          ref: ${{ github.sha }}
+
+      - name: Checkout source (fallback archive)
+        if: steps.checkout_git.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "::warning::Primary git checkout failed, fallback to archive API for ${GITHUB_SHA}"
+          tmp_archive="$(mktemp -t recova-source-XXXXXX.tar.gz)"
+          trap 'rm -f "$tmp_archive"' EXIT
+
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" \
+            -o "$tmp_archive"
+
+          find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          tar -xzf "$tmp_archive" --strip-components=1
 
       - name: Prepare metadata
         id: meta
         run: |
           set -euo pipefail
           image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
-          source_sha="$(git rev-parse HEAD)"
+          source_sha="${GITHUB_SHA}"
           image_tag_branch="develop"
           image_tag_sha="sha-${source_sha}"
           {
