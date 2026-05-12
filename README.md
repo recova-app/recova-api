@@ -51,19 +51,19 @@ Runtime route inventory is automatically synchronized in: `docs/generated/routes
 
 ## Tech Stack
 
-| Area              | Technology                            |
-| ----------------- | ------------------------------------- |
-| Language          | Go 1.25.x                             |
-| HTTP Framework    | Fiber v3                              |
-| Database          | PostgreSQL                            |
-| ORM               | GORM                                  |
-| Migration         | golang-migrate (SQL up/down)          |
-| API Contract      | OpenAPI 3.1                           |
-| API Docs UI       | Scalar                                |
-| Authentication    | JWT + Google OAuth token verification |
-| Metrics           | Prometheus client                     |
-| Build/Task Runner | Make                                  |
-| Container Runtime | Docker + Docker Compose               |
+| Area              | Technology                               |
+| ----------------- | ---------------------------------------- |
+| Language          | Go 1.25.x (toolchain pinned in `go.mod`) |
+| HTTP Framework    | Fiber v3.1.x                             |
+| Database          | PostgreSQL                               |
+| ORM               | GORM                                     |
+| Migration         | golang-migrate (SQL up/down)             |
+| API Contract      | OpenAPI 3.1                              |
+| API Docs UI       | Scalar                                   |
+| Authentication    | JWT + Google OAuth token verification    |
+| Metrics           | Prometheus client                        |
+| Build/Task Runner | Make                                     |
+| Container Runtime | Docker + Docker Compose                  |
 
 ## Quick Start
 
@@ -185,6 +185,7 @@ All tasks are available in the `Makefile`. Core commands:
 - `make test-integration`
 - `make test-e2e`
 - `make test-performance`
+- `make coverage`
 - `make release-validation`
 - `make module-consistency-check`
 - `make module-consistency-full-check`
@@ -234,6 +235,7 @@ Generated artifacts:
 
 - `docs/generated/openapi.yaml`
 - `docs/generated/routes.md`
+- `scalar.config.json` (Scalar navigation + docs wiring)
 
 Runtime endpoints:
 
@@ -246,6 +248,11 @@ Recommended workflow:
 make openapi-generate
 make openapi-check
 ```
+
+Notes:
+
+- `make openapi-autogen-watch` maintains `.openapi-watch-files` and regenerates artifacts on change.
+- Runbook: `docs/operations/api-docs-generation.md`.
 
 ## Deployment Overview
 
@@ -288,6 +295,7 @@ Complete reference: `docs/operations/deployment.md`.
 ├── docker-compose.local.yml   # Local runtime
 ├── docker-compose.staging.yml # Staging runtime
 ├── Dockerfile                 # Production-style image build
+├── scalar.config.json         # Scalar docs configuration
 └── Makefile                   # Task runner
 ```
 
@@ -303,10 +311,14 @@ Important documents:
 - API: `docs/api/index.md` and `docs/api-reference.md`
 - Database: `docs/database.md`
 - Environment: `docs/environment.md`
+- Project structure: `docs/project-structure.md`
+- Tech stack: `docs/tech-stack.md`
 - Local development: `docs/operations/local-development.md`
 - Testing: `docs/operations/testing.md`
 - Deployment: `docs/operations/deployment.md`
 - Security: `docs/operations/security.md`
+- API docs generation: `docs/operations/api-docs-generation.md`
+- Documentation sync: `docs/operations/documentation-sync.md`
 - Modules index: `docs/modules/index.md`
 
 ## Quick Troubleshooting
