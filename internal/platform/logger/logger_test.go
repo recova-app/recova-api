@@ -47,6 +47,8 @@ func TestNewWithWriter_RedactsSensitiveFields(t *testing.T) {
 	log.Info("auth event",
 		"jwt_secret", "top-secret",
 		"api_key", "sk-123",
+		"password", "password123",
+		"token", "token-abc-123",
 		"user", "user-1",
 	)
 
@@ -57,6 +59,14 @@ func TestNewWithWriter_RedactsSensitiveFields(t *testing.T) {
 
 	if strings.Contains(output, "sk-123") {
 		t.Fatalf("api key leaked: %s", output)
+	}
+
+	if strings.Contains(output, "password123") {
+		t.Fatalf("password leaked: %s", output)
+	}
+
+	if strings.Contains(output, "token-abc-123") {
+		t.Fatalf("token leaked: %s", output)
 	}
 
 	if !strings.Contains(output, redactedSecretValue) {

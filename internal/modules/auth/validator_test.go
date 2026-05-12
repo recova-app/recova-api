@@ -1,6 +1,9 @@
 package auth
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateGoogleLoginRequest_EmptyToken(t *testing.T) {
 	err := ValidateGoogleLoginRequest(GoogleLoginRequest{})
@@ -22,6 +25,55 @@ func TestNormalizeAndValidateManualRegisterRequest_PasswordMismatch(t *testing.T
 		Username:        "manual_user",
 		Password:        "password123",
 		ConfirmPassword: "password456",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestNormalizeAndValidateManualRegisterRequest_InvalidEmail(t *testing.T) {
+	_, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "not-an-email",
+		Username:        "manual_user",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestNormalizeAndValidateManualRegisterRequest_InvalidUsername(t *testing.T) {
+	_, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "manual@example.com",
+		Username:        "Manual-User",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestNormalizeAndValidateManualRegisterRequest_WeakPasswordTooShort(t *testing.T) {
+	_, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "manual@example.com",
+		Username:        "manual_user",
+		Password:        "short",
+		ConfirmPassword: "short",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestNormalizeAndValidateManualRegisterRequest_PasswordTooLong(t *testing.T) {
+	password := strings.Repeat("a", 73)
+	_, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "manual@example.com",
+		Username:        "manual_user",
+		Password:        password,
+		ConfirmPassword: password,
 	})
 	if err == nil {
 		t.Fatal("expected validation error")

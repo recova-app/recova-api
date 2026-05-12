@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
+	"github.com/recova-app/backend-v2/internal/shared/errs"
 )
 
 func TestService_LoginWithGoogle_ValidationErrorWhenTokenEmpty(t *testing.T) {
@@ -97,6 +98,34 @@ func TestService_RegisterManual_DuplicateUsername(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected conflict error")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict app error, got: %v", err)
+	}
+}
+
+func TestService_RegisterManual_DuplicateEmail(t *testing.T) {
+	repo := &fakeAuthRepo{
+		createManualErr: &pgconn.PgError{
+			Code:           uniqueViolationCode,
+			ConstraintName: "uq_users_email",
+		},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	_, err := svc.RegisterManual(context.Background(), ManualRegisterRequest{
+		Email:           "manual@example.test",
+		Username:        "manualuser",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected conflict error")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict app error, got: %v", err)
 	}
 }
 

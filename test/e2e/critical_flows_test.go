@@ -129,6 +129,64 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		return nil
 	})
 
+	runStep("auth manual register/login flow", func() error {
+		email := "e2e-manual@example.test"
+		username := "e2e_manual_user"
+		password := "password123"
+
+		registerResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/register", map[string]any{
+			"email":            email,
+			"username":         username,
+			"password":         password,
+			"confirm_password": password,
+		}, nil)
+		if registerResp.StatusCode != fiber.StatusCreated {
+			return fmt.Errorf("manual register expected 201 got %d body=%s", registerResp.StatusCode, string(registerResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, registerResp.JSON)
+
+		loginResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/login", map[string]any{
+			"identifier": email,
+			"password":   password,
+		}, nil)
+		if loginResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("manual login expected 200 got %d body=%s", loginResp.StatusCode, string(loginResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, loginResp.JSON)
+
+		manualAccessToken := readSessionAccessToken(loginResp.JSON)
+		if strings.TrimSpace(manualAccessToken) == "" {
+			return fmt.Errorf("manual access token is empty")
+		}
+		manualRefreshCookie := extractCookiePair(loginResp.Header, "recova_refresh_e2e")
+		if strings.TrimSpace(manualRefreshCookie) == "" {
+			return fmt.Errorf("manual refresh cookie not found")
+		}
+
+		meResp := sendJSONRequest(t, runtime, http.MethodGet, "/api/v1/users/me", nil, bearerHeaders(manualAccessToken))
+		if meResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("users me expected 200 got %d body=%s", meResp.StatusCode, string(meResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, meResp.JSON)
+
+		logoutResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/logout", nil, mergeHeaders(bearerHeaders(manualAccessToken), map[string]string{
+			"Cookie": manualRefreshCookie,
+		}))
+		if logoutResp.StatusCode != fiber.StatusOK {
+			return fmt.Errorf("manual logout expected 200 got %d body=%s", logoutResp.StatusCode, string(logoutResp.Body))
+		}
+		httpharness.RequireSuccessEnvelope(t, logoutResp.JSON)
+
+		refreshResp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/refresh", nil, map[string]string{
+			"Cookie": manualRefreshCookie,
+		})
+		if refreshResp.StatusCode != fiber.StatusUnauthorized {
+			return fmt.Errorf("manual refresh after logout expected 401 got %d body=%s", refreshResp.StatusCode, string(refreshResp.Body))
+		}
+		httpharness.RequireErrorEnvelope(t, refreshResp.JSON, "UNAUTHENTICATED")
+		return nil
+	})
+
 	runStep("onboarding and profile", func() error {
 		resp := sendJSONRequest(t, runtime, http.MethodPost, "/api/v1/auth/onboarding", map[string]any{
 			"nickname":           "e2e-user",
@@ -619,6 +677,7 @@ func e2eScopeAllowsStep(scope string, stepName string) bool {
 			"health readiness":                     {},
 			"auth login flow":                      {},
 			"auth refresh token flow":              {},
+			"auth manual register/login flow":      {},
 			"onboarding and profile":               {},
 			"auth logout and refresh invalidation": {},
 		},

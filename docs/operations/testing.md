@@ -49,6 +49,33 @@ Dokumen ini mendefinisikan baseline testing agar perubahan layanan aman sebelum 
 - education/content: read contract dan fallback data,
 - AI coach: timeout, error mapping, safety redaction.
 
+## Coverage Report (Local)
+
+Coverage report dipakai untuk mengukur cakupan statement pada package produksi dan mengidentifikasi gap test pada area kritikal.
+
+Default behavior:
+
+- scope package: `./internal/...` (kode produksi),
+- menjalankan `go test -short` untuk menghindari suite yang membutuhkan database (contoh E2E),
+- output report ditulis ke `artifacts/coverage/`.
+
+Command:
+
+- `make coverage`
+- atau langsung: `./scripts/coverage.sh`
+
+Output:
+
+- `artifacts/coverage/internal.out` (coverprofile)
+- `artifacts/coverage/internal.func.txt` (ringkasan `go tool cover -func`)
+- `artifacts/coverage/by-area.json` (agregasi per area)
+- `artifacts/coverage/by-area.md` (tabel Markdown)
+
+Override (opsional):
+
+- set `COVERAGE_PACKAGES` untuk mengubah scope package (contoh: `./...`),
+- set `COVERAGE_SHORT=0` jika ingin menjalankan test tanpa `-short` (hati-hati: bisa membutuhkan `RECOVA_DB_INTEGRATION_URL`).
+
 ## Enhancement Integration Scenarios
 
 Skenario minimum pada suite release confidence:
@@ -97,6 +124,7 @@ Perintah verifikasi baseline:
 | `make module-consistency-check`      | validasi anatomy module, companion tests, route auth guard, dan boundary layer |
 | `make module-consistency-full-check` | jalur gabungan module consistency + OpenAPI drift check                        |
 | `make security-scan`                 | vulnerability scan dependency Go via govulncheck                               |
+| `make coverage`                      | generate local coverage report untuk package produksi                          |
 | `make compose-smoke`                 | smoke runtime container (`docker-compose.local.yml`)                           |
 | `make test-e2e`                      | E2E critical flow suite + report JSON                                          |
 | `make test-performance`              | load/performance smoke suite + report JSON                                     |
@@ -135,6 +163,7 @@ Tambahan gate:
 
 - [Verification Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/operations/verification-matrix.md)
 - [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
+- [Test Coverage Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/test-coverage-gap-register.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
 - [Release Confidence Report](/Users/macbookpro/Development/recova-backend-v2/docs/generated/release-confidence-report.md)
 

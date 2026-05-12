@@ -47,6 +47,7 @@ Halaman ini merangkum prioritas dokumen yang harus tersedia agar perubahan layan
 
 - [Documentation Quality Audit](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/documentation-quality-audit.md)
 - [Benchmark Parity Report](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/benchmark-parity-report.md)
+- [Test Coverage Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/test-coverage-gap-register.md)
 - [Implementation Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/implementation-readiness.md)
 - [Go Fiber Implementation Backlog](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/go-fiber-implementation-backlog.md)
 - [Internal Modules Consistency Audit](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/internal-modules-consistency-audit.md)

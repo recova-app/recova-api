@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check openapi-autogen openapi-autogen-watch openapi-autogen-install-hook scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance coverage release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check openapi-autogen openapi-autogen-watch openapi-autogen-install-hook scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke staging-deploy cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
 
 preflight:
 	@./scripts/preflight.sh
@@ -26,6 +26,10 @@ test-e2e:
 test-performance:
 	@echo "[test-performance] running performance smoke suite"
 	@./scripts/performance-smoke.sh
+
+coverage:
+	@echo "[coverage] generating local coverage report"
+	@./scripts/coverage.sh
 
 release-validation: test-e2e test-performance
 
