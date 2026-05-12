@@ -27,7 +27,7 @@ func TestIntegration_Repository_DuplicateCheckInReturnsUniqueViolation(t *testin
 	ctx := context.Background()
 
 	user := models.User{
-		GoogleID: "google-routine-it-1",
+		GoogleID: models.StringPtr("google-routine-it-1"),
 		Email:    "routine-it@example.test",
 		Nickname: "routine-it",
 	}
@@ -76,7 +76,7 @@ func TestIntegration_Repository_ListActivityWithinRange(t *testing.T) {
 	ctx := context.Background()
 
 	user := models.User{
-		GoogleID: "google-routine-it-2",
+		GoogleID: models.StringPtr("google-routine-it-2"),
 		Email:    "routine-it-2@example.test",
 		Nickname: "routine-it-2",
 	}

@@ -16,6 +16,58 @@ func TestValidateGoogleLoginRequest_Success(t *testing.T) {
 	}
 }
 
+func TestNormalizeAndValidateManualRegisterRequest_PasswordMismatch(t *testing.T) {
+	_, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "manual@example.com",
+		Username:        "manual_user",
+		Password:        "password123",
+		ConfirmPassword: "password456",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestNormalizeAndValidateManualRegisterRequest_Success(t *testing.T) {
+	input, err := NormalizeAndValidateManualRegisterRequest(ManualRegisterRequest{
+		Email:           "Manual@Example.com",
+		Username:        "Manual_User",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err != nil {
+		t.Fatalf("normalize register: %v", err)
+	}
+	if input.Email != "manual@example.com" {
+		t.Fatalf("unexpected normalized email: %s", input.Email)
+	}
+	if input.Username != "manual_user" {
+		t.Fatalf("unexpected normalized username: %s", input.Username)
+	}
+}
+
+func TestNormalizeAndValidateManualLoginRequest_IdentifierFallback(t *testing.T) {
+	input, err := NormalizeAndValidateManualLoginRequest(ManualLoginRequest{
+		Email:    "Manual@Example.com",
+		Password: "password123",
+	})
+	if err != nil {
+		t.Fatalf("normalize login: %v", err)
+	}
+	if input.Identifier != "manual@example.com" {
+		t.Fatalf("unexpected identifier: %s", input.Identifier)
+	}
+}
+
+func TestNormalizeAndValidateManualLoginRequest_EmptyIdentifier(t *testing.T) {
+	_, err := NormalizeAndValidateManualLoginRequest(ManualLoginRequest{
+		Password: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
 func TestNormalizeAndValidateOnboardingRequest_EmptyNickname(t *testing.T) {
 	_, err := NormalizeAndValidateOnboardingRequest(OnboardingRequest{
 		Nickname:         "  ",

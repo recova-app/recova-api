@@ -30,6 +30,16 @@ func TestIsUniqueViolation(t *testing.T) {
 	}
 }
 
+func TestUniqueViolationConstraint(t *testing.T) {
+	err := &pgconn.PgError{Code: uniqueViolationCode, ConstraintName: "uq_users_username"}
+	if got := UniqueViolationConstraint(err); got != "uq_users_username" {
+		t.Fatalf("unexpected constraint: %q", got)
+	}
+	if got := UniqueViolationConstraint(errors.New("plain")); got != "" {
+		t.Fatalf("expected empty constraint, got: %q", got)
+	}
+}
+
 func TestFallbackNickname(t *testing.T) {
 	tests := []struct {
 		name  string

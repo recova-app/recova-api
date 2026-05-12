@@ -27,8 +27,8 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 	repo := NewRepository(client.Gorm())
 	ctx := context.Background()
 
-	author := models.User{GoogleID: "google-community-author", Email: "community-author@example.test", Nickname: "author"}
-	commenter := models.User{GoogleID: "google-community-commenter", Email: "community-commenter@example.test", Nickname: "commenter"}
+	author := models.User{GoogleID: models.StringPtr("google-community-author"), Email: "community-author@example.test", Nickname: "author"}
+	commenter := models.User{GoogleID: models.StringPtr("google-community-commenter"), Email: "community-commenter@example.test", Nickname: "commenter"}
 	if err := client.Gorm().WithContext(ctx).Create(&author).Error; err != nil {
 		t.Fatalf("create author: %v", err)
 	}
@@ -110,8 +110,8 @@ func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 	repo := NewRepository(client.Gorm())
 	ctx := context.Background()
 
-	author := models.User{GoogleID: "google-community-thread-author", Email: "community-thread-author@example.test", Nickname: "author"}
-	replyUser := models.User{GoogleID: "google-community-thread-reply", Email: "community-thread-reply@example.test", Nickname: "reply"}
+	author := models.User{GoogleID: models.StringPtr("google-community-thread-author"), Email: "community-thread-author@example.test", Nickname: "author"}
+	replyUser := models.User{GoogleID: models.StringPtr("google-community-thread-reply"), Email: "community-thread-reply@example.test", Nickname: "reply"}
 	if err := client.Gorm().WithContext(ctx).Create(&author).Error; err != nil {
 		t.Fatalf("create author: %v", err)
 	}

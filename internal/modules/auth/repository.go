@@ -39,9 +39,10 @@ func (r *Repository) FindOrCreateUserByGoogleIdentity(ctx context.Context, ident
 	if nickname == "" {
 		nickname = fallbackNickname(identity.Email)
 	}
+	googleID := strings.TrimSpace(identity.GoogleID)
 
 	newUser := models.User{
-		GoogleID: strings.TrimSpace(identity.GoogleID),
+		GoogleID: &googleID,
 		Email:    strings.ToLower(strings.TrimSpace(identity.Email)),
 		Nickname: nickname,
 	}
@@ -50,6 +51,41 @@ func (r *Repository) FindOrCreateUserByGoogleIdentity(ctx context.Context, ident
 	}
 
 	return newUser, nil
+}
+
+// CreateManualUser inserts manual account row.
+func (r *Repository) CreateManualUser(ctx context.Context, email string, username string, nickname string, passwordHash string) (models.User, error) {
+	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	normalizedUsername := strings.ToLower(strings.TrimSpace(username))
+	if strings.TrimSpace(nickname) == "" {
+		nickname = normalizedUsername
+	}
+	passwordHashTrimmed := strings.TrimSpace(passwordHash)
+
+	newUser := models.User{
+		Email:        normalizedEmail,
+		Username:     &normalizedUsername,
+		PasswordHash: &passwordHashTrimmed,
+		Nickname:     strings.TrimSpace(nickname),
+	}
+	if err := r.db.WithContext(ctx).Create(&newUser).Error; err != nil {
+		return models.User{}, err
+	}
+
+	return newUser, nil
+}
+
+// FindUserByLoginIdentifier finds one user by email or username.
+func (r *Repository) FindUserByLoginIdentifier(ctx context.Context, identifier string) (models.User, error) {
+	var user models.User
+	normalized := strings.ToLower(strings.TrimSpace(identifier))
+	if err := r.db.WithContext(ctx).
+		Where("LOWER(email) = ?", normalized).
+		Or("LOWER(username) = ?", normalized).
+		First(&user).Error; err != nil {
+		return models.User{}, err
+	}
+	return user, nil
 }
 
 // FindUserByID loads user by id.
@@ -144,6 +180,18 @@ func IsUniqueViolation(err error) bool {
 		return false
 	}
 	return pgErr.Code == uniqueViolationCode
+}
+
+// UniqueViolationConstraint returns postgres constraint name when available.
+func UniqueViolationConstraint(err error) string {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return ""
+	}
+	if pgErr.Code != uniqueViolationCode {
+		return ""
+	}
+	return strings.TrimSpace(pgErr.ConstraintName)
 }
 
 func fallbackNickname(email string) string {

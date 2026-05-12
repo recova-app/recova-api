@@ -45,6 +45,53 @@ func TestRegisterCoreRoutes_GoogleLoginValidationError(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
 }
 
+func TestRegisterCoreRoutes_ManualRegisterSuccess(t *testing.T) {
+	reason := "recovery"
+	service := NewService(&fakeAuthRepo{
+		manualCreatedUser: models.User{
+			ID:       "user-manual-1",
+			Email:    "manual@example.test",
+			Nickname: "manualuser",
+		},
+		userByID: models.User{
+			ID:       "user-manual-1",
+			Email:    "manual@example.test",
+			Nickname: "manualuser",
+			UserWhy:  &reason,
+		},
+	}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/register", map[string]any{
+		"email":            "manual@example.test",
+		"username":         "manualuser",
+		"password":         "password123",
+		"confirm_password": "password123",
+	}, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusCreated)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+	if resp.Header.Get("Set-Cookie") == "" {
+		t.Fatal("expected refresh cookie set on register")
+	}
+}
+
+func TestRegisterCoreRoutes_ManualLoginValidationError(t *testing.T) {
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/login", map[string]any{
+		"password": "password123",
+	}, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
 func TestRegisterCoreRoutes_LogoutUnauthorizedWithoutBearer(t *testing.T) {
 	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{parseAccessErr: errors.New("invalid")})
 

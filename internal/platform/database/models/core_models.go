@@ -6,14 +6,16 @@ import (
 
 // User stores core account identity and onboarding pointers.
 type User struct {
-	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	GoogleID    string    `gorm:"column:google_id;not null;uniqueIndex"`
-	Email       string    `gorm:"not null;uniqueIndex"`
-	Nickname    string    `gorm:"not null"`
-	UserWhy     *string   `gorm:"column:user_why"`
-	CheckInTime *string   `gorm:"column:check_in_time;type:time"`
-	CreatedAt   time.Time `gorm:"not null;default:now()"`
-	UpdatedAt   time.Time `gorm:"not null;default:now()"`
+	ID           string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	GoogleID     *string   `gorm:"column:google_id;uniqueIndex"`
+	Email        string    `gorm:"not null;uniqueIndex:uq_users_email"`
+	Username     *string   `gorm:"column:username;uniqueIndex:uq_users_username"`
+	PasswordHash *string   `gorm:"column:password_hash"`
+	Nickname     string    `gorm:"not null"`
+	UserWhy      *string   `gorm:"column:user_why"`
+	CheckInTime  *string   `gorm:"column:check_in_time;type:time"`
+	CreatedAt    time.Time `gorm:"not null;default:now()"`
+	UpdatedAt    time.Time `gorm:"not null;default:now()"`
 }
 
 // Profile stores onboarding profile answers and derived AI summary for one user.

@@ -27,7 +27,7 @@ func TestIntegration_Repository_UpsertProgressIdempotentNoDoubleUnlock(t *testin
 	ctx := context.Background()
 
 	user := models.User{
-		GoogleID: "google-achievements-it-1",
+		GoogleID: models.StringPtr("google-achievements-it-1"),
 		Email:    "achievements-it-1@example.test",
 		Nickname: "achievements-it-1",
 	}
@@ -109,7 +109,7 @@ func TestIntegration_Repository_UniqueConstraintUserAchievementProgress(t *testi
 
 	ctx := context.Background()
 	user := models.User{
-		GoogleID: "google-achievements-it-2",
+		GoogleID: models.StringPtr("google-achievements-it-2"),
 		Email:    "achievements-it-2@example.test",
 		Nickname: "achievements-it-2",
 	}

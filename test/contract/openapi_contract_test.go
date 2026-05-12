@@ -196,6 +196,28 @@ func TestContract_AuthRouteParity_ValidAgainstOpenAPI(t *testing.T) {
 			expectCode: fiber.StatusUnauthorized,
 		},
 		{
+			name:   "manual register invalid payload",
+			method: http.MethodPost,
+			path:   "/api/v1/auth/register",
+			body: map[string]any{
+				"email":            "manual@example.test",
+				"username":         "manual_user",
+				"password":         "password123",
+				"confirm_password": "password456",
+			},
+			expectCode: fiber.StatusUnprocessableEntity,
+		},
+		{
+			name:   "manual login invalid payload",
+			method: http.MethodPost,
+			path:   "/api/v1/auth/login",
+			body: map[string]any{
+				"identifier": " ",
+				"password":   "password123",
+			},
+			expectCode: fiber.StatusUnprocessableEntity,
+		},
+		{
 			name:       "refresh without cookie",
 			method:     http.MethodPost,
 			path:       "/api/v1/auth/refresh",

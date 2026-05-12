@@ -22,6 +22,11 @@ type authRepository interface {
 	RotateRefreshToken(ctx context.Context, oldTokenID string, revokedAt time.Time, newToken models.AuthRefreshToken) error
 }
 
+type manualAuthRepository interface {
+	CreateManualUser(ctx context.Context, email string, username string, nickname string, passwordHash string) (models.User, error)
+	FindUserByLoginIdentifier(ctx context.Context, identifier string) (models.User, error)
+}
+
 type tokenProvider interface {
 	GoogleAudience() string
 	IssueAccessToken(userID string) (string, SessionPayload, error)
@@ -79,37 +84,83 @@ func (s *Service) LoginWithGoogle(ctx context.Context, req GoogleLoginRequest) (
 		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal memproses login Google", nil, err)
 	}
 
-	access_token, sessionPayload, err := s.tokens.IssueAccessToken(user.ID)
+	return s.issueSessionForUser(ctx, user.ID)
+}
+
+// RegisterManual registers manual account and issues new session tokens.
+func (s *Service) RegisterManual(ctx context.Context, req ManualRegisterRequest) (LoginResult, error) {
+	input, err := NormalizeAndValidateManualRegisterRequest(req)
 	if err != nil {
-		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi akses", nil, err)
+		return LoginResult{}, err
 	}
-	_ = access_token
 
-	refreshToken, refreshClaims, err := s.tokens.IssueRefreshToken(user.ID)
+	manualRepo, ok := s.repo.(manualAuthRepository)
+	if !ok {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Fitur registrasi manual belum tersedia", nil, nil)
+	}
+
+	passwordHash, err := hashPassword(input.Password)
 	if err != nil {
-		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi refresh", nil, err)
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal memproses registrasi", nil, err)
 	}
 
-	if refreshClaims.ExpiresAt == nil {
-		return LoginResult{}, errs.New(errs.CodeInternalError, "Token refresh tidak memiliki masa berlaku", nil, nil)
+	user, err := manualRepo.CreateManualUser(ctx, input.Email, input.Username, input.Username, passwordHash)
+	if err != nil {
+		if IsUniqueViolation(err) {
+			constraint := UniqueViolationConstraint(err)
+			switch constraint {
+			case "uq_users_email", "users_email_key":
+				return LoginResult{}, errs.New(errs.CodeConflict, "Email sudah digunakan", map[string]string{
+					"field":   "email",
+					"message": "Email sudah digunakan",
+				}, err)
+			case "uq_users_username", "users_username_key":
+				return LoginResult{}, errs.New(errs.CodeConflict, "Username sudah digunakan", map[string]string{
+					"field":   "username",
+					"message": "Username sudah digunakan",
+				}, err)
+			}
+			return LoginResult{}, errs.New(errs.CodeConflict, "Akun pengguna mengalami konflik data", nil, err)
+		}
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal memproses registrasi", nil, err)
 	}
 
-	hash := s.tokens.HashRefreshToken(refreshToken)
-	if err := s.repo.CreateRefreshToken(ctx, models.AuthRefreshToken{
-		UserID:    user.ID,
-		TokenHash: hash,
-		ExpiresAt: refreshClaims.ExpiresAt.Time,
-	}); err != nil {
-		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal menyimpan sesi refresh", nil, err)
+	return s.issueSessionForUser(ctx, user.ID)
+}
+
+// LoginManual authenticates manual account by email or username and issues session.
+func (s *Service) LoginManual(ctx context.Context, req ManualLoginRequest) (LoginResult, error) {
+	input, err := NormalizeAndValidateManualLoginRequest(req)
+	if err != nil {
+		return LoginResult{}, err
 	}
 
-	return LoginResult{
-		UserID:           user.ID,
-		RefreshToken:     refreshToken,
-		RefreshTokenID:   refreshClaims.ID,
-		RefreshExpiresAt: refreshClaims.ExpiresAt.Time,
-		Session:          sessionPayload,
-	}, nil
+	manualRepo, ok := s.repo.(manualAuthRepository)
+	if !ok {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Fitur login manual belum tersedia", nil, nil)
+	}
+
+	user, err := manualRepo.FindUserByLoginIdentifier(ctx, input.Identifier)
+	if err != nil {
+		if IsRecordNotFound(err) {
+			return LoginResult{}, errs.New(errs.CodeUnauthenticated, "Akun tidak ditemukan", nil, err)
+		}
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal memproses login", nil, err)
+	}
+
+	passwordHash := ""
+	if user.PasswordHash != nil {
+		passwordHash = strings.TrimSpace(*user.PasswordHash)
+	}
+	if passwordHash == "" {
+		return LoginResult{}, errs.New(errs.CodeUnauthenticated, "Kredensial login tidak sesuai", nil, nil)
+	}
+
+	if err := verifyPassword(passwordHash, input.Password); err != nil {
+		return LoginResult{}, errs.New(errs.CodeUnauthenticated, "Kredensial login tidak sesuai", nil, err)
+	}
+
+	return s.issueSessionForUser(ctx, user.ID)
 }
 
 // RefreshSession validates refresh cookie, rotates refresh token, and issues fresh access token.
@@ -168,6 +219,40 @@ func (s *Service) RefreshSession(ctx context.Context, rawRefreshToken string) (R
 		RefreshToken:     newRefreshToken,
 		RefreshTokenID:   newClaims.ID,
 		RefreshExpiresAt: newClaims.ExpiresAt.Time,
+		Session:          sessionPayload,
+	}, nil
+}
+
+func (s *Service) issueSessionForUser(ctx context.Context, userID string) (LoginResult, error) {
+	access_token, sessionPayload, err := s.tokens.IssueAccessToken(userID)
+	if err != nil {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi akses", nil, err)
+	}
+	_ = access_token
+
+	refreshToken, refreshClaims, err := s.tokens.IssueRefreshToken(userID)
+	if err != nil {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal membuat sesi refresh", nil, err)
+	}
+
+	if refreshClaims.ExpiresAt == nil {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Token refresh tidak memiliki masa berlaku", nil, nil)
+	}
+
+	hash := s.tokens.HashRefreshToken(refreshToken)
+	if err := s.repo.CreateRefreshToken(ctx, models.AuthRefreshToken{
+		UserID:    userID,
+		TokenHash: hash,
+		ExpiresAt: refreshClaims.ExpiresAt.Time,
+	}); err != nil {
+		return LoginResult{}, errs.New(errs.CodeInternalError, "Gagal menyimpan sesi refresh", nil, err)
+	}
+
+	return LoginResult{
+		UserID:           userID,
+		RefreshToken:     refreshToken,
+		RefreshTokenID:   refreshClaims.ID,
+		RefreshExpiresAt: refreshClaims.ExpiresAt.Time,
 		Session:          sessionPayload,
 	}, nil
 }

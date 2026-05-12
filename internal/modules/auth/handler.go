@@ -36,6 +36,48 @@ func (h *Handler) GoogleLogin(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.Success("Login berhasil", payload, nil))
 }
 
+// Register handles manual account registration and session issuance.
+func (h *Handler) Register(c fiber.Ctx) error {
+	var req ManualRegisterRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return err
+	}
+
+	result, err := h.service.RegisterManual(c.Context(), req)
+	if err != nil {
+		return err
+	}
+
+	payload, err := h.service.BuildAuthResponseData(c.Context(), result.UserID, result.Session)
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(h.service.RefreshCookie(result.RefreshToken))
+	return c.Status(fiber.StatusCreated).JSON(response.Success("Registrasi berhasil", payload, nil))
+}
+
+// Login handles manual login by email or username.
+func (h *Handler) Login(c fiber.Ctx) error {
+	var req ManualLoginRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return err
+	}
+
+	result, err := h.service.LoginManual(c.Context(), req)
+	if err != nil {
+		return err
+	}
+
+	payload, err := h.service.BuildAuthResponseData(c.Context(), result.UserID, result.Session)
+	if err != nil {
+		return err
+	}
+
+	c.Cookie(h.service.RefreshCookie(result.RefreshToken))
+	return c.Status(fiber.StatusOK).JSON(response.Success("Login berhasil", payload, nil))
+}
+
 // Refresh rotates refresh token cookie and issues new access token.
 func (h *Handler) Refresh(c fiber.Ctx) error {
 	refreshToken := h.service.RefreshCookieValue(c)

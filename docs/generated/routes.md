@@ -21,7 +21,7 @@ This document lists active routes from the current Go Fiber runtime.
 
 | Metric | Value |
 | --- | --- |
-| Total routes | 35 |
+| Total routes | 37 |
 | API prefix | `/api/v1` |
 | Last verified | `2026-05-08` |
 
@@ -53,9 +53,11 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST` | `/api/v1/ai/ask-coach` | `api-v1` |
 | `POST` | `/api/v1/ai/onboarding-analysis` | `api-v1` |
 | `POST` | `/api/v1/auth/google` | `api-v1` |
+| `POST` | `/api/v1/auth/login` | `api-v1` |
 | `POST` | `/api/v1/auth/logout` | `api-v1` |
 | `POST` | `/api/v1/auth/onboarding` | `api-v1` |
 | `POST` | `/api/v1/auth/refresh` | `api-v1` |
+| `POST` | `/api/v1/auth/register` | `api-v1` |
 | `POST` | `/api/v1/community` | `api-v1` |
 | `POST` | `/api/v1/community/{post_id}/comments` | `api-v1` |
 | `POST` | `/api/v1/community/{post_id}/comments/{comment_id}/replies` | `api-v1` |

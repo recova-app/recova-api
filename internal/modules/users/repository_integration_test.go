@@ -25,8 +25,8 @@ func TestIntegration_Repository_ResetUserDataForTesting_RemovesAIChatsScopedUser
 	repo := NewRepository(client.Gorm())
 	ctx := context.Background()
 
-	userA := models.User{GoogleID: "google-reset-ai-a", Email: "reset-ai-a@example.test", Nickname: "reset-a"}
-	userB := models.User{GoogleID: "google-reset-ai-b", Email: "reset-ai-b@example.test", Nickname: "reset-b"}
+	userA := models.User{GoogleID: models.StringPtr("google-reset-ai-a"), Email: "reset-ai-a@example.test", Nickname: "reset-a"}
+	userB := models.User{GoogleID: models.StringPtr("google-reset-ai-b"), Email: "reset-ai-b@example.test", Nickname: "reset-b"}
 	if err := client.Gorm().WithContext(ctx).Create(&userA).Error; err != nil {
 		t.Fatalf("create userA: %v", err)
 	}

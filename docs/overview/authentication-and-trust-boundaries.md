@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/overview/authentication-and-trust-boundaries.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 ---
 
 # Authentication and Trust Boundaries
@@ -40,10 +40,17 @@ Dokumen ini memetakan batas kepercayaan untuk flow autentikasi agar kontrol keam
 - backend memastikan `aud`, `iss`, `exp`, dan signature valid,
 - kegagalan verifikasi dipetakan ke `UNAUTHENTICATED`.
 
+### Z1 -> Z2 (Manual Credential Auth)
+
+- register manual memvalidasi `email`, `username`, `password`, dan `confirm_password`,
+- login manual hanya menerima identifier (`email`/`username`) + `password`,
+- password mentah hanya dipakai saat proses verifikasi hash dan tidak boleh di-log.
+
 ### Z2 -> Z4 (Backend to Database)
 
 - write/read auth state hanya melalui repository,
 - refresh token mentah tidak disimpan ke database,
+- password manual hanya disimpan sebagai bcrypt hash,
 - penyimpanan token persisten harus berbasis hash.
 
 ### Z2 -> Z5 (Backend to Logs)
@@ -59,6 +66,7 @@ Model sesi default:
 - access token pendek untuk authorisasi request,
 - refresh token cookie untuk perpanjangan sesi (opsional via feature flag/env),
 - rotasi refresh token setiap refresh sukses.
+- register manual sukses langsung membuat sesi aktif tanpa OTP/email verification.
 
 ## Cookie Security Contract
 
@@ -87,6 +95,8 @@ Untuk endpoint cookie-based:
 ## Failure Handling
 
 - invalid/missing token -> `401 UNAUTHENTICATED`,
+- akun manual tidak ditemukan -> `401 UNAUTHENTICATED`,
+- password manual salah -> `401 UNAUTHENTICATED`,
 - token valid tapi ownership gagal -> `403 FORBIDDEN` atau `404` sesuai strategi anti-enumeration,
 - dependency auth eksternal gagal -> `502 DOWNSTREAM_ERROR` atau `503 SERVICE_UNAVAILABLE`.
 
@@ -105,3 +115,4 @@ Untuk endpoint cookie-based:
 - [Fiber CORS Middleware](https://docs.gofiber.io/middleware/cors/)
 - [Fiber CSRF Middleware](https://docs.gofiber.io/middleware/csrf/)
 - [JWT Best Current Practices (RFC 8725)](https://www.rfc-editor.org/rfc/rfc8725)
+- [Go bcrypt Package](https://pkg.go.dev/golang.org/x/crypto/bcrypt)

@@ -7,6 +7,22 @@ type GoogleLoginRequest struct {
 	Token string `json:"token"`
 }
 
+// ManualRegisterRequest is request payload for manual register endpoint.
+type ManualRegisterRequest struct {
+	Email           string `json:"email"`
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+}
+
+// ManualLoginRequest is request payload for manual login endpoint.
+type ManualLoginRequest struct {
+	Identifier string `json:"identifier"`
+	Email      string `json:"email"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+}
+
 // SessionPayload is API payload for active access-token session.
 type SessionPayload struct {
 	AccessToken string `json:"access_token"`
@@ -72,6 +88,19 @@ type LoginResult struct {
 	RefreshTokenID   string
 	RefreshExpiresAt time.Time
 	Session          SessionPayload
+}
+
+// ManualRegisterInput is normalized manual register request for service layer.
+type ManualRegisterInput struct {
+	Email    string
+	Username string
+	Password string
+}
+
+// ManualLoginInput is normalized manual login request for service layer.
+type ManualLoginInput struct {
+	Identifier string
+	Password   string
 }
 
 // AuthPrincipal is request-scoped authenticated principal attached by middleware.

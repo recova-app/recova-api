@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/decisions/adr-0007-auth-token-strategy.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 ---
 
 # ADR 0007 - Auth Token Strategy
@@ -24,7 +24,7 @@ Layanan memerlukan strategi sesi yang:
 - aman untuk client web/mobile,
 - mendukung durasi sesi pengguna yang wajar,
 - tetap membatasi dampak kebocoran token,
-- kompatibel dengan alur login Google OAuth.
+- kompatibel dengan alur login Google OAuth dan login manual email/username/password.
 
 ## Decision
 
@@ -86,6 +86,7 @@ Konsekuensi negatif:
 - whitelist algoritma JWT secara eksplisit,
 - verifikasi `iss`, `aud`, `exp`, `sub` wajib,
 - refresh token mentah tidak boleh disimpan di DB/log,
+- password manual harus di-hash (bcrypt) dan tidak boleh tersimpan/log sebagai plaintext,
 - `AllowCredentials=true` hanya dengan origin allowlist,
 - wildcard origin dilarang saat credentials aktif,
 - endpoint reset data dev-only tidak boleh aktif production.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 )
 
@@ -42,6 +43,129 @@ func TestService_LoginWithGoogle_Success(t *testing.T) {
 	}
 	if repo.createdRefreshToken.TokenHash == "" {
 		t.Fatal("expected refresh token persisted")
+	}
+}
+
+func TestService_RegisterManual_Success(t *testing.T) {
+	repo := &fakeAuthRepo{
+		manualCreatedUser: models.User{
+			ID:       "user-manual-1",
+			Email:    "manual@example.test",
+			Nickname: "manualuser",
+		},
+	}
+	tokens := &fakeTokenProvider{
+		accessPayload: SessionPayload{AccessToken: "access-1", TokenType: "Bearer", ExpiresIn: 900},
+		refreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-manual-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	result, err := svc.RegisterManual(context.Background(), ManualRegisterRequest{
+		Email:           "manual@example.test",
+		Username:        "manualuser",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err != nil {
+		t.Fatalf("register manual: %v", err)
+	}
+	if result.UserID != "user-manual-1" {
+		t.Fatalf("unexpected user id: %s", result.UserID)
+	}
+	if repo.createdManualEmail != "manual@example.test" {
+		t.Fatalf("unexpected created email: %s", repo.createdManualEmail)
+	}
+	if repo.createdManualPasswordHash == "" {
+		t.Fatal("expected stored password hash")
+	}
+}
+
+func TestService_RegisterManual_DuplicateUsername(t *testing.T) {
+	repo := &fakeAuthRepo{
+		createManualErr: &pgconn.PgError{
+			Code:           uniqueViolationCode,
+			ConstraintName: "uq_users_username",
+		},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	_, err := svc.RegisterManual(context.Background(), ManualRegisterRequest{
+		Email:           "manual@example.test",
+		Username:        "manualuser",
+		Password:        "password123",
+		ConfirmPassword: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected conflict error")
+	}
+}
+
+func TestService_LoginManual_NotFound(t *testing.T) {
+	repo := &fakeAuthRepo{findManualErr: errors.New("not found")}
+	tokens := &fakeTokenProvider{}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.LoginManual(context.Background(), ManualLoginRequest{
+		Identifier: "manual@example.test",
+		Password:   "password123",
+	})
+	if err == nil {
+		t.Fatal("expected login error")
+	}
+}
+
+func TestService_LoginManual_WrongPassword(t *testing.T) {
+	hash, err := hashPassword("password123")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	repo := &fakeAuthRepo{
+		manualUserByIdentifier: models.User{
+			ID:           "user-manual-1",
+			Email:        "manual@example.test",
+			Nickname:     "manualuser",
+			PasswordHash: &hash,
+		},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	_, err = svc.LoginManual(context.Background(), ManualLoginRequest{
+		Identifier: "manual@example.test",
+		Password:   "wrong-password",
+	})
+	if err == nil {
+		t.Fatal("expected unauthenticated error")
+	}
+}
+
+func TestService_LoginManual_Success(t *testing.T) {
+	hash, err := hashPassword("password123")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	repo := &fakeAuthRepo{
+		manualUserByIdentifier: models.User{
+			ID:           "user-manual-1",
+			Email:        "manual@example.test",
+			Nickname:     "manualuser",
+			PasswordHash: &hash,
+		},
+	}
+	tokens := &fakeTokenProvider{
+		accessPayload: SessionPayload{AccessToken: "access-1", TokenType: "Bearer", ExpiresIn: 900},
+		refreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-manual-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	result, err := svc.LoginManual(context.Background(), ManualLoginRequest{
+		Identifier: "manual@example.test",
+		Password:   "password123",
+	})
+	if err != nil {
+		t.Fatalf("login manual: %v", err)
+	}
+	if result.UserID != "user-manual-1" {
+		t.Fatalf("unexpected user id: %s", result.UserID)
 	}
 }
 
@@ -165,13 +289,21 @@ func (f *fakeTokenProvider) ExpiredRefreshCookie() *fiber.Cookie {
 func (f *fakeTokenProvider) RefreshCookieValue(_ fiber.Ctx) string { return "refresh-token" }
 
 type fakeAuthRepo struct {
-	userByGoogle         models.User
-	userByID             models.User
-	onboarding_completed bool
-	storedRefresh        models.AuthRefreshToken
-	createdRefreshToken  models.AuthRefreshToken
-	revokedTokenID       string
-	rotatedFromTokenID   string
+	userByGoogle              models.User
+	userByID                  models.User
+	onboarding_completed      bool
+	storedRefresh             models.AuthRefreshToken
+	createdRefreshToken       models.AuthRefreshToken
+	revokedTokenID            string
+	rotatedFromTokenID        string
+	manualCreatedUser         models.User
+	manualUserByIdentifier    models.User
+	createManualErr           error
+	findManualErr             error
+	createdManualEmail        string
+	createdManualUsername     string
+	createdManualNickname     string
+	createdManualPasswordHash string
 }
 
 func (r *fakeAuthRepo) FindOrCreateUserByGoogleIdentity(_ context.Context, _ GoogleIdentity) (models.User, error) {
@@ -216,6 +348,30 @@ func (r *fakeAuthRepo) RevokeRefreshTokenByHash(_ context.Context, _ string, _ t
 func (r *fakeAuthRepo) RotateRefreshToken(_ context.Context, oldTokenID string, _ time.Time, _ models.AuthRefreshToken) error {
 	r.rotatedFromTokenID = oldTokenID
 	return nil
+}
+
+func (r *fakeAuthRepo) CreateManualUser(_ context.Context, email string, username string, nickname string, passwordHash string) (models.User, error) {
+	if r.createManualErr != nil {
+		return models.User{}, r.createManualErr
+	}
+	r.createdManualEmail = email
+	r.createdManualUsername = username
+	r.createdManualNickname = nickname
+	r.createdManualPasswordHash = passwordHash
+	if r.manualCreatedUser.ID == "" {
+		return models.User{}, errors.New("manual user missing")
+	}
+	return r.manualCreatedUser, nil
+}
+
+func (r *fakeAuthRepo) FindUserByLoginIdentifier(_ context.Context, _ string) (models.User, error) {
+	if r.findManualErr != nil {
+		return models.User{}, r.findManualErr
+	}
+	if r.manualUserByIdentifier.ID == "" {
+		return models.User{}, errors.New("manual user missing")
+	}
+	return r.manualUserByIdentifier, nil
 }
 
 func jwtRegisteredClaims(subject string, id string, exp time.Time) jwt.RegisteredClaims {

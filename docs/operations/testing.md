@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/testing.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-12
 ---
 
 # Recova Backend Testing Strategy
@@ -41,7 +41,7 @@ Dokumen ini mendefinisikan baseline testing agar perubahan layanan aman sebelum 
 
 ## Coverage Baseline per Area
 
-- auth: token validation, refresh rotation, unauthorized path,
+- auth: token validation, refresh rotation, register/login manual, unauthorized path,
 - users/onboarding: ownership dan update validation,
 - routine/check-in/streak: idempotency dan statistik,
 - journals: access scope + privacy behavior,

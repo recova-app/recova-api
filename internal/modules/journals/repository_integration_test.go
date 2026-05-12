@@ -27,12 +27,12 @@ func TestIntegration_Repository_ListJournals_UserScoped(t *testing.T) {
 	ctx := context.Background()
 
 	userA := models.User{
-		GoogleID: "google-journal-it-a",
+		GoogleID: models.StringPtr("google-journal-it-a"),
 		Email:    "journal-a@example.test",
 		Nickname: "journal-a",
 	}
 	userB := models.User{
-		GoogleID: "google-journal-it-b",
+		GoogleID: models.StringPtr("google-journal-it-b"),
 		Email:    "journal-b@example.test",
 		Nickname: "journal-b",
 	}

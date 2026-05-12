@@ -26,8 +26,8 @@ func TestIntegration_Repository_ListRecentChats_UserScopedAndAscending(t *testin
 	repo := NewRepository(client.Gorm())
 	ctx := context.Background()
 
-	userA := models.User{GoogleID: "google-ai-it-a", Email: "ai-a@example.test", Nickname: "ai-a"}
-	userB := models.User{GoogleID: "google-ai-it-b", Email: "ai-b@example.test", Nickname: "ai-b"}
+	userA := models.User{GoogleID: models.StringPtr("google-ai-it-a"), Email: "ai-a@example.test", Nickname: "ai-a"}
+	userB := models.User{GoogleID: models.StringPtr("google-ai-it-b"), Email: "ai-b@example.test", Nickname: "ai-b"}
 	if err := client.Gorm().WithContext(ctx).Create(&userA).Error; err != nil {
 		t.Fatalf("create userA: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestIntegration_Repository_PersonaPreferenceUpsertAndRead(t *testing.T) {
 	repo := NewRepository(client.Gorm())
 	ctx := context.Background()
 
-	user := models.User{GoogleID: "google-ai-it-persona", Email: "ai-persona@example.test", Nickname: "ai-persona"}
+	user := models.User{GoogleID: models.StringPtr("google-ai-it-persona"), Email: "ai-persona@example.test", Nickname: "ai-persona"}
 	if err := client.Gorm().WithContext(ctx).Create(&user).Error; err != nil {
 		t.Fatalf("create user: %v", err)
 	}
