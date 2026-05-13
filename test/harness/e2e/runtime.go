@@ -66,7 +66,6 @@ func NewRuntime(t testing.TB) *Runtime {
 		&fakeGoogleVerifier{},
 		authmodule.NewTokenManager(cfg),
 	)
-	usersService := usersmodule.NewService(usersmodule.NewRepository(client.Gorm()), cfg.Application.AppEnv, cfg.Application.NodeEnv)
 	routineService := routinemodule.NewService(routinemodule.NewRepository(client.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(client.Gorm()))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(client.Gorm()))
@@ -76,6 +75,12 @@ func NewRuntime(t testing.TB) *Runtime {
 	recorder := observability.NewRecorder()
 	aiService := aimodule.NewService(aimodule.NewRepository(client.Gorm()), &fakeAIProvider{})
 	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(recorder))
+	usersService := usersmodule.NewService(
+		usersmodule.NewRepository(client.Gorm()),
+		cfg.Application.AppEnv,
+		cfg.Application.NodeEnv,
+		aiService,
+	)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
