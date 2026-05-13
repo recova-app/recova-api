@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/auth.md
-last_reviewed: 2026-05-12
+last_reviewed: 2026-05-13
 ---
 
 # Auth Module
@@ -135,6 +135,7 @@ Metrik minimum:
 - logout tetap idempotent walaupun cookie refresh tidak tersedia,
 - endpoint `/api/v1/auth/onboarding` diproteksi bearer token, tidak menerima override `user_id` dari body, menerima `porn_free_goal`, dan mengembalikan hasil `onboarding_analysis`.
 - hash password manual memakai bcrypt (`GenerateFromPassword`/`CompareHashAndPassword`) dengan batas bcrypt maksimal 72 byte.
+- baseline seeder development memakai akun manual (`email` + `username` + `password_hash`) agar flow `/register` dan `/login` dapat diverifikasi lokal tanpa Google token.
 
 ## Related Documents
 

@@ -168,7 +168,7 @@ done
 motivation_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_motivations GROUP BY content HAVING COUNT(*) > 1) dup;')"
 challenge_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT content FROM daily_challenges GROUP BY content HAVING COUNT(*) > 1) dup;')"
 achievement_code_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT code FROM achievements GROUP BY code HAVING COUNT(*) > 1) dup;')"
-users_google_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT google_id FROM users GROUP BY google_id HAVING COUNT(*) > 1) dup;')"
+users_google_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT google_id FROM users WHERE google_id IS NOT NULL GROUP BY google_id HAVING COUNT(*) > 1) dup;')"
 users_email_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1) dup;')"
 profiles_user_duplicates="$(query_db_count 'SELECT COUNT(*) FROM (SELECT user_id FROM profiles GROUP BY user_id HAVING COUNT(*) > 1) dup;')"
 checkins_unique_conflicts="$(query_db_count 'SELECT COUNT(*) FROM (SELECT user_id, check_in_date FROM check_ins GROUP BY user_id, check_in_date HAVING COUNT(*) > 1) dup;')"

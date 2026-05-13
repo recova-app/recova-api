@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/database-seeding.md
-last_reviewed: 2026-05-10
+last_reviewed: 2026-05-13
 ---
 
 # Database Seeding
@@ -90,6 +90,22 @@ Aturan runner:
 - membutuhkan `DATABASE_URL`,
 - menjalankan `psql` dengan `ON_ERROR_STOP=1`,
 - script seed wajib idempotent (`ON CONFLICT DO NOTHING` untuk data referensi).
+
+## Baseline User Fixture (Manual Auth)
+
+Baseline seeder (`migrations/seeds/000001_baseline_seed.sql`) memakai akun manual berbasis email/password.
+
+Kredensial fixture development:
+
+- email: sesuai seed `users.email` (contoh: `andre.wijaya@gmail.com`),
+- username: sesuai seed `users.username` (contoh: `andre_wijaya`),
+- password default: `Recova123!` (disimpan sebagai bcrypt hash pada `users.password_hash`).
+
+Aturan:
+
+- hanya untuk development/test, bukan production/staging publik,
+- password plaintext fixture hanya boleh muncul di dokumentasi internal, bukan di SQL,
+- update fixture user wajib menjaga idempotency key `ON CONFLICT (email)` agar rerun aman.
 
 ## Security and Privacy Rules
 

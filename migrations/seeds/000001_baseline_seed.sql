@@ -3,26 +3,32 @@ BEGIN;
 -- 1) Users
 INSERT INTO users (
   id,
-  google_id,
   email,
+  username,
+  password_hash,
   nickname,
   user_why,
+  porn_free_goal,
   check_in_time,
   created_at,
   updated_at
 )
 VALUES
-  ('10000000-0000-0000-0000-000000000001', '108234567890123456789', 'andre.wijaya@gmail.com', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', '07:00', now() - interval '120 days', now()),
-  ('10000000-0000-0000-0000-000000000002', '109876543210987654321', 'budi.santoso@gmail.com', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', '06:30', now() - interval '118 days', now()),
-  ('10000000-0000-0000-0000-000000000003', '107654321098765432109', 'david.chen@yahoo.com', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', '08:00', now() - interval '115 days', now()),
-  ('10000000-0000-0000-0000-000000000004', '106543210987654321098', 'ryan.pratama@gmail.com', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', '06:00', now() - interval '110 days', now()),
-  ('10000000-0000-0000-0000-000000000005', '105432109876543210987', 'faisal.rahman@outlook.com', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', '07:30', now() - interval '108 days', now()),
-  ('10000000-0000-0000-0000-000000000006', '104321098765432109876', 'eric.tan@gmail.com', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', '05:30', now() - interval '105 days', now())
-ON CONFLICT (google_id) DO UPDATE
+  ('10000000-0000-0000-0000-000000000001', 'andre.wijaya@gmail.com', 'andre_wijaya', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', 90, '07:00', now() - interval '120 days', now()),
+  ('10000000-0000-0000-0000-000000000002', 'budi.santoso@gmail.com', 'budi_santoso', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', 60, '06:30', now() - interval '118 days', now()),
+  ('10000000-0000-0000-0000-000000000003', 'david.chen@yahoo.com', 'david_chen', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', 120, '08:00', now() - interval '115 days', now()),
+  ('10000000-0000-0000-0000-000000000004', 'ryan.pratama@gmail.com', 'ryan_pratama', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', 45, '06:00', now() - interval '110 days', now()),
+  ('10000000-0000-0000-0000-000000000005', 'faisal.rahman@outlook.com', 'faisal_rahman', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', 75, '07:30', now() - interval '108 days', now()),
+  ('10000000-0000-0000-0000-000000000006', 'eric.tan@gmail.com', 'eric_tan', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', 100, '05:30', now() - interval '105 days', now())
+ON CONFLICT (email) DO UPDATE
 SET
+  username = EXCLUDED.username,
+  password_hash = EXCLUDED.password_hash,
+  google_id = NULL,
   email = EXCLUDED.email,
   nickname = EXCLUDED.nickname,
   user_why = EXCLUDED.user_why,
+  porn_free_goal = EXCLUDED.porn_free_goal,
   check_in_time = EXCLUDED.check_in_time,
   updated_at = now();
 

@@ -71,6 +71,7 @@ Skema baseline SQL saat ini berada di migration:
 - `migrations/20260508103000_create_auth_refresh_tokens.up.sql`
 - `migrations/20260509100000_add_checkins_statistics_index.up.sql`
 - `migrations/20260509113000_add_community_threaded_comments.up.sql`
+- `migrations/20260512110000_add_manual_auth_columns.up.sql`
 - `migrations/20260513101500_add_porn_free_goal_to_users.up.sql`
 
 Tabel inti:
@@ -93,7 +94,7 @@ Tabel inti:
 
 Constraint/index baseline:
 
-- unique: `users.google_id`, `users.email`, `profiles.user_id`,
+- unique: `users.google_id` (nullable), `users.email`, `users.username` (nullable), `profiles.user_id`,
 - unique: `check_ins(user_id, check_in_date)`,
 - unique: `journals.check_in_id`,
 - unique: `daily_motivations.content`, `daily_challenges.content`,
