@@ -30,14 +30,15 @@ Route prefix:
 /api/v1/ai
 ```
 
-| Method | Path                             | Auth class | Purpose                          |
-| ------ | -------------------------------- | ---------- | -------------------------------- |
-| `POST` | `/api/v1/ai/ask-coach`           | Bearer     | kirim pertanyaan ke AI coach     |
-| `GET`  | `/api/v1/ai/chat-history`        | Bearer     | ambil riwayat percakapan         |
-| `GET`  | `/api/v1/ai/summary`             | Bearer     | ambil ringkasan progres pengguna |
-| `POST` | `/api/v1/ai/onboarding-analysis` | Bearer     | analisis onboarding pengguna     |
-| `GET`  | `/api/v1/ai/persona-preferences` | Bearer     | ambil preferensi persona user    |
-| `PUT`  | `/api/v1/ai/persona-preferences` | Bearer     | ubah preferensi persona user     |
+| Method | Path                             | Auth class | Purpose                              |
+| ------ | -------------------------------- | ---------- | ------------------------------------ |
+| `POST` | `/api/v1/ai/ask-coach`           | Bearer     | kirim pertanyaan ke AI coach         |
+| `POST` | `/api/v1/ai/relapse-solution`    | Bearer     | buat rencana aksi cepat saat relapse |
+| `GET`  | `/api/v1/ai/chat-history`        | Bearer     | ambil riwayat percakapan             |
+| `GET`  | `/api/v1/ai/summary`             | Bearer     | ambil ringkasan progres pengguna     |
+| `POST` | `/api/v1/ai/onboarding-analysis` | Bearer     | analisis onboarding pengguna         |
+| `GET`  | `/api/v1/ai/persona-preferences` | Bearer     | ambil preferensi persona user        |
+| `PUT`  | `/api/v1/ai/persona-preferences` | Bearer     | ubah preferensi persona user         |
 
 ## Database Model
 
@@ -70,6 +71,8 @@ Constraint minimum:
 - persona aktif harus dipakai saat membangun system instruction AI,
 - respons `ask-coach` menyertakan `persona_used` agar audit troubleshooting mudah.
 - `POST /api/v1/auth/onboarding` memanggil analisis onboarding secara internal dan menyertakan hasilnya di response onboarding.
+- `POST /api/v1/routine/checkin` memanggil `relapse-solution` secara internal saat `is_successful=false`, lalu mengembalikan rencana aksi ke payload check-in.
+- payload `relapse-solution` menerima `relapse_trigger` sebagai array agar user bisa mengirim banyak pemicu sekaligus.
 
 ## Validation Rules
 

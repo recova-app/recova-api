@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/routine.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-13
 ---
 
 # Routine Module
@@ -18,7 +18,8 @@ last_reviewed: 2026-05-09
 - menerima check-in harian,
 - menjaga konsistensi check-in per hari,
 - menghitung streak,
-- menyediakan statistik rutin.
+- menyediakan statistik rutin,
+- memicu rekomendasi AI otomatis ketika check-in relapse.
 
 ## API Contract
 
@@ -64,6 +65,7 @@ Constraint minimum:
 
 - `mood` wajib dalam enum/format yang didukung,
 - `commitment` wajib valid sesuai batas panjang,
+- `relapse_trigger` opsional dalam bentuk array string, tiap item maksimal 500 karakter, dan hanya untuk payload relapse (`is_successful=false`),
 - `window_days` pada endpoint activity summary bersifat opsional dengan rentang `7..90`,
 - timestamp/check-in time harus valid,
 - request invalid dipetakan ke error validation standar.
@@ -103,10 +105,6 @@ Metrik minimum:
 - handler test auth, validation, idempotency,
 - contract test response statistics (field existing + field additive),
 - test endpoint activity summary untuk default window dan validasi `window_days`.
-
-## Open Gaps
-
-- enrichment payload relapse untuk kebutuhan analytics masa depan.
 
 ## Related Documents
 

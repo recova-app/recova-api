@@ -7,11 +7,12 @@ import (
 )
 
 const (
-	maxMoodLength       = 50
-	maxCommitmentLength = 2000
-	defaultWindowDays   = 30
-	minWindowDays       = 7
-	maxWindowDays       = 90
+	maxMoodLength           = 50
+	maxCommitmentLength     = 2000
+	maxRelapseTriggerLength = 500
+	defaultWindowDays       = 30
+	minWindowDays           = 7
+	maxWindowDays           = 90
 )
 
 // NormalizeDailyCheckInRequest validates and normalizes check-in request payload.
@@ -41,11 +42,46 @@ func NormalizeDailyCheckInRequest(req DailyCheckInRequest) (DailyCheckInInput, e
 		}, nil)
 	}
 
+	relapseTrigger, err := normalizeRelapseTriggerValues(req.RelapseTrigger)
+	if err != nil {
+		return DailyCheckInInput{}, err
+	}
+	if *req.IsSuccessful && len(relapseTrigger) > 0 {
+		return DailyCheckInInput{}, errs.New(errs.CodeValidationError, "Pemicu relapse hanya untuk check-in relapse", []map[string]string{
+			{"field": "relapse_trigger", "message": "relapse_trigger hanya boleh diisi saat is_successful=false"},
+		}, nil)
+	}
+
 	return DailyCheckInInput{
-		Mood:         mood,
-		IsSuccessful: *req.IsSuccessful,
-		JournalText:  commitment,
+		Mood:           mood,
+		IsSuccessful:   *req.IsSuccessful,
+		JournalText:    commitment,
+		RelapseTrigger: relapseTrigger,
 	}, nil
+}
+
+func normalizeRelapseTriggerValues(raw []string) ([]string, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	normalized := make([]string, 0, len(raw))
+	for _, item := range raw {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		if len([]rune(trimmed)) > maxRelapseTriggerLength {
+			return nil, errs.New(errs.CodeValidationError, "Pemicu relapse terlalu panjang", []map[string]string{
+				{"field": "relapse_trigger", "message": "Pemicu relapse maksimal 500 karakter"},
+			}, nil)
+		}
+		normalized = append(normalized, trimmed)
+	}
+	if len(normalized) == 0 {
+		return nil, nil
+	}
+	return normalized, nil
 }
 
 func firstNonEmptyPointer(candidates ...*string) *string {

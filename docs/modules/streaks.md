@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/streaks.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-13
 ---
 
 # Streaks Module
@@ -19,7 +19,8 @@ Dokumen ini mendefinisikan aturan streak untuk menjaga konsistensi hasil statist
 
 - `current_streak`: jumlah hari beruntun hingga hari aktif terakhir,
 - `longest_streak`: nilai streak tertinggi sepanjang histori,
-- `streak_anchor_date`: tanggal lokal terakhir yang menjadi acuan streak.
+- `streak_anchor_date`: tanggal lokal terakhir yang menjadi acuan streak,
+- `streak_goal_comparison`: pembanding streak terhadap target `porn_free_goal` user.
 
 ## Core Calculation Rules
 
@@ -44,6 +45,7 @@ Dokumen ini mendefinisikan aturan streak untuk menjaga konsistensi hasil statist
 - update streak harus atomik dengan insert check-in,
 - gunakan lock/transaksi untuk mencegah race pada submit paralel,
 - nilai streak harus bisa dihitung ulang dari histori untuk audit/recovery.
+- field pembanding goal (`goal_reached`, `remaining_days`, `progress_rate`) harus dihitung dari `current_streak` versus `porn_free_goal`.
 
 ## Related Documents
 

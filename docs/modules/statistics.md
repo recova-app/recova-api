@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/statistics.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-13
 ---
 
 # Statistics Module
@@ -32,6 +32,8 @@ Field minimum `GET /api/v1/routine/statistics`:
 - `current_streak`,
 - `longest_streak`,
 - `total_checkins`,
+- `total_attempts`,
+- `success_rate`,
 - `streak_calendar`,
 - `relapse_count`,
 - `relapse_rate`,
@@ -39,7 +41,13 @@ Field minimum `GET /api/v1/routine/statistics`:
 - `checkin_consistency_score`,
 - `weekly_progress`,
 - `monthly_progress`,
-- `mood_trend`.
+- `mood_trend`,
+- `last_check_in_date`,
+- `last_check_in_day_name`,
+- `last_relapse_date`,
+- `last_relapse_day_name`,
+- `weekday_summary`,
+- `streak_goal_comparison`.
 
 Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 
@@ -47,15 +55,24 @@ Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 - `window_days`,
 - `successful_checkins`,
 - `relapses`,
-- `active_days`.
+- `active_days`,
+- `recent_activity[].day_name`.
 
 Contoh struktur `mood_trend`:
 
-- `[]` berisi `{date, dominantMood, successfulRatio}`.
+- `[]` berisi `{date, day_name, dominantMood, successfulRatio}`.
 
 Contoh struktur `weekly_progress`/`monthly_progress`:
 
 - `{window_days, current_successful_checkins, previous_successful_checkins, delta, delta_rate}`.
+
+Contoh struktur `weekday_summary`:
+
+- `[]` berisi `{day_name, successful_checkins, relapse_count, total_checkins, success_rate}` dengan hari berbahasa Indonesia (`Senin`..`Minggu`).
+
+Contoh struktur `streak_goal_comparison`:
+
+- `{porn_free_goal, current_streak, longest_streak, goal_reached, remaining_days, progress_rate}`.
 
 ## Computation Rules
 
@@ -92,6 +109,7 @@ Contoh struktur `weekly_progress`/`monthly_progress`:
 ## Compatibility Rules
 
 - field statistik existing (`current_streak`, `longest_streak`, `total_checkins`, `streak_calendar`) tetap dipertahankan untuk kompatibilitas klien,
+- perbandingan streak terhadap `porn_free_goal` wajib tersedia pada field `streak_goal_comparison`,
 - field baru bersifat additive dan optional-safe pada klien lama,
 - penghapusan atau rename field statistik existing harus dianggap breaking change.
 

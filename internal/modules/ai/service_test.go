@@ -132,6 +132,29 @@ func TestService_AnalyzeOnboarding_Success(t *testing.T) {
 	}
 }
 
+func TestService_GenerateRelapseSolution_Success(t *testing.T) {
+	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{
+		Text: `{"title":"Stabilkan Diri","analysis":"Pemicu utama terlihat dari kebiasaan scrolling saat lelah.","action_steps":["Tarik napas 1 menit","Jauhkan ponsel 10 menit","Chat teman dukungan sekarang"]}`,
+	}}
+	service := NewService(repo, provider)
+
+	payload, err := service.GenerateRelapseSolution(context.Background(), "user-1", RelapseSolutionRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"scrolling malam", "sendiri kamar"},
+		Commitment:     ptrString("ingin kembali fokus"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Title == "" || payload.Analysis == "" {
+		t.Fatalf("unexpected payload: %+v", payload)
+	}
+	if len(payload.ActionSteps) != 3 {
+		t.Fatalf("expected 3 action steps, got %d", len(payload.ActionSteps))
+	}
+}
+
 func TestService_GetPersonaPreference_FallbackDefault(t *testing.T) {
 	repo := &fakeAIRepo{
 		user:       models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
@@ -187,6 +210,10 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
+}
+
+func ptrString(v string) *string {
+	return &v
 }
 
 type fakeAIRepo struct {

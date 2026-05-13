@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/check-ins.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-13
 ---
 
 # Check-Ins Module
@@ -27,12 +27,15 @@ Field minimum:
 
 - `mood` (kategori atau skala mood sesuai kamus domain),
 - `commitment` (teks komitmen harian),
+- `relapse_trigger` (opsional, array string, hanya saat `is_successful=false`, berisi daftar pemicu relapse),
 - `submitted_at` (opsional jika server memakai receive-time sebagai sumber waktu utama).
 
 ## Validation Rules
 
 - `mood` wajib berada pada daftar nilai yang diizinkan,
 - `commitment` wajib memiliki batas panjang minimum/maksimum,
+- `relapse_trigger` boleh kirim multiple item, tiap item maksimal 500 karakter,
+- `relapse_trigger` tidak boleh dikirim saat `is_successful=true`,
 - payload kosong atau format invalid harus ditolak sebagai `VALIDATION_ERROR`.
 
 ## Idempotency Rules

@@ -48,32 +48,34 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 
 ## Endpoint Inventory
 
-| Domain    | Method   | Path                           | Summary                                       | Auth requirement  | Contract status |
-| --------- | -------- | ------------------------------ | --------------------------------------------- | ----------------- | --------------- |
-| auth      | `POST`   | `/auth/google`                 | login/registrasi via Google token             | public            | implemented     |
-| auth      | `POST`   | `/auth/onboarding`             | simpan onboarding awal + analisis AI response | bearer            | implemented     |
-| auth      | `POST`   | `/auth/refresh`                | rotasi refresh token dan perbarui sesi akses  | cookie            | implemented     |
-| auth      | `POST`   | `/auth/logout`                 | akhiri sesi aktif pengguna                    | bearer            | implemented     |
-| users     | `GET`    | `/users/me`                    | ambil profil pengguna                         | bearer            | implemented     |
-| users     | `PUT`    | `/users/settings`              | update pengaturan profil                      | bearer            | implemented     |
-| users     | `DELETE` | `/users/me/reset-data`         | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
-| ai        | `POST`   | `/ai/ask-coach`                | kirim pesan ke AI Coach                       | bearer            | implemented     |
-| ai        | `GET`    | `/ai/chat-history`             | ambil riwayat chat AI Coach                   | bearer            | implemented     |
-| ai        | `GET`    | `/ai/summary`                  | ambil ringkasan check-in                      | bearer            | implemented     |
-| ai        | `POST`   | `/ai/onboarding-analysis`      | analisis data onboarding                      | bearer            | implemented     |
-| ai        | `GET`    | `/ai/persona-preferences`      | ambil preferensi persona AI                   | bearer            | implemented     |
-| ai        | `PUT`    | `/ai/persona-preferences`      | perbarui preferensi persona AI                | bearer            | implemented     |
-| routine   | `POST`   | `/routine/checkin`             | check-in harian                               | bearer            | implemented     |
-| routine   | `GET`    | `/routine/statistics`          | ambil statistik pengguna                      | bearer            | implemented     |
-| routine   | `GET`    | `/routine/relapses`            | ambil riwayat relapse                         | bearer            | implemented     |
-| journals  | `GET`    | `/journals`                    | ambil daftar jurnal pribadi                   | bearer            | implemented     |
-| journals  | `POST`   | `/journals`                    | buat entri jurnal                             | bearer            | implemented     |
-| community | `GET`    | `/community`                   | ambil daftar postingan komunitas              | bearer            | implemented     |
-| community | `POST`   | `/community`                   | buat postingan komunitas                      | bearer            | implemented     |
-| community | `POST`   | `/community/:post_id/comments` | tambah komentar pada postingan                | bearer            | implemented     |
-| community | `POST`   | `/community/:post_id/like`     | toggle suka postingan                         | bearer            | implemented     |
-| education | `GET`    | `/education`                   | ambil daftar konten edukasi                   | bearer            | implemented     |
-| content   | `GET`    | `/content/daily`               | ambil konten harian                           | bearer            | implemented     |
+| Domain    | Method   | Path                                   | Summary                                       | Auth requirement  | Contract status |
+| --------- | -------- | -------------------------------------- | --------------------------------------------- | ----------------- | --------------- |
+| auth      | `POST`   | `/auth/google`                         | login/registrasi via Google token             | public            | implemented     |
+| auth      | `POST`   | `/auth/onboarding`                     | simpan onboarding awal + analisis AI response | bearer            | implemented     |
+| auth      | `POST`   | `/auth/refresh`                        | rotasi refresh token dan perbarui sesi akses  | cookie            | implemented     |
+| auth      | `POST`   | `/auth/logout`                         | akhiri sesi aktif pengguna                    | bearer            | implemented     |
+| users     | `GET`    | `/users/me`                            | ambil profil pengguna                         | bearer            | implemented     |
+| users     | `PUT`    | `/users/settings`                      | update pengaturan profil                      | bearer            | implemented     |
+| users     | `DELETE` | `/users/me/reset-data`                 | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
+| ai        | `POST`   | `/ai/ask-coach`                        | kirim pesan ke AI Coach                       | bearer            | implemented     |
+| ai        | `POST`   | `/ai/relapse-solution`                 | buat solusi cepat saat relapse                | bearer            | implemented     |
+| ai        | `GET`    | `/ai/chat-history`                     | ambil riwayat chat AI Coach                   | bearer            | implemented     |
+| ai        | `GET`    | `/ai/summary`                          | ambil ringkasan check-in                      | bearer            | implemented     |
+| ai        | `POST`   | `/ai/onboarding-analysis`              | analisis data onboarding                      | bearer            | implemented     |
+| ai        | `GET`    | `/ai/persona-preferences`              | ambil preferensi persona AI                   | bearer            | implemented     |
+| ai        | `PUT`    | `/ai/persona-preferences`              | perbarui preferensi persona AI                | bearer            | implemented     |
+| routine   | `POST`   | `/routine/checkin`                     | check-in harian                               | bearer            | implemented     |
+| routine   | `GET`    | `/routine/statistics`                  | ambil statistik pengguna                      | bearer            | implemented     |
+| routine   | `GET`    | `/routine/statistics/activity-summary` | ambil ringkasan aktivitas periodik            | bearer            | implemented     |
+| routine   | `GET`    | `/routine/relapses`                    | ambil riwayat relapse                         | bearer            | implemented     |
+| journals  | `GET`    | `/journals`                            | ambil daftar jurnal pribadi                   | bearer            | implemented     |
+| journals  | `POST`   | `/journals`                            | buat entri jurnal                             | bearer            | implemented     |
+| community | `GET`    | `/community`                           | ambil daftar postingan komunitas              | bearer            | implemented     |
+| community | `POST`   | `/community`                           | buat postingan komunitas                      | bearer            | implemented     |
+| community | `POST`   | `/community/:post_id/comments`         | tambah komentar pada postingan                | bearer            | implemented     |
+| community | `POST`   | `/community/:post_id/like`             | toggle suka postingan                         | bearer            | implemented     |
+| education | `GET`    | `/education`                           | ambil daftar konten edukasi                   | bearer            | implemented     |
+| content   | `GET`    | `/content/daily`                       | ambil konten harian                           | bearer            | implemented     |
 
 ## Contract Fields Coverage
 

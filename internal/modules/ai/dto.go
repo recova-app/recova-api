@@ -39,6 +39,13 @@ type PersonaPreferenceRequest struct {
 	Persona string `json:"persona"`
 }
 
+// RelapseSolutionRequest is request payload for relapse solution generation.
+type RelapseSolutionRequest struct {
+	Mood           string   `json:"mood"`
+	RelapseTrigger []string `json:"relapse_trigger"`
+	Commitment     *string  `json:"commitment"`
+}
+
 // PersonaPreferenceResponseData is success data for persona preference endpoints.
 type PersonaPreferenceResponseData struct {
 	Persona         string `json:"persona"`
@@ -54,6 +61,13 @@ type OnboardingAnalysisResponseData struct {
 	Encouragement    string `json:"encouragement"`
 }
 
+// RelapseSolutionResponseData is success data for relapse-solution endpoint.
+type RelapseSolutionResponseData struct {
+	Title       string   `json:"title"`
+	Analysis    string   `json:"analysis"`
+	ActionSteps []string `json:"action_steps"`
+}
+
 // AskCoachInput is normalized ask-coach payload.
 type AskCoachInput struct {
 	Message string
@@ -67,4 +81,11 @@ type OnboardingAnalysisInput struct {
 // PersonaPreferenceInput is normalized persona preference update payload.
 type PersonaPreferenceInput struct {
 	Persona string
+}
+
+// RelapseSolutionInput is normalized relapse-solution payload.
+type RelapseSolutionInput struct {
+	Mood           string
+	RelapseTrigger []string
+	Commitment     *string
 }

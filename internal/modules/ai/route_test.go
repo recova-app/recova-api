@@ -90,6 +90,28 @@ func TestRegisterRoutes_ChatHistorySuccess(t *testing.T) {
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
 }
 
+func TestRegisterRoutes_RelapseSolutionSuccess(t *testing.T) {
+	authService := buildAIAuthService(t, "user-1")
+	service := NewService(&aiRouteRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+	}, &aiRouteProvider{
+		response: aiplatform.GenerateResponse{Text: `{"title":"Pulihkan Fokus","analysis":"Relapse terjadi saat stres malam.","action_steps":["Minum air","Tutup aplikasi pemicu","Hubungi teman support"]}`},
+	})
+
+	app := newAITestApp()
+	RegisterRoutes(app.Group("/api/v1/ai"), authService, service, nil)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/ai/relapse-solution", map[string]any{
+		"mood":            "cemas",
+		"relapse_trigger": []string{"stres kerja", "sendiri malam"},
+		"commitment":      "ingin kembali stabil",
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+}
+
 func TestRegisterRoutes_GetPersonaPreferenceSuccess(t *testing.T) {
 	authService := buildAIAuthService(t, "user-1")
 	service := NewService(&aiRouteRepo{

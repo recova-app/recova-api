@@ -51,8 +51,9 @@ func TestService_GetStatistics_ComputesCurrentAndLongestStreak(t *testing.T) {
 
 func TestService_GetStatistics_EnhancedFields(t *testing.T) {
 	today := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	goal := 7
 	repo := &fakeRoutineRepo{
-		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester", PornFreeGoal: &goal},
 		checkIns: []models.CheckIn{
 			{CheckInDate: time.Date(2026, 5, 5, 0, 0, 0, 0, time.UTC), Mood: "tenang", IsSuccessful: true},
 			{CheckInDate: time.Date(2026, 5, 6, 0, 0, 0, 0, time.UTC), Mood: "fokus", IsSuccessful: true},
@@ -71,6 +72,12 @@ func TestService_GetStatistics_EnhancedFields(t *testing.T) {
 	if payload.TotalCheckins != 3 {
 		t.Fatalf("expected total checkins=3, got %d", payload.TotalCheckins)
 	}
+	if payload.TotalAttempts != 4 {
+		t.Fatalf("expected total attempts=4, got %d", payload.TotalAttempts)
+	}
+	if payload.SuccessRate != 0.75 {
+		t.Fatalf("expected success rate=0.75, got %.2f", payload.SuccessRate)
+	}
 	if payload.RelapseCount != 1 {
 		t.Fatalf("expected relapse count=1, got %d", payload.RelapseCount)
 	}
@@ -85,6 +92,21 @@ func TestService_GetStatistics_EnhancedFields(t *testing.T) {
 	}
 	if len(payload.MoodTrend) != 4 {
 		t.Fatalf("expected mood trend entries=4, got %d", len(payload.MoodTrend))
+	}
+	if payload.LastCheckInDayName == nil || *payload.LastCheckInDayName != "Jumat" {
+		t.Fatalf("expected last check-in day name Jumat, got %+v", payload.LastCheckInDayName)
+	}
+	if payload.LastRelapseDayName == nil || *payload.LastRelapseDayName != "Kamis" {
+		t.Fatalf("expected last relapse day name Kamis, got %+v", payload.LastRelapseDayName)
+	}
+	if len(payload.WeekdaySummary) != 7 {
+		t.Fatalf("expected weekday summary size 7, got %d", len(payload.WeekdaySummary))
+	}
+	if payload.StreakGoalComparison.PornFreeGoal == nil || *payload.StreakGoalComparison.PornFreeGoal != 7 {
+		t.Fatalf("expected porn_free_goal=7, got %+v", payload.StreakGoalComparison.PornFreeGoal)
+	}
+	if payload.StreakGoalComparison.RemainingDays == nil || *payload.StreakGoalComparison.RemainingDays != 6 {
+		t.Fatalf("expected remaining days 6, got %+v", payload.StreakGoalComparison.RemainingDays)
 	}
 }
 
@@ -150,11 +172,12 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
 		relapseRows: []models.CheckIn{
 			{
-				ID:           "checkin-1",
-				CheckInDate:  time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
-				Mood:         "cemas",
-				IsSuccessful: false,
-				CreatedAt:    time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
+				ID:             "checkin-1",
+				CheckInDate:    time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+				Mood:           "cemas",
+				IsSuccessful:   false,
+				RelapseTrigger: []string{"stres kerja", "sendiri malam"},
+				CreatedAt:      time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
 			},
 		},
 		journals: []models.Journal{
@@ -178,6 +201,12 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	}
 	if payload[0].Commitment == nil || *payload[0].Commitment != "tetap tenang" {
 		t.Fatalf("expected commitment mapped, got %+v", payload[0].Commitment)
+	}
+	if len(payload[0].RelapseTrigger) != 2 || payload[0].RelapseTrigger[0] != "stres kerja" {
+		t.Fatalf("expected relapse trigger mapped, got %+v", payload[0].RelapseTrigger)
+	}
+	if payload[0].CheckInDayName != "Jumat" {
+		t.Fatalf("expected check-in day name Jumat, got %s", payload[0].CheckInDayName)
 	}
 }
 

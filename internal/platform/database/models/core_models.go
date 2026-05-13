@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // User stores core account identity and onboarding pointers.
@@ -32,12 +34,13 @@ type Profile struct {
 
 // CheckIn stores one daily check-in row per user and date.
 type CheckIn struct {
-	ID           string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID       string    `gorm:"type:uuid;column:user_id;not null;index"`
-	CheckInDate  time.Time `gorm:"column:check_in_date;type:date;not null"`
-	Mood         string    `gorm:"not null"`
-	IsSuccessful bool      `gorm:"column:is_successful;not null"`
-	CreatedAt    time.Time `gorm:"not null;default:now()"`
+	ID             string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID         string         `gorm:"type:uuid;column:user_id;not null;index"`
+	CheckInDate    time.Time      `gorm:"column:check_in_date;type:date;not null"`
+	Mood           string         `gorm:"not null"`
+	IsSuccessful   bool           `gorm:"column:is_successful;not null"`
+	RelapseTrigger pq.StringArray `gorm:"column:relapse_trigger;type:text[]"`
+	CreatedAt      time.Time      `gorm:"not null;default:now()"`
 }
 
 // Streak stores active and historical streak windows for one user.

@@ -70,6 +70,8 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		"current_streak",
 		"longest_streak",
 		"total_checkins",
+		"total_attempts",
+		"success_rate",
 		"streak_calendar",
 		"relapse_count",
 		"relapse_rate",
@@ -78,6 +80,12 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		"weekly_progress",
 		"monthly_progress",
 		"mood_trend",
+		"last_check_in_date",
+		"last_check_in_day_name",
+		"last_relapse_date",
+		"last_relapse_day_name",
+		"weekday_summary",
+		"streak_goal_comparison",
 	} {
 		if _, exists := data[key]; !exists {
 			t.Fatalf("expected statistics field %s", key)

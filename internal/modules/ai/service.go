@@ -221,6 +221,36 @@ func (s *Service) AnalyzeOnboarding(ctx context.Context, userID string, req Onbo
 	return result, nil
 }
 
+// GenerateRelapseSolution builds immediate AI action plan for relapse events.
+func (s *Service) GenerateRelapseSolution(ctx context.Context, userID string, req RelapseSolutionRequest) (RelapseSolutionResponseData, error) {
+	input, err := NormalizeRelapseSolutionRequest(req)
+	if err != nil {
+		return RelapseSolutionResponseData{}, err
+	}
+
+	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
+		if IsRecordNotFound(err) {
+			return RelapseSolutionResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return RelapseSolutionResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	generated, err := s.provider.Generate(ctx, aiplatform.GenerateRequest{
+		SystemInstruction: relapseSolutionSystemInstruction,
+		UserPrompt:        buildRelapseSolutionPrompt(input),
+		ForceJSON:         true,
+	})
+	if err != nil {
+		return RelapseSolutionResponseData{}, mapProviderError(err)
+	}
+
+	parsed, err := parseRelapseSolutionJSON(generated.Text)
+	if err != nil {
+		return RelapseSolutionResponseData{}, errs.New(errs.CodeDownstreamError, "Respons solusi relapse tidak valid", nil, err)
+	}
+	return parsed, nil
+}
+
 // GetPersonaPreference returns user persona preference with safe fallback default.
 func (s *Service) GetPersonaPreference(ctx context.Context, userID string) (PersonaPreferenceResponseData, error) {
 	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
@@ -363,6 +393,15 @@ Aturan:
 - Value "level" wajib salah satu dari: "Low", "Moderate", atau "High".
 - Field lain tulis dalam Bahasa Indonesia, nada suportif, tidak menghakimi.`
 
+const relapseSolutionSystemInstruction = `Anda adalah AI relapse coach Recova. Selalu jawab HANYA JSON valid, tanpa markdown.
+Skema wajib:
+{"title":"...","analysis":"...","action_steps":["...", "...", "..."]}
+Aturan:
+- Bahasa Indonesia, singkat, suportif, tidak menghakimi.
+- action_steps berisi 3 sampai 5 langkah praktis, aman, dan bisa dilakukan segera.
+- Hindari detail seksual eksplisit.
+- Jika ada trigger kosong, tetap berikan langkah umum yang aman.`
+
 func buildOnboardingPrompt(answers map[string]any) string {
 	keys := make([]string, 0, len(answers))
 	for key := range answers {
@@ -382,6 +421,24 @@ func buildOnboardingPrompt(answers map[string]any) string {
 	}
 	builder.WriteString("Klasifikasikan level ketergantungan (Low|Moderate|High) dan berikan dorongan yang realistis.")
 	return builder.String()
+}
+
+func buildRelapseSolutionPrompt(input RelapseSolutionInput) string {
+	trigger := strings.TrimSpace(strings.Join(input.RelapseTrigger, ", "))
+	if trigger == "" {
+		trigger = "tidak disebutkan"
+	}
+	commitment := strings.TrimSpace(valueOrEmpty(input.Commitment))
+	if commitment == "" {
+		commitment = "tidak ada catatan tambahan"
+	}
+
+	return fmt.Sprintf(
+		"Buat solusi relapse untuk user dengan konteks:\n- mood: %s\n- pemicu relapse: %s\n- catatan user: %s",
+		input.Mood,
+		trigger,
+		commitment,
+	)
 }
 
 func formatAnswerValue(value any) string {
@@ -433,6 +490,40 @@ func parseOnboardingAnalysisJSON(raw string) (OnboardingAnalysisResponseData, er
 		return OnboardingAnalysisResponseData{}, fmt.Errorf("incomplete analysis response")
 	}
 
+	return result, nil
+}
+
+func parseRelapseSolutionJSON(raw string) (RelapseSolutionResponseData, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return RelapseSolutionResponseData{}, fmt.Errorf("empty relapse solution response")
+	}
+
+	var parsed struct {
+		Title       string   `json:"title"`
+		Analysis    string   `json:"analysis"`
+		ActionSteps []string `json:"action_steps"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
+		return RelapseSolutionResponseData{}, err
+	}
+
+	result := RelapseSolutionResponseData{
+		Title:       strings.TrimSpace(parsed.Title),
+		Analysis:    strings.TrimSpace(parsed.Analysis),
+		ActionSteps: make([]string, 0, len(parsed.ActionSteps)),
+	}
+	for _, step := range parsed.ActionSteps {
+		trimmedStep := strings.TrimSpace(step)
+		if trimmedStep == "" {
+			continue
+		}
+		result.ActionSteps = append(result.ActionSteps, trimmedStep)
+	}
+
+	if result.Title == "" || result.Analysis == "" || len(result.ActionSteps) == 0 {
+		return RelapseSolutionResponseData{}, fmt.Errorf("incomplete relapse solution response")
+	}
 	return result, nil
 }
 
