@@ -1,0 +1,229 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      run_staging_gate:
+        description: "Run protected staging deploy gate"
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Preflight
+        run: make preflight
+
+      - name: Format check
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "File not gofmt-formatted yet:" >&2
+            echo "$unformatted" >&2
+            exit 1
+          fi
+
+      - name: Lint
+        run: make lint
+
+      - name: Unit and handler tests
+        run: make test
+
+      - name: OpenAPI drift and contract baseline
+        run: make openapi-check
+
+      - name: Scripted tooling integration checks
+        run: make test-integration
+
+      - name: Security scan
+        run: make security-scan
+
+      - name: Build binary
+        run: make build
+
+  database-gates:
+    name: Database and Migration Gates
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recova_ci_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install migrate CLI
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Migration up
+        run: make migrate-up
+
+      - name: Migration health check
+        run: make migrate-check
+
+      - name: Migration rollback smoke
+        run: |
+          make migrate-down
+          make migrate-up
+
+      - name: Integration and contract test gate with DB
+        run: go test -p 1 ./...
+
+      - name: Prepare release validation artifact directory
+        run: |
+          mkdir -p artifacts/release-confidence
+          cat > artifacts/release-confidence/manifest.json <<EOF
+          {"workflow":"${GITHUB_WORKFLOW}","runId":"${GITHUB_RUN_ID}","runAttempt":"${GITHUB_RUN_ATTEMPT}"}
+          EOF
+
+      - name: E2E critical flow release validation
+        env:
+          RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+          RECOVA_E2E_REPORT_PATH: artifacts/release-confidence/e2e-critical-flows.json
+        run: make test-e2e
+
+      - name: Performance smoke release validation
+        env:
+          RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+          RECOVA_PERF_REPORT_PATH: artifacts/release-confidence/performance-smoke.json
+        run: make test-performance
+
+      - name: Upload release validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-confidence-reports
+          path: artifacts/release-confidence
+          if-no-files-found: warn
+
+  container-compose-smoke:
+    name: Container Compose Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker Compose smoke
+        env:
+          ENV_FILE: .env.example
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_compose_test
+          APP_PORT: 3001
+          DB_PORT: 5432
+        run: ./scripts/compose-smoke.sh
+
+  image-build:
+    name: Container Image Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg VERSION="${GITHUB_SHA}" \
+            --build-arg VCS_REF="${GITHUB_SHA}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t recova-backend-v2:ci .
+
+  deploy-gate-staging:
+    name: Deploy Gate Staging
+    runs-on: ubuntu-latest
+    needs:
+      - quality-gates
+      - database-gates
+      - container-compose-smoke
+      - image-build
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_staging_gate == 'true')
+    environment:
+      name: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install migrate CLI
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Staging gate acknowledgment
+        env:
+          ENV_FILE: .env.example
+          COMPOSE_PROJECT_NAME: recova-staging-ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_stage_ci
+          APP_PORT: 3001
+          DB_PORT: 5432
+        run: |
+          ./scripts/staging-deploy.sh

@@ -1,6 +1,6 @@
 ---
 title: Recova Backend Documentation Roadmap Index
-description: Indeks rencana dokumen prioritas untuk memastikan kontrak teknis layanan terdokumentasi lengkap.
+description: Indeks dokumen prioritas untuk memastikan kontrak teknis layanan terdokumentasi lengkap dan dapat diverifikasi.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -8,12 +8,12 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/roadmap/index.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-09
 ---
 
 # Recova Backend Documentation Roadmap
 
-Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubahan layanan dapat ditinjau dan diverifikasi secara konsisten.
+Halaman ini merangkum prioritas dokumen yang harus tersedia agar perubahan layanan dapat ditinjau dan diverifikasi secara konsisten.
 
 ## Priority Areas
 
@@ -21,7 +21,37 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 - kontrak arsitektur target,
 - kontrak API dan response,
 - model data dan migration policy,
-- operasi, keamanan, dan observability.
+- operasi, keamanan, testing, dan observability.
+
+## Baseline Documents
+
+- [Legacy Express Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/express-baseline.md)
+- [Feature Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/feature-inventory.md)
+- [Current Runtime Inventory](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/current-runtime-inventory.md)
+
+## Migration Contracts
+
+- [Migration Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-strategy.md)
+- [Compatibility Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-matrix.md)
+- [Compatibility Test Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/compatibility-test-plan.md)
+- [Recovery Enhancement Data Plan](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/recovery-enhancement-data-plan.md)
+- [Scraper Requirement Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/scraper-requirement-gap.md)
+
+## Migration Execution and Cutover
+
+- [Migration Execution Runbook](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/migration-execution-runbook.md)
+- [Cutover Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/cutover-checklist.md)
+- [Rollback Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/rollback-checklist.md)
+
+## Documentation Governance and Readiness
+
+- [Documentation Quality Audit](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/documentation-quality-audit.md)
+- [Benchmark Parity Report](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/benchmark-parity-report.md)
+- [Test Coverage Gap Register](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/test-coverage-gap-register.md)
+- [Implementation Readiness](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/implementation-readiness.md)
+- [Go Fiber Implementation Backlog](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/go-fiber-implementation-backlog.md)
+- [Internal Modules Consistency Audit](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/internal-modules-consistency-audit.md)
+- [Module Consistency Cleanup Backlog](/Users/macbookpro/Development/recova-backend-v2/docs/roadmap/module-consistency-cleanup-backlog.md)
 
 ## Related Sections
 
@@ -29,3 +59,4 @@ Halaman ini merangkum urutan prioritas dokumen yang harus tersedia agar perubaha
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
 - [API](/Users/macbookpro/Development/recova-backend-v2/docs/api/index.md)
 - [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)
+- [Decisions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/index.md)

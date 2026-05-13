@@ -1,0 +1,453 @@
+openapi: 3.1.0
+info:
+  title: Recova Backend Product Enhancement Contract Draft
+  version: 0.1.0-draft
+  description: >
+    Draft kontrak endpoint untuk statistik lanjutan, threaded comments,
+    achievements, dan AI persona preference. Dokumen ini bukan source route runtime aktif.
+servers:
+  - url: /api/v1
+paths:
+  /routine/statistics:
+    get:
+      tags: [routine]
+      operationId: getRoutineStatisticsEnhanced
+      summary: Mengambil statistik pemulihan pengguna (enhanced)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Statistik pemulihan berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /routine/statistics/activity-summary:
+    get:
+      tags: [routine]
+      operationId: getRoutineActivitySummary
+      summary: Mengambil ringkasan aktivitas terbaru pengguna
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: windowDays
+          required: false
+          schema:
+            type: integer
+            minimum: 7
+            maximum: 90
+      responses:
+        "200":
+          description: Ringkasan aktivitas berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /community/{postId}/comments:
+    get:
+      tags: [community]
+      operationId: getCommunityCommentThread
+      summary: Mengambil thread komentar pada satu postingan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: Thread komentar berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /community/{postId}/comments/{commentId}/replies:
+    post:
+      tags: [community]
+      operationId: postCommunityCommentReply
+      summary: Membuat reply terhadap komentar parent
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityCreateReplyRequest"
+      responses:
+        "201":
+          description: Reply berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+        "422":
+          description: Payload reply atau depth thread tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /achievements/catalog:
+    get:
+      tags: [achievements]
+      operationId: getAchievementsCatalog
+      summary: Mengambil katalog achievement aktif
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Katalog achievement berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /achievements/progress:
+    get:
+      tags: [achievements]
+      operationId: getAchievementsProgress
+      summary: Mengambil progres achievement user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Progres achievement berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /achievements/unlocked:
+    get:
+      tags: [achievements]
+      operationId: getAchievementsUnlocked
+      summary: Mengambil daftar achievement yang sudah unlock
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Daftar achievement unlock berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+  /ai/persona-preferences:
+    get:
+      tags: [ai]
+      operationId: getAIPersonaPreference
+      summary: Mengambil preferensi persona AI user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Preferensi persona berhasil diambil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+    put:
+      tags: [ai]
+      operationId: putAIPersonaPreference
+      summary: Memperbarui preferensi persona AI user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIPersonaPreferenceRequest"
+      responses:
+        "200":
+          description: Preferensi persona berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        message:
+          type: string
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/RoutineStatisticsEnhanced"
+            - $ref: "#/components/schemas/RoutineActivitySummary"
+            - $ref: "#/components/schemas/CommunityCommentThreadResponse"
+            - $ref: "#/components/schemas/CommunityReplyPayload"
+            - $ref: "#/components/schemas/AchievementsCatalogResponse"
+            - $ref: "#/components/schemas/AchievementsProgressResponse"
+            - $ref: "#/components/schemas/AIPersonaPreferenceResponse"
+        meta:
+          type: object
+          additionalProperties: true
+    ErrorEnvelope:
+      type: object
+      required: [success, message, error]
+      properties:
+        success:
+          type: boolean
+          const: false
+        message:
+          type: string
+        error:
+          type: object
+          required: [code]
+          properties:
+            code:
+              type: string
+            details:
+              oneOf:
+                - type: object
+                  additionalProperties: true
+                - type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                - type: "null"
+    RoutineStatisticsEnhanced:
+      type: object
+      required:
+        - currentStreak
+        - longestStreak
+        - totalCheckins
+        - streakCalendar
+        - relapseCount
+        - relapseRate
+        - recoverySuccessRate
+        - checkinConsistencyScore
+      properties:
+        currentStreak:
+          type: integer
+          minimum: 0
+        longestStreak:
+          type: integer
+          minimum: 0
+        totalCheckins:
+          type: integer
+          minimum: 0
+        streakCalendar:
+          type: array
+          items:
+            type: string
+            format: date
+        relapseCount:
+          type: integer
+          minimum: 0
+        relapseRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        recoverySuccessRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        checkinConsistencyScore:
+          type: number
+          minimum: 0
+          maximum: 1
+        weeklyProgress:
+          type: object
+          additionalProperties: true
+        monthlyProgress:
+          type: object
+          additionalProperties: true
+        moodTrend:
+          type: array
+          items:
+            type: object
+            required: [date, dominantMood, successfulRatio]
+            properties:
+              date:
+                type: string
+                format: date
+              dominantMood:
+                type: string
+              successfulRatio:
+                type: number
+                minimum: 0
+                maximum: 1
+    RoutineActivitySummary:
+      type: object
+      required: [windowDays, successfulCheckins, relapses, activeDays, recentActivity]
+      properties:
+        windowDays:
+          type: integer
+        successfulCheckins:
+          type: integer
+          minimum: 0
+        relapses:
+          type: integer
+          minimum: 0
+        activeDays:
+          type: integer
+          minimum: 0
+        recentActivity:
+          type: array
+          items:
+            type: object
+            required: [date, type]
+            properties:
+              date:
+                type: string
+                format: date
+              type:
+                type: string
+                enum: [checkin_success, checkin_relapse, journal]
+              mood:
+                type: string
+    CommunityCreateReplyRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    CommunityCommentThreadResponse:
+      type: object
+      required: [postId, comments]
+      properties:
+        postId:
+          type: string
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityCommentNode"
+    CommunityCommentNode:
+      type: object
+      required: [id, postId, userId, content, depth, replyCount, createdAt]
+      properties:
+        id:
+          type: string
+        postId:
+          type: string
+        userId:
+          type: string
+        parentCommentId:
+          type: [string, "null"]
+        content:
+          type: string
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 2
+        replyCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityCommentNode"
+    CommunityReplyPayload:
+      type: object
+      required: [id, postId, userId, parentCommentId, content, depth, createdAt]
+      properties:
+        id:
+          type: string
+        postId:
+          type: string
+        userId:
+          type: string
+        parentCommentId:
+          type: string
+        content:
+          type: string
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 2
+        createdAt:
+          type: string
+          format: date-time
+    AchievementsCatalogResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, code, title, category, threshold]
+            properties:
+              id:
+                type: string
+              code:
+                type: string
+              title:
+                type: string
+              category:
+                type: string
+              threshold:
+                type: number
+                minimum: 0
+    AchievementsProgressResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [achievementCode, progressValue, unlocked]
+            properties:
+              achievementCode:
+                type: string
+              progressValue:
+                type: number
+                minimum: 0
+              unlocked:
+                type: boolean
+              unlockedAt:
+                type: [string, "null"]
+                format: date-time
+    AIPersonaPreferenceRequest:
+      type: object
+      required: [persona]
+      properties:
+        persona:
+          type: string
+          enum: [supportive, friendly, concise, direct]
+    AIPersonaPreferenceResponse:
+      type: object
+      required: [persona, fallbackPersona]
+      properties:
+        persona:
+          type: string
+          enum: [supportive, friendly, concise, direct]
+        fallbackPersona:
+          type: string
+          enum: [supportive]

@@ -1,0 +1,105 @@
+name: Stabilization and Rollback Rehearsal
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_stabilization:
+        description: "Run stabilization gate"
+        required: true
+        default: true
+        type: boolean
+      run_rollback_rehearsal:
+        description: "Run rollback rehearsal"
+        required: true
+        default: true
+        type: boolean
+      rollback_rehearsal_wave:
+        description: "Wave for rollback rehearsal"
+        required: true
+        default: "65"
+        type: choice
+        options:
+          - "65"
+          - "66"
+          - "67"
+          - "68"
+      rollback_rehearsal_command:
+        description: "Rollback command to rehearse"
+        required: true
+        default: "echo rollback-rehearsal-placeholder"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  stabilization-gate:
+    name: Stabilization Gate
+    if: ${{ inputs.run_stabilization }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_stabilization_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recova_stabilization_ci_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_stabilization_ci_test?sslmode=disable
+      STABILIZATION_ARTIFACT_DIR: artifacts/stabilization
+      STABILIZATION_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-stabilization
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run stabilization gate
+        run: make stabilization-gate
+
+      - name: Upload stabilization evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stabilization-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/stabilization
+          if-no-files-found: error
+
+  rollback-rehearsal:
+    name: Rollback Rehearsal
+    if: ${{ inputs.run_rollback_rehearsal }}
+    runs-on: ubuntu-latest
+    env:
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_stabilization_ci_test?sslmode=disable
+      ROLLBACK_REHEARSAL_ARTIFACT_DIR: artifacts/rollback-rehearsal
+      ROLLBACK_REHEARSAL_EXECUTION_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}-rollback
+      ROLLBACK_REHEARSAL_WAVE: ${{ inputs.rollback_rehearsal_wave }}
+      ROLLBACK_REHEARSAL_COMMAND: ${{ inputs.rollback_rehearsal_command }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run rollback rehearsal
+        run: make rollback-rehearsal
+
+      - name: Upload rollback rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-rehearsal-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/rollback-rehearsal
+          if-no-files-found: error

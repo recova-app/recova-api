@@ -13,7 +13,7 @@ last_reviewed: 2026-05-08
 
 # Recova Backend Documentation Overview
 
-Dokumentasi ini menjadi sumber acuan teknis untuk layanan backend Recova. Isi dokumen berfokus pada kontrak API, batas arsitektur, model data, operasi layanan, standar penulisan kode dan dokumen, serta keputusan teknis yang memengaruhi perilaku sistem.
+Dokumentasi ini menjadi sumber acuan teknis untuk layanan backend Recova. Isi dokumen berfokus pada kontrak API, batas arsitektur, model data, operasi layanan, keamanan, observability, testing, dan keputusan teknis yang memengaruhi perilaku sistem.
 
 ## Service Scope
 
@@ -32,10 +32,16 @@ Rangkuman capability diambil dari [references/README.md](/Users/macbookpro/Devel
 ## Documentation Map
 
 - [Architecture](/Users/macbookpro/Development/recova-backend-v2/docs/architecture.md)
+- [Authentication and Trust Boundaries](/Users/macbookpro/Development/recova-backend-v2/docs/overview/authentication-and-trust-boundaries.md)
+- [Data Flow Overview](/Users/macbookpro/Development/recova-backend-v2/docs/overview/data-flow.md)
 - [API](/Users/macbookpro/Development/recova-backend-v2/docs/api/index.md)
 - [Database](/Users/macbookpro/Development/recova-backend-v2/docs/database.md)
+- [Environment Configuration](/Users/macbookpro/Development/recova-backend-v2/docs/environment.md)
 - [Modules](/Users/macbookpro/Development/recova-backend-v2/docs/modules/index.md)
 - [Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/index.md)
+- [Security Operations Baseline](/Users/macbookpro/Development/recova-backend-v2/docs/operations/security.md)
+- [Observability](/Users/macbookpro/Development/recova-backend-v2/docs/operations/observability.md)
+- [Testing Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/operations/testing.md)
 - [Standards](/Users/macbookpro/Development/recova-backend-v2/docs/standards/index.md)
 - [Integrations](/Users/macbookpro/Development/recova-backend-v2/docs/integrations/index.md)
 - [Decisions](/Users/macbookpro/Development/recova-backend-v2/docs/decisions/index.md)
@@ -43,7 +49,7 @@ Rangkuman capability diambil dari [references/README.md](/Users/macbookpro/Devel
 
 ## Documentation Rules
 
-- Setiap halaman wajib memiliki metadata frontmatter.
-- Setiap keputusan atau kontrak harus punya referensi sumber.
-- Jika sumber belum memadai, tulis gap secara eksplisit, jangan menebak.
-- Dokumen ini berdiri sendiri dan tidak bergantung pada catatan tugas internal.
+- setiap halaman wajib memiliki metadata frontmatter,
+- setiap keputusan atau kontrak harus punya referensi sumber,
+- jika sumber belum memadai, tulis gap secara eksplisit, jangan menebak,
+- dokumen berdiri sendiri dan tidak bergantung pada catatan tugas internal.

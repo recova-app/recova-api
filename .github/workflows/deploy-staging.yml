@@ -1,0 +1,225 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  CONTAINER_REGISTRY: ghcr.io
+  DEPLOY_BRANCH: develop
+  DEPLOY_TARGET: staging
+  EXPECTED_APP_ENV: staging
+  COMPOSE_FILE: docker-compose.staging.yml
+  RUNTIME_ENV_FILE: .env.staging
+  DEFAULT_APP_PORT: "3001"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_name: ${{ steps.meta.outputs.image_name }}
+      image_tag_branch: ${{ steps.meta.outputs.image_tag_branch }}
+      image_tag_sha: ${{ steps.meta.outputs.image_tag_sha }}
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - name: Checkout source (git)
+        id: checkout_git
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Checkout source (fallback archive)
+        if: steps.checkout_git.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "::warning::Primary git checkout failed, fallback to archive API for ${GITHUB_SHA}"
+          tmp_archive="$(mktemp -t recova-source-XXXXXX.tar.gz)"
+          trap 'rm -f "$tmp_archive"' EXIT
+
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" \
+            -o "$tmp_archive"
+
+          find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          tar -xzf "$tmp_archive" --strip-components=1
+
+      - name: Prepare metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source_sha="${GITHUB_SHA}"
+          image_tag_branch="develop"
+          image_tag_sha="sha-${source_sha}"
+          {
+            echo "image_name=${image_name}"
+            echo "image_tag_branch=${image_tag_branch}"
+            echo "image_tag_sha=${image_tag_sha}"
+            echo "image_ref=${image_name}:${image_tag_sha}"
+            echo "source_sha=${source_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_branch }}
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_sha }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.source_sha }}
+            VCS_REF=${{ steps.meta.outputs.source_sha }}
+            BUILD_DATE=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Remote Deploy
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 25
+    environment:
+      name: staging
+    steps:
+      - name: Validate required secrets
+        env:
+          DEPLOY_VPS_HOST: ${{ secrets.DEPLOY_VPS_HOST }}
+          DEPLOY_VPS_PORT: ${{ secrets.DEPLOY_VPS_PORT }}
+          DEPLOY_VPS_USERNAME: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          DEPLOY_VPS_KEY: ${{ secrets.DEPLOY_VPS_KEY }}
+          DEPLOY_REMOTE_PATH: ${{ secrets.DEPLOY_REMOTE_PATH }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+          GHCR_READ_PACKAGES_TOKEN: ${{ secrets.GHCR_READ_PACKAGES_TOKEN }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          STAGING_PUBLIC_BASE_URL: ${{ secrets.STAGING_PUBLIC_BASE_URL }}
+        run: |
+          set -euo pipefail
+          required=(
+            DEPLOY_VPS_HOST
+            DEPLOY_VPS_PORT
+            DEPLOY_VPS_USERNAME
+            DEPLOY_VPS_KEY
+            DEPLOY_REMOTE_PATH
+            DEPLOY_ENV_FILE
+            GHCR_READ_PACKAGES_TOKEN
+            GH_USERNAME
+            STAGING_PUBLIC_BASE_URL
+          )
+          for key in "${required[@]}"; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing required secret: ${key}"
+              exit 1
+            fi
+          done
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_VPS_HOST }}
+          username: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          key: ${{ secrets.DEPLOY_VPS_KEY }}
+          port: ${{ secrets.DEPLOY_VPS_PORT }}
+          timeout: 60s
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+
+            remote_path="${{ secrets.DEPLOY_REMOTE_PATH }}"
+            runtime_env_file="${{ env.RUNTIME_ENV_FILE }}"
+            compose_file="${{ env.COMPOSE_FILE }}"
+            image_ref="${{ needs.build-and-push.outputs.image_ref }}"
+
+            install -d -m 755 "$remote_path"
+            cd "$remote_path"
+
+            if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              echo "[deploy-staging] remote path is not a git repository: $remote_path" >&2
+              exit 1
+            fi
+
+            git fetch origin "${{ env.DEPLOY_BRANCH }}" --prune
+            git checkout -B "${{ env.DEPLOY_BRANCH }}" "origin/${{ env.DEPLOY_BRANCH }}"
+
+            cat <<'ENVEOF' > "$remote_path/$runtime_env_file"
+            ${{ secrets.DEPLOY_ENV_FILE }}
+            ENVEOF
+            chmod 600 "$remote_path/$runtime_env_file"
+
+            printf '%s' '${{ secrets.GHCR_READ_PACKAGES_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GH_USERNAME }}' --password-stdin
+            if ! command -v migrate >/dev/null 2>&1; then
+              install -d -m 755 "$HOME/.local/bin"
+              {
+                echo '#!/usr/bin/env sh'
+                echo 'set -eu'
+                echo 'docker run --rm --network host \'
+                echo '  -v "$PWD/migrations:/migrations:ro" \'
+                echo '  migrate/migrate:v4.19.0 "$@"'
+              } > "$HOME/.local/bin/migrate"
+              chmod +x "$HOME/.local/bin/migrate"
+            fi
+            export PATH="$HOME/.local/bin:$PATH"
+
+            ./scripts/deploy/remote-deploy.sh \
+              "$remote_path" \
+              "${{ env.DEPLOY_BRANCH }}" \
+              "$image_ref" \
+              "$compose_file" \
+              "$runtime_env_file" \
+              "${{ env.DEPLOY_TARGET }}" \
+              "${{ env.EXPECTED_APP_ENV }}" \
+              "${{ env.DEFAULT_APP_PORT }}" \
+              "${{ secrets.STAGING_PUBLIC_BASE_URL }}"
+
+      - name: Diagnostics on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_VPS_HOST }}
+          username: ${{ secrets.DEPLOY_VPS_USERNAME }}
+          key: ${{ secrets.DEPLOY_VPS_KEY }}
+          port: ${{ secrets.DEPLOY_VPS_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set +e
+            cd "${{ secrets.DEPLOY_REMOTE_PATH }}"
+            export APP_IMAGE="${{ needs.build-and-push.outputs.image_ref }}"
+            docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" ps
+            docker compose --env-file "${{ env.RUNTIME_ENV_FILE }}" -f "${{ env.COMPOSE_FILE }}" logs --tail=150 api

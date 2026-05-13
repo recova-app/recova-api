@@ -1,0 +1,17 @@
+# Build outputs
+/bin/
+
+# Environment overrides
+.env*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Other
+tasks
+references
+
+# Generated files
+.openapi-watch-files
+artifacts
