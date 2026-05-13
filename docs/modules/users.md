@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/users.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-13
 ---
 
 # Users Module
@@ -64,6 +64,7 @@ Constraint minimum:
 
 - `nickname` wajib valid format dan panjang,
 - `daily_checkin_time` wajib valid sesuai format waktu yang didukung,
+- `porn_free_goal` untuk target bebas pornografi wajib bernilai 1-3650 hari,
 - payload kosong atau field ilegal ditolak,
 - field tak dikenal tidak boleh diam-diam diabaikan tanpa kebijakan eksplisit.
 
@@ -104,6 +105,7 @@ Metrik minimum:
 
 - `nickname` tervalidasi 3-50 karakter,
 - `daily_checkin_time` menerima format `HH:mm` dan disimpan pada kolom `users.check_in_time`,
+- `porn_free_goal` disimpan pada kolom `users.porn_free_goal`,
 - endpoint reset-data hanya aktif untuk environment lokal/development dan mengembalikan `403 FORBIDDEN` di environment lain,
 - proses reset-data menghapus data user-generated termasuk histori AI (`ai_chats`) milik user tersebut.
 

@@ -95,6 +95,7 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 				"nickname":           "uji-user",
 				"recovery_reason":    "ingin pulih",
 				"daily_checkin_time": "09:00",
+				"porn_free_goal":     7,
 			},
 		},
 		{name: "auth logout", method: http.MethodPost, path: "/api/v1/auth/logout"},

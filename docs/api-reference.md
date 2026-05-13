@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api-reference.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-13
 ---
 
 # Recova Backend API Reference
@@ -51,7 +51,7 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | Domain    | Method   | Path                           | Summary                                       | Auth requirement  | Contract status |
 | --------- | -------- | ------------------------------ | --------------------------------------------- | ----------------- | --------------- |
 | auth      | `POST`   | `/auth/google`                 | login/registrasi via Google token             | public            | implemented     |
-| auth      | `POST`   | `/auth/onboarding`             | simpan onboarding awal pengguna               | bearer            | implemented     |
+| auth      | `POST`   | `/auth/onboarding`             | simpan onboarding awal + analisis AI response | bearer            | implemented     |
 | auth      | `POST`   | `/auth/refresh`                | rotasi refresh token dan perbarui sesi akses  | cookie            | implemented     |
 | auth      | `POST`   | `/auth/logout`                 | akhiri sesi aktif pengguna                    | bearer            | implemented     |
 | users     | `GET`    | `/users/me`                    | ambil profil pengguna                         | bearer            | implemented     |

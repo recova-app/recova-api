@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/database.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-13
 ---
 
 # Recova Backend Database
@@ -71,6 +71,7 @@ Skema baseline SQL saat ini berada di migration:
 - `migrations/20260508103000_create_auth_refresh_tokens.up.sql`
 - `migrations/20260509100000_add_checkins_statistics_index.up.sql`
 - `migrations/20260509113000_add_community_threaded_comments.up.sql`
+- `migrations/20260513101500_add_porn_free_goal_to_users.up.sql`
 
 Tabel inti:
 

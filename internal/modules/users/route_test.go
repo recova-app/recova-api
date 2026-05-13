@@ -93,7 +93,7 @@ func (r *usersRouteRepo) UpdateUserFields(_ context.Context, _ string, _ map[str
 	return nil
 }
 
-func (r *usersRouteRepo) CompleteOnboarding(_ context.Context, _ string, _ OnboardingInput) (models.User, models.Profile, error) {
+func (r *usersRouteRepo) CompleteOnboarding(_ context.Context, _ string, _ OnboardingInput, _ *string) (models.User, models.Profile, error) {
 	return r.user, models.Profile{ID: "profile-1", UserID: r.user.ID}, nil
 }
 

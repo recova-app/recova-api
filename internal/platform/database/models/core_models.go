@@ -14,6 +14,7 @@ type User struct {
 	Nickname     string    `gorm:"not null"`
 	UserWhy      *string   `gorm:"column:user_why"`
 	CheckInTime  *string   `gorm:"column:check_in_time;type:time"`
+	PornFreeGoal *int      `gorm:"column:porn_free_goal"`
 	CreatedAt    time.Time `gorm:"not null;default:now()"`
 	UpdatedAt    time.Time `gorm:"not null;default:now()"`
 }

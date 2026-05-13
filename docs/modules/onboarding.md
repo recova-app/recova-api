@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/onboarding.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-13
 ---
 
 # Onboarding Module
@@ -20,6 +20,7 @@ Modul onboarding mengelola penyelesaian data awal pengguna setelah autentikasi b
 - menerima data onboarding awal,
 - memvalidasi field onboarding,
 - menyimpan status completion,
+- memicu analisis AI onboarding dari jawaban user,
 - menjaga idempotency saat onboarding dikirim ulang oleh client.
 
 ## Route Contract
@@ -38,13 +39,16 @@ Field onboarding minimum:
 
 - `nickname`,
 - `recovery_reason`,
-- `daily_checkin_time`.
+- `daily_checkin_time`,
+- `porn_free_goal` (jumlah hari target bebas pornografi, contoh `1`, `2`, `7`).
 
 Aturan:
 
 - request harus datang dari user terautentikasi,
 - semua field wajib divalidasi sebelum disimpan,
 - data onboarding tidak boleh menerima `user_id` dari client sebagai sumber kebenaran.
+
+Field `answers` dan `dependency_level` tetap opsional untuk kebutuhan analisis pola onboarding.
 
 ## Onboarding Completion State
 
@@ -88,6 +92,9 @@ Batas privasi:
 ## Implementation Notes
 
 - onboarding disimpan dengan membuat baris baru `profiles` untuk `user_id` terkait,
+- onboarding memanggil analisis AI (`POST /api/v1/ai/onboarding-analysis`) secara internal dalam service flow yang sama,
+- response onboarding mengembalikan payload user + `onboarding_analysis`,
+- ringkasan teks AI onboarding dipersist ke `profiles.ai_summary`,
 - submit onboarding ulang dengan payload identik diperlakukan idempotent (`COMPLETED -> COMPLETED`),
 - submit onboarding ulang dengan payload berbeda dipetakan ke `409 CONFLICT`,
 - perubahan data profil setelah onboarding selesai harus melalui endpoint users settings.

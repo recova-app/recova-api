@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/ai-coach.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-13
 ---
 
 # AI Coach Module
@@ -19,6 +19,7 @@ last_reviewed: 2026-05-09
 - memproses permintaan ke provider AI melalui abstraction layer,
 - menyajikan chat history dan ringkasan,
 - menyimpan preferensi persona AI per pengguna,
+- menyediakan analisis onboarding untuk dipakai endpoint onboarding auth,
 - menjaga safety dan privasi data AI.
 
 ## API Contract
@@ -68,6 +69,7 @@ Constraint minimum:
 - jika preferensi persona kosong, fallback ke persona default aman,
 - persona aktif harus dipakai saat membangun system instruction AI,
 - respons `ask-coach` menyertakan `persona_used` agar audit troubleshooting mudah.
+- `POST /api/v1/auth/onboarding` memanggil analisis onboarding secara internal dan menyertakan hasilnya di response onboarding.
 
 ## Validation Rules
 

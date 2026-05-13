@@ -38,6 +38,7 @@ func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 		Nickname:         "tester",
 		RecoveryReason:   "konsisten",
 		DailyCheckInTime: "06:45",
+		PornFreeGoal:     intPointer(7),
 		DependencyLevel:  "low",
 		Answers:          map[string]any{"q1": "a1"},
 	})
@@ -52,5 +53,8 @@ func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 	}
 	if input.DependencyLevel == nil || *input.DependencyLevel != "low" {
 		t.Fatalf("unexpected dependency level: %#v", input.DependencyLevel)
+	}
+	if input.PornFreeGoal != 7 {
+		t.Fatalf("unexpected porn free goal: %d", input.PornFreeGoal)
 	}
 }

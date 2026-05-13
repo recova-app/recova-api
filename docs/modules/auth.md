@@ -133,7 +133,7 @@ Metrik minimum:
 - refresh token disimpan persisten sebagai hash SHA-256 pada tabel `auth_refresh_tokens`,
 - rotasi refresh token dilakukan setiap refresh sukses (`old token revoked` -> `new token inserted`),
 - logout tetap idempotent walaupun cookie refresh tidak tersedia,
-- endpoint `/api/v1/auth/onboarding` diproteksi bearer token dan tidak menerima override `user_id` dari body.
+- endpoint `/api/v1/auth/onboarding` diproteksi bearer token, tidak menerima override `user_id` dari body, menerima `porn_free_goal`, dan mengembalikan hasil `onboarding_analysis`.
 - hash password manual memakai bcrypt (`GenerateFromPassword`/`CompareHashAndPassword`) dengan batas bcrypt maksimal 72 byte.
 
 ## Related Documents

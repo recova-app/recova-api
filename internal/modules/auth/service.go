@@ -306,6 +306,7 @@ func (s *Service) BuildUserPayload(ctx context.Context, userID string) (UserPayl
 		Nickname:            user.Nickname,
 		RecoveryReason:      user.UserWhy,
 		DailyCheckInTime:    formatCheckInTime(user.CheckInTime),
+		PornFreeGoal:        copyIntPointer(user.PornFreeGoal),
 		OnboardingCompleted: completed,
 	}, nil
 }
@@ -347,4 +348,12 @@ func normalizeTimeString(raw string) string {
 	}
 
 	return trimmed
+}
+
+func copyIntPointer(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	copied := *v
+	return &copied
 }
