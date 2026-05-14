@@ -53,6 +53,16 @@ func NormalizeSettingsUpdate(req SettingsUpdateRequest) (map[string]any, error) 
 		updates["check_in_time"] = parsed
 	}
 
+	if req.PornFreeGoal != nil {
+		pornFreeGoal := *req.PornFreeGoal
+		if pornFreeGoal < minPornFreeGoalDays || pornFreeGoal > maxPornFreeGoalDays {
+			return nil, errs.New(errs.CodeValidationError, "Target bebas pornografi tidak valid", []map[string]string{
+				{"field": "porn_free_goal", "message": "Target bebas pornografi harus 1-3650 hari"},
+			}, nil)
+		}
+		updates["porn_free_goal"] = pornFreeGoal
+	}
+
 	if len(updates) == 0 {
 		return nil, errs.New(errs.CodeValidationError, "Payload update kosong", []map[string]string{
 			{"field": "body", "message": "Setidaknya satu field pengaturan wajib diisi"},

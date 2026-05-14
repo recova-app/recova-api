@@ -106,6 +106,7 @@ Metrik minimum:
 - `nickname` tervalidasi 3-50 karakter,
 - `daily_checkin_time` menerima format `HH:mm` dan disimpan pada kolom `users.check_in_time`,
 - `porn_free_goal` disimpan pada kolom `users.porn_free_goal`,
+- `PUT /api/v1/users/settings` menerima update parsial termasuk `porn_free_goal` (rentang 1-3650 hari),
 - response profil (`GET /api/v1/users/me` dan `PUT /api/v1/users/settings`) selalu membawa field `porn_free_goal` (integer atau `null`),
 - endpoint reset-data hanya aktif untuk environment lokal/development dan mengembalikan `403 FORBIDDEN` di environment lain,
 - proses reset-data menghapus data user-generated termasuk histori AI (`ai_chats`) milik user tersebut.

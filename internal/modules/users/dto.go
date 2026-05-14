@@ -7,6 +7,7 @@ type SettingsUpdateRequest struct {
 	Nickname         *string `json:"nickname"`
 	RecoveryReason   *string `json:"recovery_reason"`
 	DailyCheckInTime *string `json:"daily_checkin_time"`
+	PornFreeGoal     *int    `json:"porn_free_goal"`
 }
 
 // OnboardingRequest contains onboarding payload under /auth/onboarding route.
