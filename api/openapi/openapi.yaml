@@ -624,6 +624,7 @@ paths:
                       nickname: pejuang_pulih
                       recovery_reason: Ingin hidup lebih terarah
                       daily_checkin_time: "09:00"
+                      porn_free_goal: 30
                       onboarding_completed: true
                     meta: null
         "401":
@@ -690,6 +691,7 @@ paths:
                       nickname: pejuang_baru
                       recovery_reason: Fokus bertumbuh
                       daily_checkin_time: "07:30"
+                      porn_free_goal: 30
                       onboarding_completed: true
                     meta: null
         "401":
