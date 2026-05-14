@@ -3,6 +3,7 @@ BEGIN;
 -- 1) Users
 INSERT INTO users (
   id,
+  google_id,
   email,
   username,
   password_hash,
@@ -14,17 +15,17 @@ INSERT INTO users (
   updated_at
 )
 VALUES
-  ('10000000-0000-0000-0000-000000000001', 'andre.wijaya@gmail.com', 'andre_wijaya', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', 90, '07:00', now() - interval '120 days', now()),
-  ('10000000-0000-0000-0000-000000000002', 'budi.santoso@gmail.com', 'budi_santoso', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', 60, '06:30', now() - interval '118 days', now()),
-  ('10000000-0000-0000-0000-000000000003', 'david.chen@yahoo.com', 'david_chen', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', 120, '08:00', now() - interval '115 days', now()),
-  ('10000000-0000-0000-0000-000000000004', 'ryan.pratama@gmail.com', 'ryan_pratama', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', 45, '06:00', now() - interval '110 days', now()),
-  ('10000000-0000-0000-0000-000000000005', 'faisal.rahman@outlook.com', 'faisal_rahman', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', 75, '07:30', now() - interval '108 days', now()),
-  ('10000000-0000-0000-0000-000000000006', 'eric.tan@gmail.com', 'eric_tan', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', 100, '05:30', now() - interval '105 days', now())
+  ('10000000-0000-0000-0000-000000000001', 'google-oauth2|andre-seed-001', 'andre.wijaya@gmail.com', 'andre_wijaya', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', 90, '07:00', now() - interval '120 days', now()),
+  ('10000000-0000-0000-0000-000000000002', 'google-oauth2|budi-seed-002', 'budi.santoso@gmail.com', 'budi_santoso', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', 60, '06:30', now() - interval '118 days', now()),
+  ('10000000-0000-0000-0000-000000000003', NULL, 'david.chen@yahoo.com', 'david_chen', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', 120, '08:00', now() - interval '115 days', now()),
+  ('10000000-0000-0000-0000-000000000004', NULL, 'ryan.pratama@gmail.com', 'ryan_pratama', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', 45, '06:00', now() - interval '110 days', now()),
+  ('10000000-0000-0000-0000-000000000005', NULL, 'faisal.rahman@outlook.com', 'faisal_rahman', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', 75, '07:30', now() - interval '108 days', now()),
+  ('10000000-0000-0000-0000-000000000006', NULL, 'eric.tan@gmail.com', 'eric_tan', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', 100, '05:30', now() - interval '105 days', now())
 ON CONFLICT (email) DO UPDATE
 SET
   username = EXCLUDED.username,
   password_hash = EXCLUDED.password_hash,
-  google_id = NULL,
+  google_id = EXCLUDED.google_id,
   email = EXCLUDED.email,
   nickname = EXCLUDED.nickname,
   user_why = EXCLUDED.user_why,
@@ -184,6 +185,7 @@ INSERT INTO check_ins (
   check_in_date,
   mood,
   is_successful,
+  relapse_trigger,
   created_at
 )
 SELECT
@@ -192,12 +194,19 @@ SELECT
   current_date - cs.day_offset,
   cs.mood,
   cs.is_successful,
+  CASE
+    WHEN cs.is_successful THEN NULL
+    WHEN cs.mood IN ('Cemas', 'Sedikit Cemas', 'Gelisah') THEN ARRAY['stres kerja', 'kecemasan malam']
+    WHEN cs.mood IN ('Frustasi', 'Sedih', 'Bingung') THEN ARRAY['emosi negatif', 'isolasi']
+    ELSE ARRAY['kelelahan', 'paparan media sosial']
+  END::text[],
   now() - make_interval(days => cs.day_offset)
 FROM checkin_seed cs
 ON CONFLICT (user_id, check_in_date) DO UPDATE
 SET
   mood = EXCLUDED.mood,
-  is_successful = EXCLUDED.is_successful;
+  is_successful = EXCLUDED.is_successful,
+  relapse_trigger = EXCLUDED.relapse_trigger;
 
 -- 5) Journals (1:1 dengan check-in)
 WITH journal_source AS (
@@ -442,15 +451,22 @@ INSERT INTO education_contents (
   published_at
 )
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Memahami Pemicu dan Pola Harian', 'Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.', 'https://recova.app/education/memahami-pemicu-dan-pola-harian', NULL, 'pola pikir', 'artikel', true, now() - interval '60 days'),
-  ('22222222-2222-2222-2222-222222222222', 'Teknik Grounding 5-4-3-2-1', 'Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.', 'https://recova.app/education/teknik-grounding-5-4-3-2-1', NULL, 'regulasi emosi', 'artikel', true, now() - interval '58 days'),
-  ('12121212-1212-1212-1212-121212121212', 'Menyusun Rencana Darurat 10 Menit', 'Panduan membuat langkah cepat saat situasi terasa berat.', 'https://recova.app/education/rencana-darurat-10-menit', NULL, 'strategi harian', 'artikel', true, now() - interval '56 days'),
-  ('13131313-1313-1313-1313-131313131313', 'Jeda Napas untuk Menurunkan Impuls', 'Teknik jeda napas untuk meredakan reaksi spontan.', 'https://recova.app/education/jeda-napas-menurunkan-impuls', NULL, 'regulasi emosi', 'artikel', true, now() - interval '55 days'),
-  ('14141414-1414-1414-1414-141414141414', 'Audit Lingkungan Pemulihan', 'Cara menata lingkungan agar lebih mendukung proses pemulihan.', 'https://recova.app/education/audit-lingkungan-pemulihan', NULL, 'strategi harian', 'artikel', true, now() - interval '54 days'),
-  ('15151515-1515-1515-1515-151515151515', 'Menjaga Konsistensi di Hari Sibuk', 'Kiat mempertahankan kebiasaan kecil saat jadwal padat.', 'https://recova.app/education/konsistensi-di-hari-sibuk', NULL, 'kebiasaan', 'artikel', true, now() - interval '53 days'),
-  ('16161616-1616-1616-1616-161616161616', 'Mengenali Pikiran Otomatis Negatif', 'Langkah praktis mengidentifikasi dan menantang pikiran otomatis negatif.', 'https://recova.app/education/mengenali-pikiran-otomatis-negatif', NULL, 'pola pikir', 'artikel', true, now() - interval '52 days'),
-  ('17171717-1717-1717-1717-171717171717', 'Refleksi Mingguan yang Efektif', 'Template refleksi mingguan untuk melihat progres secara objektif.', 'https://recova.app/education/refleksi-mingguan-efektif', NULL, 'refleksi', 'artikel', true, now() - interval '51 days'),
-  ('71000000-0000-0000-0000-000000000001', 'CURE Your PORN ADDICTION | A Doctors Guide to Breaking The Habit', 'Panduan dokter untuk memutus pola adiksi dengan langkah praktis dan realistis.', 'http://www.youtube.com/watch?v=D2x6vY3r5K8', 'https://i.ytimg.com/vi/D2x6vY3r5K8/maxresdefault.jpg', 'kesehatan mental', 'video', true, now() - interval '50 days'),
+  ('18181818-1818-1818-1818-181818181818', 'Kecanduan Pornografi: Penyebab, Gejala, dan Perawatan', 'Membahas tanda kecanduan, perubahan kerja otak, serta opsi penanganan medis dan psikologis.', 'https://www.alodokter.com/kecanduan-pornografi-penyebab-gejala-dan-perawatan', NULL, 'dampak pornografi', 'artikel', true, now() - interval '50 days'),
+  ('19191919-1919-1919-1919-191919191919', '6 Dampak Menonton Video Porno yang Tidak Boleh Disepelekan', 'Merangkum dampak pada tanggung jawab, relasi, produktivitas, dan kesehatan mental akibat kebiasaan menonton berlebihan.', 'https://www.alodokter.com/dampak-buruk-yang-dapat-dialami-penggemar-video-porno', NULL, 'dampak pornografi', 'artikel', true, now() - interval '49 days'),
+  ('20202020-2020-2020-2020-202020202020', 'Aktivitas Otak Pecandu Pornografi Mirip Pecandu Narkoba', 'Ulasan populer tentang respons sistem reward otak pada konsumsi pornografi berulang.', 'https://tirto.id/aktivitas-otak-pecandu-pornografi-mirip-pecandu-narkoba-ch4R', NULL, 'dampak pornografi', 'artikel', true, now() - interval '48 days'),
+  ('21212121-2121-2121-2121-212121212121', 'Nonton Film Porno Itu Wajar, Tapi Waspadai Juga Segudang Risikonya', 'Menjelaskan batas wajar konsumsi, ciri kecanduan, dan risiko bila kebiasaan menjadi berlebihan.', 'https://hellosehat.com/mental/kecanduan/pria-suka-nonton-film-porno/', NULL, 'dampak pornografi', 'artikel', true, now() - interval '47 days'),
+  ('23232323-2323-2323-2323-232323232323', 'Tanda-Tanda Kecanduan Pornografi dan Cara Mengatasinya', 'Panduan mengenali gejala adiksi serta langkah pemulihan yang bisa diterapkan bertahap.', 'https://hellosehat.com/mental/kecanduan/kecanduan-pornografi/', NULL, 'dampak pornografi', 'artikel', true, now() - interval '46 days'),
+  ('24242424-2424-2424-2424-242424242424', 'Disfungsi Ereksi Akibat Kecanduan Film Porno, Mungkinkah?', 'Membahas kaitan paparan konten dewasa berlebih dengan risiko gangguan ereksi dan fungsi seksual.', 'https://www.klikdokter.com/gaya-hidup/perawatan-pria/disfungsi-ereksi-akibat-kecanduan-film-porno-mungkinkah', NULL, 'dampak pornografi', 'artikel', true, now() - interval '45 days'),
+  ('25252525-2525-2525-2525-252525252525', 'Awas, Pria yang Kecanduan Pornografi Malah Berisiko Alami Impotensi', 'Menjelaskan mekanisme penurunan sensitivitas rangsangan seksual akibat konsumsi porno berlebihan.', 'https://hellosehat.com/pria/penyakit-pria/kecanduan-pornografi-risiko-impoten/', NULL, 'dampak pornografi', 'artikel', true, now() - interval '44 days'),
+  ('26262626-2626-2626-2626-262626262626', 'Terapi untuk Remaja yang Kecanduan Pornografi', 'Membahas opsi terapi untuk remaja, termasuk modifikasi perilaku, psikoterapi, dan pendampingan keluarga.', 'https://www.klikdokter.com/psikologi/kesehatan-mental/terapi-untuk-remaja-yang-kecanduan-pornografi', NULL, 'dampak pornografi', 'artikel', true, now() - interval '43 days'),
+  ('27272727-2727-2727-2727-272727272727', 'Strategi Mencegah dan Mengatasi Kecanduan Porno', 'Membahas langkah pencegahan, CBT, dukungan sosial, dan rutinitas sehat untuk pemulihan.', 'https://www.klikdokter.com/psikologi/kesehatan-mental/menavigasi-lautan-digital-strategi-menarik-untuk-mencegah-dan-mengatasi-kecanduan-porno', NULL, 'pemulihan', 'artikel', true, now() - interval '42 days'),
+  ('28282828-2828-2828-2828-282828282828', 'Ini Efek Kecanduan Pornografi pada Kesehatan Mental', 'Membahas dampak ke kecemasan, mood, produktivitas, dan kualitas relasi sehari-hari.', 'https://www.halodoc.com/artikel/ini-efek-kecanduan-pornografi-pada-kesehatan-mental', NULL, 'pemulihan', 'artikel', true, now() - interval '41 days'),
+  ('29292929-2929-2929-2929-292929292929', 'Efek Kecanduan Pornografi pada Disfungsi Ereksi', 'Menjelaskan kaitan perubahan respons otak akibat konten pornografi dengan disfungsi ereksi.', 'https://www.halodoc.com/artikel/efek-kecanduan-pornografi-pada-disfungsi-ereksi', NULL, 'pemulihan', 'artikel', true, now() - interval '40 days'),
+  ('30303030-3030-3030-3030-303030303030', 'Dopamine Detox, Pilihan Metode untuk Mengatasi Kecanduan', 'Menjelaskan konsep dopamine detox sebagai strategi pembatasan stimulasi instan secara bertahap.', 'https://www.alodokter.com/dopamine-detox-pilihan-metode-untuk-mengatasi-kecanduan', NULL, 'pemulihan', 'artikel', true, now() - interval '39 days'),
+  ('31313131-3131-3131-3131-313131313131', 'Mengenal Dopamine Detox, Manfaat dan Cara Melakukannya', 'Membahas manfaat, batasan ilmiah, dan langkah praktis menerapkan dopamine detox dengan aman.', 'https://www.halodoc.com/artikel/mengenal-dopamine-detox-manfaat-dan-cara-melakukannya', NULL, 'pemulihan', 'artikel', true, now() - interval '38 days'),
+  ('32323232-3232-3232-3232-323232323232', 'Cara Jitu Agar Tidak Kecanduan PMO', 'Panduan langkah preventif dan intervensi dini agar siklus pornografi-masturbasi-orgasme tidak semakin berat.', 'https://www.halodoc.com/artikel/cara-jitu-agar-tidak-kecanduan-pmo', NULL, 'pemulihan', 'artikel', true, now() - interval '37 days'),
+  ('33333333-3333-3333-3333-333333333333', '7 Cara Berhenti Onani supaya Lepas dari Kecanduan', 'Strategi mengenali pemicu, menghindari konten pornografi, dan mencari bantuan profesional bila perlu.', 'https://www.alodokter.com/7-cara-berhenti-onani-supaya-lepas-dari-kecanduan', NULL, 'pemulihan', 'artikel', true, now() - interval '36 days'),
+  ('34343434-3434-3434-3434-343434343434', 'Pasangan Kecanduan Pornografi? Ini Cara Mengatasinya', 'Tips komunikasi, dukungan, dan batasan sehat untuk membantu pasangan keluar dari pola adiktif.', 'https://www.alodokter.com/pasangan-kecanduan-pornografi-ini-cara-mengatasinya', NULL, 'pemulihan', 'artikel', true, now() - interval '35 days'),
   ('71000000-0000-0000-0000-000000000002', 'Langkah Pertama Berhenti dari Kecanduan Pornografi', 'Membahas pergeseran pola pikir awal dari penyangkalan ke tindakan pemulihan.', 'http://www.youtube.com/watch?v=a37iuykI9Io', 'https://i.ytimg.com/vi/a37iuykI9Io/maxresdefault.jpg', 'kesehatan mental', 'video', true, now() - interval '49 days'),
   ('71000000-0000-0000-0000-000000000003', 'Apa yang Terjadi Saat Berhenti Konsumsi Pornografi', 'Penjelasan timeline pemulihan fisik-mental setelah berhenti paparan konten adiktif.', 'http://www.youtube.com/watch?v=gJjsm2xcOy8', 'https://i.ytimg.com/vi/gJjsm2xcOy8/maxresdefault.jpg', 'kesehatan holistik', 'video', true, now() - interval '48 days'),
   ('71000000-0000-0000-0000-000000000004', 'Cara Memanage Nafsu - Ustadz Adi Hidayat', 'Kajian pengelolaan dorongan dari perspektif spiritual dan disiplin diri.', 'http://www.youtube.com/watch?v=TqZIsmrQ06o', 'https://i.ytimg.com/vi/TqZIsmrQ06o/maxresdefault.jpg', 'spiritualitas', 'video', true, now() - interval '47 days'),
@@ -739,6 +755,74 @@ ON CONFLICT (id) DO UPDATE
 SET
   role = EXCLUDED.role,
   content = EXCLUDED.content,
+  created_at = EXCLUDED.created_at;
+
+-- 17) Relapses (dari check-in gagal 14 hari terakhir)
+INSERT INTO relapses (
+  id,
+  user_id,
+  check_in_id,
+  relapse_date,
+  mood,
+  commitment,
+  relapse_trigger,
+  created_at
+)
+SELECT
+  gen_random_uuid(),
+  ci.user_id,
+  ci.id,
+  ci.check_in_date,
+  left(ci.mood, 50),
+  format(
+    'Komitmen reset %s: batasi akses pemicu, hubungi support system, dan jalankan emergency routine 15 menit.',
+    to_char(ci.check_in_date, 'YYYY-MM-DD')
+  ),
+  COALESCE(ci.relapse_trigger, ARRAY['pemicu belum tercatat']::text[]),
+  ci.check_in_date::timestamp + interval '22 hours'
+FROM check_ins ci
+WHERE ci.user_id IN (
+  '10000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003',
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000006'
+)
+  AND ci.check_in_date BETWEEN current_date - 13 AND current_date
+  AND ci.is_successful = false
+ON CONFLICT (user_id, relapse_date) DO UPDATE
+SET
+  check_in_id = EXCLUDED.check_in_id,
+  mood = EXCLUDED.mood,
+  commitment = EXCLUDED.commitment,
+  relapse_trigger = EXCLUDED.relapse_trigger,
+  created_at = EXCLUDED.created_at;
+
+-- 18) Auth refresh tokens (hash-only)
+INSERT INTO auth_refresh_tokens (
+  id,
+  user_id,
+  token_hash,
+  expires_at,
+  revoked_at,
+  rotated_from_id,
+  created_at
+)
+VALUES
+  ('a1000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'sha256:seed-user1-active-v1', now() + interval '20 days', NULL, NULL, now() - interval '2 days'),
+  ('a1000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'sha256:seed-user2-rotated-v1', now() + interval '15 days', now() - interval '5 days', NULL, now() - interval '20 days'),
+  ('a1000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'sha256:seed-user2-active-v2', now() + interval '25 days', NULL, 'a1000000-0000-0000-0000-000000000002', now() - interval '5 days'),
+  ('a1000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', 'sha256:seed-user3-expired-v1', now() - interval '1 day', NULL, NULL, now() - interval '30 days'),
+  ('a1000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000004', 'sha256:seed-user4-revoked-v1', now() + interval '10 days', now() - interval '1 day', NULL, now() - interval '12 days'),
+  ('a1000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000005', 'sha256:seed-user5-active-v1', now() + interval '30 days', NULL, NULL, now() - interval '3 days'),
+  ('a1000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000006', 'sha256:seed-user6-active-v1', now() + interval '18 days', NULL, NULL, now() - interval '4 days')
+ON CONFLICT (id) DO UPDATE
+SET
+  token_hash = EXCLUDED.token_hash,
+  expires_at = EXCLUDED.expires_at,
+  revoked_at = EXCLUDED.revoked_at,
+  rotated_from_id = EXCLUDED.rotated_from_id,
   created_at = EXCLUDED.created_at;
 
 COMMIT;
