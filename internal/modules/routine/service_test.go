@@ -279,6 +279,102 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	}
 }
 
+func TestService_GetRelapseStatistics_BuildsHourlyPatternAndAISummary(t *testing.T) {
+	aiSummary := "Kamu konsisten membaik, jaga ritme malam."
+	repo := &fakeRoutineRepo{
+		user:    models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		profile: models.Profile{ID: "profile-1", UserID: "user-1", AISummary: &aiSummary},
+		checkIns: []models.CheckIn{
+			{CheckInDate: time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC), Mood: "tenang", IsSuccessful: true},
+		},
+		relapseRows: []models.Relapse{
+			{
+				ID:             "relapse-1",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC),
+				Mood:           "cemas",
+				RelapseTrigger: []string{"sendiri malam"},
+				CreatedAt:      time.Date(2026, 5, 11, 21, 5, 0, 0, time.UTC),
+			},
+			{
+				ID:             "relapse-2",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 12, 0, 0, 0, 0, time.UTC),
+				Mood:           "cemas",
+				RelapseTrigger: []string{"stres kerja"},
+				CreatedAt:      time.Date(2026, 5, 12, 21, 40, 0, 0, time.UTC),
+			},
+			{
+				ID:             "relapse-3",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 13, 0, 0, 0, 0, time.UTC),
+				Mood:           "gelisah",
+				RelapseTrigger: []string{"bosan"},
+				CreatedAt:      time.Date(2026, 5, 13, 22, 15, 0, 0, time.UTC),
+			},
+		},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return time.Date(2026, 5, 13, 23, 0, 0, 0, time.UTC) }
+
+	payload, err := svc.GetRelapseStatistics(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("get relapse statistics: %v", err)
+	}
+
+	if payload.AISummary != aiSummary {
+		t.Fatalf("expected ai summary mapped, got %q", payload.AISummary)
+	}
+	if payload.PeakRelapseCount != 2 {
+		t.Fatalf("expected peak relapse count=2, got %d", payload.PeakRelapseCount)
+	}
+	if len(payload.PeakRelapseHoursUTC) != 1 || payload.PeakRelapseHoursUTC[0] != 21 {
+		t.Fatalf("expected peak hour utc [21], got %+v", payload.PeakRelapseHoursUTC)
+	}
+	if len(payload.HourlyRelapseDistribution) != 2 {
+		t.Fatalf("expected 2 hourly buckets, got %d", len(payload.HourlyRelapseDistribution))
+	}
+	if payload.HourlyRelapseDistribution[0].HourUTC != 21 || payload.HourlyRelapseDistribution[0].RelapseCount != 2 {
+		t.Fatalf("expected hour 21 count 2, got %+v", payload.HourlyRelapseDistribution[0])
+	}
+	if payload.HourlyRelapseDistribution[1].HourUTC != 22 || payload.HourlyRelapseDistribution[1].RelapseCount != 1 {
+		t.Fatalf("expected hour 22 count 1, got %+v", payload.HourlyRelapseDistribution[1])
+	}
+	if payload.RelapseTimeSummary.Title == "" || len(payload.RelapseTimeSummary.SuggestedActivities) == 0 {
+		t.Fatalf("expected relapse time summary with title and suggestions, got %+v", payload.RelapseTimeSummary)
+	}
+	if payload.LatestRelapseSolution == nil {
+		t.Fatal("expected latest relapse solution present")
+	}
+}
+
+func TestService_GetRelapseStatistics_EmptyRelapseUsesFallbackSummary(t *testing.T) {
+	repo := &fakeRoutineRepo{
+		user:     models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		checkIns: []models.CheckIn{},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return time.Date(2026, 5, 13, 23, 0, 0, 0, time.UTC) }
+
+	payload, err := svc.GetRelapseStatistics(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("get relapse statistics: %v", err)
+	}
+
+	if payload.AISummary == "" {
+		t.Fatal("expected default ai summary when profile missing")
+	}
+	if payload.PeakRelapseCount != 0 || len(payload.PeakRelapseHoursUTC) != 0 {
+		t.Fatalf("expected no peak hours, got count=%d hours=%+v", payload.PeakRelapseCount, payload.PeakRelapseHoursUTC)
+	}
+	if payload.LatestRelapseSolution != nil {
+		t.Fatalf("expected nil latest relapse solution, got %+v", payload.LatestRelapseSolution)
+	}
+	if payload.RelapseTimeSummary.Title == "" || len(payload.RelapseTimeSummary.SuggestedActivities) == 0 {
+		t.Fatalf("expected fallback relapse time summary, got %+v", payload.RelapseTimeSummary)
+	}
+}
+
 func TestIsUniqueViolation_ReturnsTrueForCode23505(t *testing.T) {
 	if !IsUniqueViolation(&pgconn.PgError{Code: uniqueViolationCode}) {
 		t.Fatal("expected unique violation true for postgres code 23505")
@@ -288,6 +384,8 @@ func TestIsUniqueViolation_ReturnsTrueForCode23505(t *testing.T) {
 type fakeRoutineRepo struct {
 	user              models.User
 	findUserErr       error
+	profile           models.Profile
+	findProfileErr    error
 	checkIns          []models.CheckIn
 	windowRows        []models.CheckIn
 	windowRelapses    []models.Relapse
@@ -330,6 +428,15 @@ func (r *fakeRoutineRepo) FindUserByID(_ context.Context, _ string) (models.User
 		return models.User{}, gorm.ErrRecordNotFound
 	}
 	return r.user, nil
+}
+func (r *fakeRoutineRepo) FindProfileByUserID(_ context.Context, _ string) (models.Profile, error) {
+	if r.findProfileErr != nil {
+		return models.Profile{}, r.findProfileErr
+	}
+	if r.profile.ID == "" {
+		return models.Profile{}, gorm.ErrRecordNotFound
+	}
+	return r.profile, nil
 }
 func (r *fakeRoutineRepo) FindCheckInByUserAndDate(_ context.Context, _ string, _ time.Time) (models.CheckIn, error) {
 	if r.findCheckInErr != nil {

@@ -106,3 +106,18 @@ func (h *Handler) GetRelapses(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(response.Success("Riwayat relapse berhasil diambil", payload, nil))
 }
+
+// GetRelapseStatistics handles complete relapse statistics retrieval.
+func (h *Handler) GetRelapseStatistics(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	payload, err := h.service.GetRelapseStatistics(c.Context(), principal.UserID)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Statistik relapse berhasil diambil", payload, nil))
+}

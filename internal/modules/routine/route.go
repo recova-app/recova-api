@@ -13,5 +13,6 @@ func RegisterRoutes(router fiber.Router, authService *authmodule.Service, servic
 	router.Post("/relapses", authmodule.RequireAuth(authService), handler.CreateRelapse)
 	router.Get("/statistics", authmodule.RequireAuth(authService), handler.GetStatistics)
 	router.Get("/statistics/activity-summary", authmodule.RequireAuth(authService), handler.GetActivitySummary)
+	router.Get("/relapses/statistics", authmodule.RequireAuth(authService), handler.GetRelapseStatistics)
 	router.Get("/relapses", authmodule.RequireAuth(authService), handler.GetRelapses)
 }

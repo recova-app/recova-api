@@ -47,6 +47,15 @@ func (r *Repository) FindUserByID(ctx context.Context, userID string) (models.Us
 	return user, nil
 }
 
+// FindProfileByUserID reads profile row by user ID.
+func (r *Repository) FindProfileByUserID(ctx context.Context, userID string) (models.Profile, error) {
+	var profile models.Profile
+	if err := r.db.WithContext(ctx).Where("user_id = ?", strings.TrimSpace(userID)).First(&profile).Error; err != nil {
+		return models.Profile{}, err
+	}
+	return profile, nil
+}
+
 // FindCheckInByUserAndDate loads check-in by user and UTC date.
 func (r *Repository) FindCheckInByUserAndDate(ctx context.Context, userID string, check_in_date time.Time) (models.CheckIn, error) {
 	var check_in models.CheckIn

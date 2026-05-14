@@ -1275,6 +1275,123 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_routine_relapses_401
+  /api/v1/routine/relapses/statistics:
+    get:
+      tags:
+        - routine
+      operationId: getRoutineRelapseStatistics
+      summary: Get complete relapse statistics with UTC hour analysis
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Relapse statistics fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+              examples:
+                relapse_statistics_success:
+                  value:
+                    success: true
+                    message: Statistik relapse berhasil diambil
+                    data:
+                      statistics:
+                        current_streak: 0
+                        longest_streak: 12
+                        total_checkins: 23
+                        total_attempts: 28
+                        success_rate: 0.82
+                        streak_calendar: ["2026-05-08", "2026-05-09"]
+                        relapse_count: 4
+                        relapse_rate: 0.14
+                        recovery_success_rate: 0.82
+                        checkin_consistency_score: 84.5
+                        weekly_progress:
+                          window_days: 7
+                          current_successful_checkins: 5
+                          previous_successful_checkins: 5
+                          delta: 0
+                          delta_rate: 0
+                        monthly_progress:
+                          window_days: 30
+                          current_successful_checkins: 23
+                          previous_successful_checkins: 20
+                          delta: 3
+                          delta_rate: 0.15
+                        mood_trend:
+                          - date: "2026-05-10"
+                            day_name: Sabtu
+                            dominant_mood: tenang
+                            successful_ratio: 0
+                        last_check_in_date: "2026-05-10"
+                        last_check_in_day_name: Sabtu
+                        last_relapse_date: "2026-05-10"
+                        last_relapse_day_name: Sabtu
+                        weekday_summary:
+                          - day_name: Senin
+                            successful_checkins: 3
+                            relapse_count: 1
+                            total_checkins: 4
+                            success_rate: 0.75
+                        streak_goal_comparison:
+                          porn_free_goal: 30
+                          current_streak: 0
+                          longest_streak: 12
+                          goal_reached: false
+                          remaining_days: 30
+                          progress_rate: 0
+                      relapses:
+                        - id: relapse_123
+                          user_id: user_123
+                          relapse_date: "2026-05-10"
+                          relapse_day_name: Sabtu
+                          mood: cemas
+                          commitment: Tetap bangkit
+                          relapse_trigger: [stres kerja, sendiri malam]
+                          check_in_id: checkin_123
+                          created_at: "2026-05-10T21:05:00Z"
+                      hourly_relapse_distribution:
+                        - hour_utc: 21
+                          relapse_count: 3
+                        - hour_utc: 22
+                          relapse_count: 3
+                      peak_relapse_hours_utc: [21, 22]
+                      peak_relapse_count: 3
+                      ai_summary: Kamu konsisten membaik, jaga ritme malam.
+                      relapse_time_summary:
+                        title: Strategi Jam Rawan
+                        summary: Dorongan paling sering muncul di 21:00-22:00 UTC. Siapkan aktivitas pengalih sebelum jam tersebut.
+                        suggested_activities:
+                          - Olahraga ringan 15 menit.
+                          - Mandi air hangat dan jauhkan perangkat pemicu.
+                          - Hubungi teman support atau tulis jurnal singkat.
+                        generated_at: "2026-05-10T21:10:00Z"
+                      latest_relapse_solution:
+                        title: Langkah Pemulihan Cepat
+                        analysis: Relapse terdeteksi, fokus stabilisasi emosi.
+                        action_steps:
+                          - Tarik napas dalam 4 kali.
+                          - Jauhkan diri dari pemicu 10 menit.
+                          - Hubungi support system.
+                        generated_at: "2026-05-10T21:08:00Z"
+                    meta: null
+        "401":
+          description: Access token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                unauthenticated:
+                  value:
+                    success: false
+                    message: Autentikasi dibutuhkan
+                    data: null
+                    error:
+                      code: UNAUTHENTICATED
+                      details: null
+                      request_id: req_routine_relapses_statistics_401
   /api/v1/journals:
     get:
       tags:
@@ -2928,6 +3045,7 @@ components:
             - $ref: "#/components/schemas/RoutineRelapseSolutionData"
             - $ref: "#/components/schemas/RoutineStatisticsData"
             - $ref: "#/components/schemas/RoutineActivitySummaryData"
+            - $ref: "#/components/schemas/RoutineRelapseStatisticsData"
             - type: array
               items:
                 $ref: "#/components/schemas/RoutineRelapseData"
@@ -3740,6 +3858,77 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RoutineActivityItemData"
+    RoutineRelapseHourStatData:
+      type: object
+      required:
+        - hour_utc
+        - relapse_count
+      properties:
+        hour_utc:
+          type: integer
+          minimum: 0
+          maximum: 23
+        relapse_count:
+          type: integer
+          minimum: 0
+    RoutineRelapseTimeSummaryData:
+      type: object
+      required:
+        - title
+        - summary
+        - suggested_activities
+        - generated_at
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        suggested_activities:
+          type: array
+          items:
+            type: string
+        generated_at:
+          type: string
+          format: date-time
+    RoutineRelapseStatisticsData:
+      type: object
+      required:
+        - statistics
+        - relapses
+        - hourly_relapse_distribution
+        - peak_relapse_hours_utc
+        - peak_relapse_count
+        - ai_summary
+        - relapse_time_summary
+        - latest_relapse_solution
+      properties:
+        statistics:
+          $ref: "#/components/schemas/RoutineStatisticsData"
+        relapses:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseData"
+        hourly_relapse_distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseHourStatData"
+        peak_relapse_hours_utc:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 23
+        peak_relapse_count:
+          type: integer
+          minimum: 0
+        ai_summary:
+          type: string
+        relapse_time_summary:
+          $ref: "#/components/schemas/RoutineRelapseTimeSummaryData"
+        latest_relapse_solution:
+          oneOf:
+            - $ref: "#/components/schemas/RoutineRelapseSolutionData"
+            - type: "null"
     RoutineRelapseData:
       type: object
       required:

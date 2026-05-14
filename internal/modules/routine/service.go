@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ type routineRepository interface {
 	DB() *gorm.DB
 	CloneTx(tx *gorm.DB) routineRepository
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
+	FindProfileByUserID(ctx context.Context, userID string) (models.Profile, error)
 	FindCheckInByUserAndDate(ctx context.Context, userID string, check_in_date time.Time) (models.CheckIn, error)
 	CreateCheckIn(ctx context.Context, check_in models.CheckIn) error
 	CreateJournal(ctx context.Context, journal models.Journal) error
@@ -47,6 +49,8 @@ type Service struct {
 	advisor relapseAdvisor
 	now     func() time.Time
 }
+
+const defaultRoutineAISummaryMessage = "Insight baru untukmu akan segera tersedia. Teruslah menulis jurnal harianmu!"
 
 // NewService constructs routine service with repository dependency.
 func NewService(repo routineRepository, advisors ...relapseAdvisor) *Service {
@@ -290,6 +294,58 @@ func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayl
 	}
 
 	return result, nil
+}
+
+// GetRelapseStatistics returns complete relapse statistics with UTC hour pattern and AI suggestions.
+func (s *Service) GetRelapseStatistics(ctx context.Context, userID string) (RelapseStatisticsResponseData, error) {
+	user, err := s.repo.FindUserByID(ctx, userID)
+	if err != nil {
+		if IsRecordNotFound(err) {
+			return RelapseStatisticsResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return RelapseStatisticsResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	checkIns, err := s.repo.ListCheckInsByUser(ctx, userID)
+	if err != nil {
+		return RelapseStatisticsResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik check-in", nil, err)
+	}
+	relapses, err := s.repo.ListRelapsesByUser(ctx, userID)
+	if err != nil {
+		return RelapseStatisticsResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik relapse", nil, err)
+	}
+
+	stats := computeStatistics(checkIns, relapses, utcDayStart(s.now()), user.PornFreeGoal)
+	relapseHistory := make([]RelapsePayload, 0, len(relapses))
+	for _, row := range relapses {
+		relapseHistory = append(relapseHistory, mapRelapsePayload(row))
+	}
+
+	hourlyDistribution, peakHoursUTC, peakCount := computeRelapseHourStats(relapses)
+	aiSummary, err := s.getCurrentAISummary(ctx, userID)
+	if err != nil {
+		return RelapseStatisticsResponseData{}, err
+	}
+
+	relapseTimeSummary := emptyRelapseTimeSummary(s.now())
+	var latestRelapseSolution *RelapseSolutionPayload
+	if len(relapses) > 0 {
+		latest := latestRelapseEvent(relapses)
+		solution := s.buildRelapseSolution(ctx, userID, latest.Mood, latest.Commitment, latest.RelapseTrigger)
+		latestRelapseSolution = &solution
+		relapseTimeSummary = s.buildRelapseTimeSummary(ctx, userID, peakHoursUTC, peakCount, latest)
+	}
+
+	return RelapseStatisticsResponseData{
+		Statistics:                stats,
+		Relapses:                  relapseHistory,
+		HourlyRelapseDistribution: hourlyDistribution,
+		PeakRelapseHoursUTC:       peakHoursUTC,
+		PeakRelapseCount:          peakCount,
+		AISummary:                 aiSummary,
+		RelapseTimeSummary:        relapseTimeSummary,
+		LatestRelapseSolution:     latestRelapseSolution,
+	}, nil
 }
 
 func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID string, check_in_date time.Time, is_successful bool) error {
@@ -806,6 +862,146 @@ func buildFallbackRelapseSolution(mood string, relapseTrigger []string, nowUTC t
 		},
 		GeneratedAt: nowUTC.UTC().Format(time.RFC3339),
 	}
+}
+
+func (s *Service) getCurrentAISummary(ctx context.Context, userID string) (string, error) {
+	profile, err := s.repo.FindProfileByUserID(ctx, userID)
+	if err != nil {
+		if IsRecordNotFound(err) {
+			return defaultRoutineAISummaryMessage, nil
+		}
+		return "", errs.New(errs.CodeInternalError, "Gagal membaca ringkasan AI pengguna", nil, err)
+	}
+
+	if profile.AISummary == nil {
+		return defaultRoutineAISummaryMessage, nil
+	}
+
+	summary := strings.TrimSpace(*profile.AISummary)
+	if summary == "" {
+		return defaultRoutineAISummaryMessage, nil
+	}
+	return summary, nil
+}
+
+func computeRelapseHourStats(relapses []models.Relapse) ([]RelapseHourStatPayload, []int, int) {
+	if len(relapses) == 0 {
+		return []RelapseHourStatPayload{}, []int{}, 0
+	}
+
+	countByHour := make([]int, 24)
+	for _, row := range relapses {
+		hour := row.CreatedAt.UTC().Hour()
+		if hour < 0 || hour > 23 {
+			continue
+		}
+		countByHour[hour]++
+	}
+
+	peakCount := 0
+	for hour := 0; hour < 24; hour++ {
+		if countByHour[hour] > peakCount {
+			peakCount = countByHour[hour]
+		}
+	}
+
+	hourlyDistribution := make([]RelapseHourStatPayload, 0, len(relapses))
+	peakHoursUTC := make([]int, 0, 24)
+	for hour := 0; hour < 24; hour++ {
+		count := countByHour[hour]
+		if count <= 0 {
+			continue
+		}
+		hourlyDistribution = append(hourlyDistribution, RelapseHourStatPayload{
+			HourUTC:      hour,
+			RelapseCount: count,
+		})
+		if count == peakCount {
+			peakHoursUTC = append(peakHoursUTC, hour)
+		}
+	}
+
+	return hourlyDistribution, peakHoursUTC, peakCount
+}
+
+func latestRelapseEvent(relapses []models.Relapse) models.Relapse {
+	if len(relapses) == 0 {
+		return models.Relapse{}
+	}
+	latest := relapses[0]
+	for i := 1; i < len(relapses); i++ {
+		candidate := relapses[i]
+		if candidate.CreatedAt.UTC().After(latest.CreatedAt.UTC()) {
+			latest = candidate
+			continue
+		}
+		if candidate.CreatedAt.UTC().Equal(latest.CreatedAt.UTC()) && candidate.RelapseDate.UTC().After(latest.RelapseDate.UTC()) {
+			latest = candidate
+		}
+	}
+	return latest
+}
+
+func (s *Service) buildRelapseTimeSummary(ctx context.Context, userID string, peakHoursUTC []int, peakCount int, latestRelapse models.Relapse) RelapseTimeSummaryPayload {
+	if len(peakHoursUTC) == 0 {
+		return emptyRelapseTimeSummary(s.now())
+	}
+
+	syntheticTrigger := buildPeakHourSyntheticTrigger(peakHoursUTC, peakCount, latestRelapse.RelapseTrigger)
+	plan := s.buildRelapseSolution(ctx, userID, latestRelapse.Mood, latestRelapse.Commitment, syntheticTrigger)
+	return RelapseTimeSummaryPayload{
+		Title:               plan.Title,
+		Summary:             plan.Analysis,
+		SuggestedActivities: append([]string{}, plan.ActionSteps...),
+		GeneratedAt:         plan.GeneratedAt,
+	}
+}
+
+func buildPeakHourSyntheticTrigger(peakHoursUTC []int, peakCount int, relapseTrigger []string) []string {
+	result := make([]string, 0, len(relapseTrigger)+1)
+	result = append(result, relapseTrigger...)
+
+	formattedHours := make([]string, 0, len(peakHoursUTC))
+	for _, hour := range peakHoursUTC {
+		formattedHours = append(formattedHours, formatUTCHour(hour))
+	}
+
+	peakLine := "jam relapse paling sering (UTC): " + strings.Join(formattedHours, ", ")
+	if peakCount > 0 {
+		peakLine += " (" + formatInt(peakCount) + " kejadian)"
+	}
+	result = append(result, peakLine)
+	return result
+}
+
+func emptyRelapseTimeSummary(nowUTC time.Time) RelapseTimeSummaryPayload {
+	return RelapseTimeSummaryPayload{
+		Title:   "Pola Relapse Belum Tersedia",
+		Summary: "Belum ada data relapse untuk dianalisis. Gunakan UTC di backend, konversi jam di frontend sesuai zona user.",
+		SuggestedActivities: []string{
+			"Siapkan rencana aktivitas sehat sebelum jam rawan muncul.",
+			"Pasang pengingat break singkat setiap malam.",
+			"Tulis jurnal singkat saat dorongan mulai naik.",
+		},
+		GeneratedAt: nowUTC.UTC().Format(time.RFC3339),
+	}
+}
+
+func formatUTCHour(hour int) string {
+	if hour < 0 {
+		hour = 0
+	}
+	if hour > 23 {
+		hour = 23
+	}
+	if hour < 10 {
+		return "0" + formatInt(hour) + ":00"
+	}
+	return formatInt(hour) + ":00"
+}
+
+func formatInt(value int) string {
+	return strconv.Itoa(value)
 }
 
 func buildWeekdaySummary(checkIns []models.CheckIn, relapses []models.Relapse) []WeekdaySummaryPayload {

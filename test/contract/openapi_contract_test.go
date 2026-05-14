@@ -124,6 +124,7 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 			},
 		},
 		{name: "routine relapses", method: http.MethodGet, path: "/api/v1/routine/relapses"},
+		{name: "routine relapses statistics", method: http.MethodGet, path: "/api/v1/routine/relapses/statistics"},
 		{name: "journals list", method: http.MethodGet, path: "/api/v1/journals"},
 		{name: "journals create", method: http.MethodPost, path: "/api/v1/journals", body: map[string]any{"content": "uji kontrak"}},
 		{name: "community list", method: http.MethodGet, path: "/api/v1/community"},
