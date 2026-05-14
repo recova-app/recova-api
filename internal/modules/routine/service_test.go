@@ -3,6 +3,7 @@ package routine
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,6 +82,9 @@ func TestService_GetStatistics_EnhancedFields(t *testing.T) {
 	if payload.RelapseCount != 1 {
 		t.Fatalf("expected relapse count=1, got %d", payload.RelapseCount)
 	}
+	if len(payload.RelapseCalendar) != 1 || payload.RelapseCalendar[0] != "2026-05-07" {
+		t.Fatalf("expected relapse calendar [2026-05-07], got %+v", payload.RelapseCalendar)
+	}
 	if payload.RelapseRate != 0.25 {
 		t.Fatalf("expected relapse rate=0.25, got %.2f", payload.RelapseRate)
 	}
@@ -142,6 +146,9 @@ func TestService_GetStatistics_SameDayRelapseRemovesStreakContribution(t *testin
 	}
 	if payload.RelapseCount != 1 {
 		t.Fatalf("expected relapse count=1, got %d", payload.RelapseCount)
+	}
+	if len(payload.RelapseCalendar) != 1 || payload.RelapseCalendar[0] != "2026-05-08" {
+		t.Fatalf("expected relapse calendar [2026-05-08], got %+v", payload.RelapseCalendar)
 	}
 	if payload.TotalAttempts != 3 {
 		t.Fatalf("expected total attempts=3, got %d", payload.TotalAttempts)
@@ -340,11 +347,20 @@ func TestService_GetRelapseStatistics_BuildsHourlyPatternAndAISummary(t *testing
 	if payload.HourlyRelapseDistribution[1].HourUTC != 22 || payload.HourlyRelapseDistribution[1].RelapseCount != 1 {
 		t.Fatalf("expected hour 22 count 1, got %+v", payload.HourlyRelapseDistribution[1])
 	}
-	if payload.RelapseTimeSummary.Title == "" || len(payload.RelapseTimeSummary.SuggestedActivities) == 0 {
-		t.Fatalf("expected relapse time summary with title and suggestions, got %+v", payload.RelapseTimeSummary)
+	if payload.RelapseTimeSummary.Title == "" || payload.RelapseTimeSummary.Analysis == "" || payload.RelapseTimeSummary.Summary == "" {
+		t.Fatalf("expected relapse time summary with analysis+summary, got %+v", payload.RelapseTimeSummary)
+	}
+	if payload.RelapseTimeSummary.Title != "Analisis Waktu Relapse" {
+		t.Fatalf("expected relapse time summary title updated, got %+v", payload.RelapseTimeSummary.Title)
+	}
+	if !strings.HasPrefix(payload.RelapseTimeSummary.Summary, "Trigger paling sering saat ini:") {
+		t.Fatalf("expected summary mention top trigger, got %+v", payload.RelapseTimeSummary.Summary)
 	}
 	if payload.LatestRelapseSolution == nil {
 		t.Fatal("expected latest relapse solution present")
+	}
+	if payload.LatestRelapseSolution.Summary == "" {
+		t.Fatalf("expected latest relapse solution summary, got %+v", payload.LatestRelapseSolution)
 	}
 }
 
@@ -370,8 +386,8 @@ func TestService_GetRelapseStatistics_EmptyRelapseUsesFallbackSummary(t *testing
 	if payload.LatestRelapseSolution != nil {
 		t.Fatalf("expected nil latest relapse solution, got %+v", payload.LatestRelapseSolution)
 	}
-	if payload.RelapseTimeSummary.Title == "" || len(payload.RelapseTimeSummary.SuggestedActivities) == 0 {
-		t.Fatalf("expected fallback relapse time summary, got %+v", payload.RelapseTimeSummary)
+	if payload.RelapseTimeSummary.Title == "" || payload.RelapseTimeSummary.Analysis == "" || payload.RelapseTimeSummary.Summary == "" {
+		t.Fatalf("expected fallback relapse time summary analysis+summary, got %+v", payload.RelapseTimeSummary)
 	}
 }
 

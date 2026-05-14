@@ -90,6 +90,7 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		"total_attempts",
 		"success_rate",
 		"streak_calendar",
+		"relapse_calendar",
 		"relapse_count",
 		"relapse_rate",
 		"recovery_success_rate",

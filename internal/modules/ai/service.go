@@ -221,7 +221,7 @@ func (s *Service) AnalyzeOnboarding(ctx context.Context, userID string, req Onbo
 	return result, nil
 }
 
-// GenerateRelapseSolution builds immediate AI action plan for relapse events.
+// GenerateRelapseSolution builds AI trigger analysis and best-solution summary for relapse events.
 func (s *Service) GenerateRelapseSolution(ctx context.Context, userID string, req RelapseSolutionRequest) (RelapseSolutionResponseData, error) {
 	input, err := NormalizeRelapseSolutionRequest(req)
 	if err != nil {
@@ -395,12 +395,13 @@ Aturan:
 
 const relapseSolutionSystemInstruction = `Anda adalah AI relapse coach Recova. Selalu jawab HANYA JSON valid, tanpa markdown.
 Skema wajib:
-{"title":"...","analysis":"...","action_steps":["...", "...", "..."]}
+{"title":"...","analysis":"...","summary":"..."}
 Aturan:
 - Bahasa Indonesia, singkat, suportif, tidak menghakimi.
-- action_steps berisi 3 sampai 5 langkah praktis, aman, dan bisa dilakukan segera.
+- analysis wajib membedah pola trigger utama user (konteks emosi, situasi, waktu rawan bila ada).
+- summary wajib berisi solusi terbaik paling relevan untuk trigger utama saat ini.
 - Hindari detail seksual eksplisit.
-- Jika ada trigger kosong, tetap berikan langkah umum yang aman.`
+- Jika trigger kosong, tetap berikan analisis umum yang aman dan solusi paling aman.`
 
 func buildOnboardingPrompt(answers map[string]any) string {
 	keys := make([]string, 0, len(answers))
@@ -434,7 +435,7 @@ func buildRelapseSolutionPrompt(input RelapseSolutionInput) string {
 	}
 
 	return fmt.Sprintf(
-		"Buat solusi relapse untuk user dengan konteks:\n- mood: %s\n- pemicu relapse: %s\n- catatan user: %s",
+		"Analisis relapse user dengan konteks:\n- mood: %s\n- pemicu relapse: %s\n- catatan user: %s\nKeluarkan analisis trigger paling dominan dan satu solusi terbaik yang paling relevan.",
 		input.Mood,
 		trigger,
 		commitment,
@@ -503,28 +504,21 @@ func parseRelapseSolutionJSON(raw string) (RelapseSolutionResponseData, error) {
 	}
 
 	var parsed struct {
-		Title       string   `json:"title"`
-		Analysis    string   `json:"analysis"`
-		ActionSteps []string `json:"action_steps"`
+		Title    string `json:"title"`
+		Analysis string `json:"analysis"`
+		Summary  string `json:"summary"`
 	}
 	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
 		return RelapseSolutionResponseData{}, err
 	}
 
 	result := RelapseSolutionResponseData{
-		Title:       strings.TrimSpace(parsed.Title),
-		Analysis:    strings.TrimSpace(parsed.Analysis),
-		ActionSteps: make([]string, 0, len(parsed.ActionSteps)),
-	}
-	for _, step := range parsed.ActionSteps {
-		trimmedStep := strings.TrimSpace(step)
-		if trimmedStep == "" {
-			continue
-		}
-		result.ActionSteps = append(result.ActionSteps, trimmedStep)
+		Title:    strings.TrimSpace(parsed.Title),
+		Analysis: strings.TrimSpace(parsed.Analysis),
+		Summary:  strings.TrimSpace(parsed.Summary),
 	}
 
-	if result.Title == "" || result.Analysis == "" || len(result.ActionSteps) == 0 {
+	if result.Title == "" || result.Analysis == "" || result.Summary == "" {
 		return RelapseSolutionResponseData{}, fmt.Errorf("incomplete relapse solution response")
 	}
 	return result, nil

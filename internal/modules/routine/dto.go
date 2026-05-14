@@ -52,6 +52,7 @@ type StatisticsPayload struct {
 	TotalAttempts           int                         `json:"total_attempts"`
 	SuccessRate             float64                     `json:"success_rate"`
 	StreakCalendar          []string                    `json:"streak_calendar"`
+	RelapseCalendar         []string                    `json:"relapse_calendar"`
 	RelapseCount            int                         `json:"relapse_count"`
 	RelapseRate             float64                     `json:"relapse_rate"`
 	RecoverySuccessRate     float64                     `json:"recovery_success_rate"`
@@ -134,10 +135,10 @@ type CheckInResponseData struct {
 
 // RelapseSolutionPayload is instant AI action plan generated when relapse happens.
 type RelapseSolutionPayload struct {
-	Title       string   `json:"title"`
-	Analysis    string   `json:"analysis"`
-	ActionSteps []string `json:"action_steps"`
-	GeneratedAt string   `json:"generated_at"`
+	Title       string `json:"title"`
+	Analysis    string `json:"analysis"`
+	Summary     string `json:"summary"`
+	GeneratedAt string `json:"generated_at"`
 }
 
 // RelapsePayload is API payload for one relapse history record.
@@ -180,8 +181,8 @@ type RelapseHourStatPayload struct {
 
 // RelapseTimeSummaryPayload is AI suggestion summary for peak relapse time.
 type RelapseTimeSummaryPayload struct {
-	Title               string   `json:"title"`
-	Summary             string   `json:"summary"`
-	SuggestedActivities []string `json:"suggested_activities"`
-	GeneratedAt         string   `json:"generated_at"`
+	Title       string `json:"title"`
+	Analysis    string `json:"analysis"`
+	Summary     string `json:"summary"`
+	GeneratedAt string `json:"generated_at"`
 }

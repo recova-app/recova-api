@@ -37,6 +37,7 @@ Route prefix:
 | `GET`  | `/api/v1/routine/statistics`                  | Bearer     | ambil statistik rutin              |
 | `GET`  | `/api/v1/routine/statistics/activity-summary` | Bearer     | ambil ringkasan aktivitas periodik |
 | `GET`  | `/api/v1/routine/relapses`                    | Bearer     | ambil riwayat relapse              |
+| `GET`  | `/api/v1/routine/relapses/statistics`         | Bearer     | ambil statistik relapse lengkap    |
 
 ## Database Model
 

@@ -25,6 +25,10 @@ GET /api/v1/routine/statistics
 GET /api/v1/routine/statistics/activity-summary
 ```
 
+```text
+GET /api/v1/routine/relapses/statistics
+```
+
 ## Response Contract
 
 Field minimum `GET /api/v1/routine/statistics`:
@@ -35,6 +39,7 @@ Field minimum `GET /api/v1/routine/statistics`:
 - `total_attempts`,
 - `success_rate`,
 - `streak_calendar`,
+- `relapse_calendar`,
 - `relapse_count`,
 - `relapse_rate`,
 - `recovery_success_rate`,
@@ -55,6 +60,11 @@ Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 - `window_days`,
 - `successful_checkins`,
 - `relapses`,
+- `hourly_relapse_distribution`,
+- `peak_relapse_hours_utc`,
+- `peak_relapse_count`,
+- `relapse_time_summary`,
+- `latest_relapse_solution`.
 - `active_days`,
 - `recent_activity[].day_name`.
 
@@ -82,6 +92,7 @@ Contoh struktur `streak_goal_comparison`:
 - `relapse_rate` = `relapse_count / (successful_checkins + relapse_count)`,
 - `recovery_success_rate` = `successful_checkins / (successful_checkins + relapse_count)`,
 - `streak_calendar` hanya berisi tanggal sukses yang bebas relapse pada tanggal UTC yang sama,
+- `relapse_calendar` berisi tanggal relapse unik berbasis UTC (gabungan sumber relapse valid tanpa duplikasi hari),
 - `current_streak` harus `0` bila ada relapse pada tanggal UTC hari ini,
 - data relapse legacy dari `check_ins.is_successful=false` dan data `relapses` tidak boleh dihitung ganda pada tanggal UTC yang sama,
 - `checkin_consistency_score` memakai rasio hari aktif pada rolling 30 hari,

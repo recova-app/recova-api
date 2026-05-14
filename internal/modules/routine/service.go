@@ -333,7 +333,7 @@ func (s *Service) GetRelapseStatistics(ctx context.Context, userID string) (Rela
 		latest := latestRelapseEvent(relapses)
 		solution := s.buildRelapseSolution(ctx, userID, latest.Mood, latest.Commitment, latest.RelapseTrigger)
 		latestRelapseSolution = &solution
-		relapseTimeSummary = s.buildRelapseTimeSummary(ctx, userID, peakHoursUTC, peakCount, latest)
+		relapseTimeSummary = s.buildRelapseTimeSummary(ctx, userID, relapses, peakHoursUTC, peakCount, latest)
 	}
 
 	return RelapseStatisticsResponseData{
@@ -458,6 +458,7 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 			TotalAttempts:           0,
 			SuccessRate:             0,
 			StreakCalendar:          []string{},
+			RelapseCalendar:         []string{},
 			RelapseCount:            0,
 			RelapseRate:             0,
 			RecoverySuccessRate:     0,
@@ -552,6 +553,11 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 		calendar = append(calendar, day)
 	}
 	sort.Strings(calendar)
+	relapseCalendar := make([]string, 0, len(relapseDays))
+	for day := range relapseDays {
+		relapseCalendar = append(relapseCalendar, day)
+	}
+	sort.Strings(relapseCalendar)
 
 	relapse_count := len(relapseDays)
 	totalAttempts := successCount + relapse_count
@@ -578,6 +584,7 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 		TotalAttempts:           totalAttempts,
 		SuccessRate:             success_rate,
 		StreakCalendar:          calendar,
+		RelapseCalendar:         relapseCalendar,
 		RelapseCount:            relapse_count,
 		RelapseRate:             relapse_rate,
 		RecoverySuccessRate:     recovery_success_rate,
@@ -839,10 +846,10 @@ func (s *Service) buildRelapseSolution(ctx context.Context, userID string, mood 
 		return fallback
 	}
 
-	return RelapseSolutionPayload{
+		return RelapseSolutionPayload{
 		Title:       response.Title,
 		Analysis:    response.Analysis,
-		ActionSteps: append([]string{}, response.ActionSteps...),
+		Summary:     response.Summary,
 		GeneratedAt: s.now().UTC().Format(time.RFC3339),
 	}
 }
@@ -854,12 +861,8 @@ func buildFallbackRelapseSolution(mood string, relapseTrigger []string, nowUTC t
 	}
 	return RelapseSolutionPayload{
 		Title:    "Langkah Pemulihan Cepat",
-		Analysis: "Relapse terdeteksi dengan mood " + strings.TrimSpace(strings.ToLower(mood)) + ". Fokus dulu stabilkan emosi dan putus rantai pemicu.",
-		ActionSteps: []string{
-			"Tarik napas dalam 4 kali, lalu jauhkan diri dari pemicu selama 10 menit.",
-			"Tulis 1 kalimat: pemicu utama hari ini = " + triggerText + ".",
-			"Hubungi support system atau buka konten pemulihan sebelum kembali ke aktivitas.",
-		},
+		Analysis: "Relapse terdeteksi dengan mood " + strings.TrimSpace(strings.ToLower(mood)) + ". Pola pemicu saat ini: " + triggerText + ".",
+		Summary:  "Solusi terbaik saat ini: putus akses ke pemicu sekarang, stabilkan emosi singkat, lalu pindah ke aktivitas aman yang sudah disiapkan.",
 		GeneratedAt: nowUTC.UTC().Format(time.RFC3339),
 	}
 }
@@ -942,18 +945,31 @@ func latestRelapseEvent(relapses []models.Relapse) models.Relapse {
 	return latest
 }
 
-func (s *Service) buildRelapseTimeSummary(ctx context.Context, userID string, peakHoursUTC []int, peakCount int, latestRelapse models.Relapse) RelapseTimeSummaryPayload {
+func (s *Service) buildRelapseTimeSummary(ctx context.Context, userID string, relapses []models.Relapse, peakHoursUTC []int, peakCount int, latestRelapse models.Relapse) RelapseTimeSummaryPayload {
 	if len(peakHoursUTC) == 0 {
 		return emptyRelapseTimeSummary(s.now())
 	}
 
 	syntheticTrigger := buildPeakHourSyntheticTrigger(peakHoursUTC, peakCount, latestRelapse.RelapseTrigger)
+	topTrigger, topTriggerCount := findMostFrequentRelapseTrigger(relapses)
+	if topTrigger != "" {
+		topTriggerLine := "trigger paling sering: " + topTrigger
+		if topTriggerCount > 0 {
+			topTriggerLine += " (" + formatInt(topTriggerCount) + " kejadian)"
+		}
+		syntheticTrigger = append(syntheticTrigger, topTriggerLine)
+	}
+
 	plan := s.buildRelapseSolution(ctx, userID, latestRelapse.Mood, latestRelapse.Commitment, syntheticTrigger)
+	summary := strings.TrimSpace(plan.Summary)
+	if topTrigger != "" {
+		summary = "Trigger paling sering saat ini: " + topTrigger + ". " + summary
+	}
 	return RelapseTimeSummaryPayload{
-		Title:               plan.Title,
-		Summary:             plan.Analysis,
-		SuggestedActivities: append([]string{}, plan.ActionSteps...),
-		GeneratedAt:         plan.GeneratedAt,
+		Title:       "Analisis Waktu Relapse",
+		Analysis:    plan.Analysis,
+		Summary:     summary,
+		GeneratedAt: plan.GeneratedAt,
 	}
 }
 
@@ -976,15 +992,46 @@ func buildPeakHourSyntheticTrigger(peakHoursUTC []int, peakCount int, relapseTri
 
 func emptyRelapseTimeSummary(nowUTC time.Time) RelapseTimeSummaryPayload {
 	return RelapseTimeSummaryPayload{
-		Title:   "Pola Relapse Belum Tersedia",
-		Summary: "Belum ada data relapse untuk dianalisis. Gunakan UTC di backend, konversi jam di frontend sesuai zona user.",
-		SuggestedActivities: []string{
-			"Siapkan rencana aktivitas sehat sebelum jam rawan muncul.",
-			"Pasang pengingat break singkat setiap malam.",
-			"Tulis jurnal singkat saat dorongan mulai naik.",
-		},
+		Title:       "Pola Relapse Belum Tersedia",
+		Analysis:    "Belum ada data relapse untuk dianalisis. Gunakan UTC di backend, konversi jam di frontend sesuai zona user.",
+		Summary:     "Solusi terbaik saat ini: mulai catat trigger konsisten agar analisis pola dan strategi pencegahan bisa dipersonalisasi.",
 		GeneratedAt: nowUTC.UTC().Format(time.RFC3339),
 	}
+}
+
+func findMostFrequentRelapseTrigger(relapses []models.Relapse) (string, int) {
+	if len(relapses) == 0 {
+		return "", 0
+	}
+
+	countByTrigger := map[string]int{}
+	labelByTrigger := map[string]string{}
+	for _, row := range relapses {
+		for _, trigger := range row.RelapseTrigger {
+			label := strings.TrimSpace(trigger)
+			if label == "" {
+				continue
+			}
+			key := strings.ToLower(label)
+			countByTrigger[key]++
+			if _, exists := labelByTrigger[key]; !exists {
+				labelByTrigger[key] = label
+			}
+		}
+	}
+
+	bestKey := ""
+	bestCount := 0
+	for key, count := range countByTrigger {
+		if count > bestCount || (count == bestCount && (bestKey == "" || key < bestKey)) {
+			bestKey = key
+			bestCount = count
+		}
+	}
+	if bestKey == "" {
+		return "", 0
+	}
+	return labelByTrigger[bestKey], bestCount
 }
 
 func formatUTCHour(hour int) string {

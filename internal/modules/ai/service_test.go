@@ -176,7 +176,7 @@ func TestService_AnalyzeOnboarding_InvalidLevel(t *testing.T) {
 func TestService_GenerateRelapseSolution_Success(t *testing.T) {
 	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
 	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{
-		Text: `{"title":"Stabilkan Diri","analysis":"Pemicu utama terlihat dari kebiasaan scrolling saat lelah.","action_steps":["Tarik napas 1 menit","Jauhkan ponsel 10 menit","Chat teman dukungan sekarang"]}`,
+		Text: `{"title":"Stabilkan Diri","analysis":"Pemicu utama terlihat dari kebiasaan scrolling saat lelah.","summary":"Solusi terbaik: blok akses perangkat pemicu di jam rawan lalu pindah ke aktivitas fisik singkat."}`,
 	}}
 	service := NewService(repo, provider)
 
@@ -191,8 +191,8 @@ func TestService_GenerateRelapseSolution_Success(t *testing.T) {
 	if payload.Title == "" || payload.Analysis == "" {
 		t.Fatalf("unexpected payload: %+v", payload)
 	}
-	if len(payload.ActionSteps) != 3 {
-		t.Fatalf("expected 3 action steps, got %d", len(payload.ActionSteps))
+	if payload.Summary == "" {
+		t.Fatalf("expected relapse summary, got %+v", payload)
 	}
 }
 

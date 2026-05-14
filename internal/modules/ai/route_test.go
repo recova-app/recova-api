@@ -95,7 +95,7 @@ func TestRegisterRoutes_RelapseSolutionSuccess(t *testing.T) {
 	service := NewService(&aiRouteRepo{
 		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
 	}, &aiRouteProvider{
-		response: aiplatform.GenerateResponse{Text: `{"title":"Pulihkan Fokus","analysis":"Relapse terjadi saat stres malam.","action_steps":["Minum air","Tutup aplikasi pemicu","Hubungi teman support"]}`},
+		response: aiplatform.GenerateResponse{Text: `{"title":"Pulihkan Fokus","analysis":"Relapse terjadi saat stres malam.","summary":"Solusi terbaik: putus akses konten pemicu sebelum jam rawan dan pindah ke rutinitas pemulihan yang sudah disiapkan."}`},
 	})
 
 	app := newAITestApp()

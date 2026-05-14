@@ -60,7 +60,7 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | users     | `PUT`    | `/users/settings`                                  | update pengaturan profil                      | bearer            | implemented     |
 | users     | `DELETE` | `/users/me/reset-data`                             | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
 | ai        | `POST`   | `/ai/ask-coach`                                    | kirim pesan ke AI Coach                       | bearer            | implemented     |
-| ai        | `POST`   | `/ai/relapse-solution`                             | buat solusi cepat saat relapse                | bearer            | implemented     |
+| ai        | `POST`   | `/ai/relapse-solution`                             | analisis trigger relapse + solusi terbaik     | bearer            | implemented     |
 | ai        | `GET`    | `/ai/chat-history`                                 | ambil riwayat chat AI Coach                   | bearer            | implemented     |
 | ai        | `GET`    | `/ai/summary`                                      | ambil ringkasan check-in                      | bearer            | implemented     |
 | ai        | `POST`   | `/ai/onboarding-analysis`                          | analisis data onboarding                      | bearer            | implemented     |
@@ -71,6 +71,7 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | routine   | `GET`    | `/routine/statistics`                              | ambil statistik pengguna                      | bearer            | implemented     |
 | routine   | `GET`    | `/routine/statistics/activity-summary`             | ambil ringkasan aktivitas periodik            | bearer            | implemented     |
 | routine   | `GET`    | `/routine/relapses`                                | ambil riwayat relapse                         | bearer            | implemented     |
+| routine   | `GET`    | `/routine/relapses/statistics`                     | ambil statistik relapse lengkap               | bearer            | implemented     |
 | journals  | `GET`    | `/journals`                                        | ambil daftar jurnal pribadi                   | bearer            | implemented     |
 | journals  | `POST`   | `/journals`                                        | buat entri jurnal                             | bearer            | implemented     |
 | community | `GET`    | `/community`                                       | ambil daftar postingan komunitas              | bearer            | implemented     |

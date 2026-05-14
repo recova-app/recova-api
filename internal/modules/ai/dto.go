@@ -63,9 +63,9 @@ type OnboardingAnalysisResponseData struct {
 
 // RelapseSolutionResponseData is success data for relapse-solution endpoint.
 type RelapseSolutionResponseData struct {
-	Title       string   `json:"title"`
-	Analysis    string   `json:"analysis"`
-	ActionSteps []string `json:"action_steps"`
+	Title    string `json:"title"`
+	Analysis string `json:"analysis"`
+	Summary  string `json:"summary"`
 }
 
 // AskCoachInput is normalized ask-coach payload.

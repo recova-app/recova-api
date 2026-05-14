@@ -828,6 +828,8 @@ paths:
                         success_rate: 0.86
                         streak_calendar:
                           ["2026-05-08", "2026-05-09", "2026-05-10"]
+                        relapse_calendar:
+                          ["2026-05-06", "2026-05-08"]
                         relapse_count: 3
                         relapse_rate: 0.12
                         recovery_success_rate: 0.88
@@ -946,6 +948,8 @@ paths:
                       success_rate: 0.86
                       streak_calendar:
                         ["2026-05-08", "2026-05-09", "2026-05-10"]
+                      relapse_calendar:
+                        ["2026-05-06", "2026-05-08"]
                       relapse_count: 3
                       relapse_rate: 0.12
                       recovery_success_rate: 0.88
@@ -1118,6 +1122,7 @@ paths:
                         total_attempts: 28
                         success_rate: 0.82
                         streak_calendar: ["2026-05-08", "2026-05-09"]
+                        relapse_calendar: ["2026-05-06", "2026-05-10"]
                         relapse_count: 4
                         relapse_rate: 0.14
                         recovery_success_rate: 0.82
@@ -1158,11 +1163,8 @@ paths:
                           progress_rate: 0
                       relapse_solution:
                         title: Langkah Pemulihan Cepat
-                        analysis: Relapse terdeteksi, fokus stabilisasi emosi.
-                        action_steps:
-                          - Tarik napas dalam 4 kali.
-                          - Jauhkan diri dari pemicu 10 menit.
-                          - Hubungi support system.
+                        analysis: Relapse terdeteksi saat trigger utama aktif. Fokus putus rantai pemicu dan stabilkan emosi.
+                        summary: Solusi terbaik saat ini adalah batasi akses pemicu di jam rawan, pindah ke aktivitas aman, lalu jaga akuntabilitas singkat.
                         generated_at: "2026-05-10T09:05:00Z"
                     meta: null
         "401":
@@ -1305,6 +1307,7 @@ paths:
                         total_attempts: 28
                         success_rate: 0.82
                         streak_calendar: ["2026-05-08", "2026-05-09"]
+                        relapse_calendar: ["2026-05-06", "2026-05-10"]
                         relapse_count: 4
                         relapse_rate: 0.14
                         recovery_success_rate: 0.82
@@ -1362,20 +1365,14 @@ paths:
                       peak_relapse_count: 3
                       ai_summary: Kamu konsisten membaik, jaga ritme malam.
                       relapse_time_summary:
-                        title: Strategi Jam Rawan
-                        summary: Dorongan paling sering muncul di 21:00-22:00 UTC. Siapkan aktivitas pengalih sebelum jam tersebut.
-                        suggested_activities:
-                          - Olahraga ringan 15 menit.
-                          - Mandi air hangat dan jauhkan perangkat pemicu.
-                          - Hubungi teman support atau tulis jurnal singkat.
+                        title: Analisis Waktu Relapse
+                        analysis: Pola relapse paling sering muncul di 21:00-22:00 UTC saat trigger emosional malam meningkat.
+                        summary: Trigger paling sering saat ini adalah stres kerja. Solusi terbaik adalah memutus akses pemicu sebelum jam rawan dan beralih ke rutinitas pemulihan yang sudah ditetapkan.
                         generated_at: "2026-05-10T21:10:00Z"
                       latest_relapse_solution:
                         title: Langkah Pemulihan Cepat
-                        analysis: Relapse terdeteksi, fokus stabilisasi emosi.
-                        action_steps:
-                          - Tarik napas dalam 4 kali.
-                          - Jauhkan diri dari pemicu 10 menit.
-                          - Hubungi support system.
+                        analysis: Relapse terdeteksi saat trigger utama aktif. Fokus putus rantai pemicu dan stabilkan emosi.
+                        summary: Solusi terbaik saat ini adalah batasi akses pemicu di jam rawan, pindah ke aktivitas aman, lalu jaga akuntabilitas singkat.
                         generated_at: "2026-05-10T21:08:00Z"
                     meta: null
         "401":
@@ -2788,10 +2785,7 @@ paths:
                     data:
                       title: Pulihkan Fokus Sekarang
                       analysis: Pemicu utama muncul saat stres dan akses cepat ke konten pemicu.
-                      action_steps:
-                        - Jauhkan perangkat dari area privat selama 10 menit.
-                        - Tarik napas perlahan 4 kali sampai dorongan menurun.
-                        - Hubungi teman support untuk check-in singkat.
+                      summary: Solusi terbaik saat ini adalah memutus akses pemicu saat dorongan naik, lakukan stabilisasi emosi cepat, dan lanjutkan aktivitas pengganti yang aman.
                     meta: null
         "401":
           description: Access token is invalid
@@ -3697,6 +3691,7 @@ components:
         - total_attempts
         - success_rate
         - streak_calendar
+        - relapse_calendar
         - relapse_count
         - relapse_rate
         - recovery_success_rate
@@ -3722,6 +3717,11 @@ components:
         success_rate:
           type: number
         streak_calendar:
+          type: array
+          items:
+            type: string
+            format: date
+        relapse_calendar:
           type: array
           items:
             type: string
@@ -3772,17 +3772,14 @@ components:
       required:
         - title
         - analysis
-        - action_steps
+        - summary
       properties:
         title:
           type: string
         analysis:
           type: string
-        action_steps:
-          type: array
-          minItems: 1
-          items:
-            type: string
+        summary:
+          type: string
         generated_at:
           type: string
           format: date-time
@@ -3877,18 +3874,16 @@ components:
       type: object
       required:
         - title
+        - analysis
         - summary
-        - suggested_activities
         - generated_at
       properties:
         title:
           type: string
+        analysis:
+          type: string
         summary:
           type: string
-        suggested_activities:
-          type: array
-          items:
-            type: string
         generated_at:
           type: string
           format: date-time
@@ -4343,15 +4338,12 @@ components:
       required:
         - title
         - analysis
-        - action_steps
+        - summary
       properties:
         title:
           type: string
         analysis:
           type: string
-        action_steps:
-          type: array
-          minItems: 1
-          items:
-            type: string
+        summary:
+          type: string
 security: []
