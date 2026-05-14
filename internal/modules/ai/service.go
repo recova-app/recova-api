@@ -122,7 +122,7 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 
 	chatRows := []models.AIChat{
 		{UserID: strings.TrimSpace(userID), Role: "user", Content: input.Message},
-		{UserID: strings.TrimSpace(userID), Role: "model", Content: strings.TrimSpace(reply.Text)},
+		{UserID: strings.TrimSpace(userID), Role: "assistant", Content: strings.TrimSpace(reply.Text)},
 	}
 	if err := s.repo.CreateChatMessages(ctx, chatRows); err != nil {
 		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
@@ -159,7 +159,7 @@ func (s *Service) GetChatHistory(ctx context.Context, userID string, query ChatH
 	for _, row := range rows {
 		payload = append(payload, ChatHistoryItem{
 			ID:        row.ID,
-			Role:      strings.TrimSpace(row.Role),
+			Role:      normalizeChatHistoryRole(row.Role),
 			Content:   row.Content,
 			CreatedAt: row.CreatedAt.UTC().Format(time.RFC3339),
 		})
@@ -489,6 +489,9 @@ func parseOnboardingAnalysisJSON(raw string) (OnboardingAnalysisResponseData, er
 	if result.Level == "" || result.Title == "" || result.LevelDescription == "" || result.PatternAnalysis == "" || result.Encouragement == "" {
 		return OnboardingAnalysisResponseData{}, fmt.Errorf("incomplete analysis response")
 	}
+	if !isAllowedOnboardingLevel(result.Level) {
+		return OnboardingAnalysisResponseData{}, fmt.Errorf("invalid onboarding level")
+	}
 
 	return result, nil
 }
@@ -555,5 +558,23 @@ func personaStyleInstruction(persona string) string {
 		return "tegas dan to-the-point; langkah aksi jelas; tanpa menghakimi"
 	default:
 		return "suportif, empatik, menenangkan"
+	}
+}
+
+func normalizeChatHistoryRole(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "assistant", "model":
+		return "assistant"
+	default:
+		return "user"
+	}
+}
+
+func isAllowedOnboardingLevel(raw string) bool {
+	switch strings.TrimSpace(raw) {
+	case "Low", "Moderate", "High":
+		return true
+	default:
+		return false
 	}
 }

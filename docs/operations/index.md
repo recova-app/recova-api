@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/index.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-14
 ---
 
 # Recova Backend Operations
@@ -35,6 +35,7 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk security baseline
 - [Incident Triage](/Users/macbookpro/Development/recova-backend-v2/docs/operations/incident-triage.md)
 - [Testing Strategy](/Users/macbookpro/Development/recova-backend-v2/docs/operations/testing.md)
 - [Verification Matrix](/Users/macbookpro/Development/recova-backend-v2/docs/operations/verification-matrix.md)
+- [Flow and Endpoint Audit 2026-05-14](/Users/macbookpro/Development/recova-backend-v2/docs/operations/flow-and-endpoint-audit-2026-05-14.md)
 - [CI/CD Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/ci-cd.md)
 - [Release Gates](/Users/macbookpro/Development/recova-backend-v2/docs/operations/release-gates.md)
 - [Deployment Workflow](/Users/macbookpro/Development/recova-backend-v2/docs/operations/deployment.md)

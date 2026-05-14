@@ -79,8 +79,33 @@ func TestService_AskCoach_SuccessStoresConversation(t *testing.T) {
 	if len(repo.createdMessages) != 2 {
 		t.Fatalf("expected 2 stored rows, got %d", len(repo.createdMessages))
 	}
-	if repo.createdMessages[0].Role != "user" || repo.createdMessages[1].Role != "model" {
+	if repo.createdMessages[0].Role != "user" || repo.createdMessages[1].Role != "assistant" {
 		t.Fatalf("unexpected stored roles: %+v", repo.createdMessages)
+	}
+}
+
+func TestService_GetChatHistory_NormalizesRoleToContract(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		history: []models.AIChat{
+			{ID: "chat-1", Role: "model", Content: "A", CreatedAt: time.Date(2026, 5, 8, 9, 0, 0, 0, time.UTC)},
+			{ID: "chat-2", Role: "user", Content: "B", CreatedAt: time.Date(2026, 5, 8, 9, 1, 0, 0, time.UTC)},
+		},
+	}
+	service := NewService(repo, &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "ok"}})
+
+	payload, err := service.GetChatHistory(context.Background(), "user-1", ChatHistoryQuery{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(payload) != 2 {
+		t.Fatalf("expected 2 history rows, got %d", len(payload))
+	}
+	if payload[0].Role != "assistant" {
+		t.Fatalf("expected model role normalized to assistant, got %q", payload[0].Role)
+	}
+	if payload[1].Role != "user" {
+		t.Fatalf("expected user role kept as user, got %q", payload[1].Role)
 	}
 }
 
@@ -129,6 +154,22 @@ func TestService_AnalyzeOnboarding_Success(t *testing.T) {
 	}
 	if payload.Level != "Moderate" || payload.PatternAnalysis != "Stress pattern" {
 		t.Fatalf("unexpected payload: %+v", payload)
+	}
+}
+
+func TestService_AnalyzeOnboarding_InvalidLevel(t *testing.T) {
+	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: `{"level":"Unknown","title":"Initial Analysis","level_description":"Explanation","pattern_analysis":"Stress pattern","encouragement":"You can do this"}`}}
+	service := NewService(repo, provider)
+
+	_, err := service.AnalyzeOnboarding(context.Background(), "user-1", OnboardingAnalysisRequest{
+		Answers: map[string]any{"frequency": "daily"},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if mapped := errs.Map(err); mapped.Code != errs.CodeDownstreamError {
+		t.Fatalf("expected DOWNSTREAM_ERROR, got %s", mapped.Code)
 	}
 }
 

@@ -486,7 +486,7 @@ paths:
                 conflict:
                   value:
                     success: false
-                    message: Data onboarding sudah tersimpan dengan nilai berbeda
+                    message: Pengguna sudah menyelesaikan onboarding
                     data: null
                     error:
                       code: CONFLICT
@@ -723,8 +723,8 @@ paths:
                     error:
                       code: VALIDATION_ERROR
                       details:
-                        - field: payload
-                          message: Payload update kosong
+                        - field: body
+                          message: Setidaknya satu field pengaturan wajib diisi
                       request_id: req_users_settings_422
   /api/v1/users/me/reset-data:
     delete:
@@ -1035,7 +1035,7 @@ paths:
                       recent_activity:
                         - date: "2026-05-10"
                           day_name: Sabtu
-                          type: checkin
+                          type: checkin_success
                           mood: tenang
                     meta: null
         "401":
@@ -1830,8 +1830,8 @@ paths:
                     error:
                       code: VALIDATION_ERROR
                       details:
-                        - field: depth
-                          message: Balasan komentar melewati batas kedalaman thread
+                        - field: comment_id
+                          message: Kedalaman balasan komentar maksimal 2
                       request_id: req_community_reply_422
         "429":
           description: Community write request exceeded limit
@@ -2777,7 +2777,7 @@ paths:
                     message: Preferensi persona AI berhasil diambil
                     data:
                       persona: supportive
-                      fallback_persona: friendly
+                      fallback_persona: supportive
                     meta: null
         "401":
           description: Access token is invalid
