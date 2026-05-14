@@ -43,6 +43,23 @@ func TestRegisterRoutes_CheckInValidationError(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
 }
 
+func TestRegisterRoutes_CreateRelapseValidationError(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	service := NewService(&fakeRoutineRepo{})
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/routine/relapses", map[string]any{
+		"mood":            "cemas",
+		"relapse_trigger": []string{""},
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
 func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 	authService := buildRoutineAuthService(t, "user-1")
 	service := NewService(&fakeRoutineRepo{

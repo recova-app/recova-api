@@ -16,6 +16,7 @@ last_reviewed: 2026-05-13
 ## Responsibility
 
 - menerima check-in harian,
+- menerima pencatatan relapse harian terpisah,
 - menjaga konsistensi check-in per hari,
 - menghitung streak,
 - menyediakan statistik rutin,
@@ -32,6 +33,7 @@ Route prefix:
 | Method | Path                                          | Auth class | Purpose                            |
 | ------ | --------------------------------------------- | ---------- | ---------------------------------- |
 | `POST` | `/api/v1/routine/checkin`                     | Bearer     | simpan check-in harian             |
+| `POST` | `/api/v1/routine/relapses`                    | Bearer     | simpan trigger relapse hari ini    |
 | `GET`  | `/api/v1/routine/statistics`                  | Bearer     | ambil statistik rutin              |
 | `GET`  | `/api/v1/routine/statistics/activity-summary` | Bearer     | ambil ringkasan aktivitas periodik |
 | `GET`  | `/api/v1/routine/relapses`                    | Bearer     | ambil riwayat relapse              |
@@ -59,13 +61,19 @@ Constraint minimum:
 
 - boundary harian mengikuti tanggal UTC,
 - duplicate check-in pada hari UTC yang sama dikembalikan sebagai `CONFLICT` (`409`),
-- race condition check-in paralel harus ditangani aman.
+- `is_successful=false` tidak diproses pada endpoint check-in,
+- relapse boleh dicatat walau check-in hari itu belum ada, dan kejadian relapse menutup streak aktif,
+- endpoint relapse bisa dipanggil setelah check-in sukses pada hari UTC yang sama,
+- race condition check-in/relapse paralel harus ditangani aman tanpa overwrite lintas entitas.
 
 ## Validation Rules
 
 - `mood` wajib dalam enum/format yang didukung,
 - `commitment` wajib valid sesuai batas panjang,
-- `relapse_trigger` opsional dalam bentuk array string, tiap item maksimal 500 karakter, dan hanya untuk payload relapse (`is_successful=false`),
+- `is_successful` pada endpoint check-in wajib `true`,
+- `mood` wajib pada endpoint `POST /api/v1/routine/relapses`,
+- `relapse_trigger` hanya diterima pada endpoint `POST /api/v1/routine/relapses`,
+- endpoint relapse wajib menerima minimal satu trigger, tiap item maksimal 500 karakter,
 - `window_days` pada endpoint activity summary bersifat opsional dengan rentang `7..90`,
 - timestamp/check-in time harus valid,
 - request invalid dipetakan ke error validation standar.

@@ -63,6 +63,18 @@ type Journal struct {
 	CreatedAt time.Time `gorm:"not null;default:now()"`
 }
 
+// Relapse stores one relapse row per user and UTC date.
+type Relapse struct {
+	ID             string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID         string         `gorm:"type:uuid;column:user_id;not null;index"`
+	CheckInID      *string        `gorm:"type:uuid;column:check_in_id;index"`
+	RelapseDate    time.Time      `gorm:"column:relapse_date;type:date;not null"`
+	Mood           string         `gorm:"not null"`
+	Commitment     *string        `gorm:"column:commitment"`
+	RelapseTrigger pq.StringArray `gorm:"column:relapse_trigger;type:text[];not null"`
+	CreatedAt      time.Time      `gorm:"not null;default:now()"`
+}
+
 // CommunityPost stores a public community post created by one user.
 type CommunityPost struct {
 	ID           string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`

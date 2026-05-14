@@ -34,6 +34,11 @@ func NormalizeDailyCheckInRequest(req DailyCheckInRequest) (DailyCheckInInput, e
 			{"field": "is_successful", "message": "Status check-in wajib diisi"},
 		}, nil)
 	}
+	if !*req.IsSuccessful {
+		return DailyCheckInInput{}, errs.New(errs.CodeValidationError, "Gunakan endpoint relapse untuk status gagal", []map[string]string{
+			{"field": "is_successful", "message": "Gunakan endpoint /api/v1/routine/relapses jika terjadi relapse"},
+		}, nil)
+	}
 
 	commitment := firstNonEmptyPointer(req.Commitment, req.Content)
 	if commitment != nil && len([]rune(*commitment)) > maxCommitmentLength {
@@ -46,17 +51,54 @@ func NormalizeDailyCheckInRequest(req DailyCheckInRequest) (DailyCheckInInput, e
 	if err != nil {
 		return DailyCheckInInput{}, err
 	}
-	if *req.IsSuccessful && len(relapseTrigger) > 0 {
-		return DailyCheckInInput{}, errs.New(errs.CodeValidationError, "Pemicu relapse hanya untuk check-in relapse", []map[string]string{
-			{"field": "relapse_trigger", "message": "relapse_trigger hanya boleh diisi saat is_successful=false"},
+	if len(relapseTrigger) > 0 {
+		return DailyCheckInInput{}, errs.New(errs.CodeValidationError, "Pemicu relapse dikirim lewat endpoint relapse", []map[string]string{
+			{"field": "relapse_trigger", "message": "Gunakan endpoint /api/v1/routine/relapses untuk relapse_trigger"},
 		}, nil)
 	}
 
 	return DailyCheckInInput{
+		Mood:         mood,
+		IsSuccessful: *req.IsSuccessful,
+		JournalText:  commitment,
+	}, nil
+}
+
+// NormalizeRelapseRequest validates relapse-trigger payload for explicit relapse logging.
+func NormalizeRelapseRequest(req RelapseRequest) (RelapseInput, error) {
+	mood := strings.TrimSpace(req.Mood)
+	if mood == "" {
+		return RelapseInput{}, errs.New(errs.CodeValidationError, "Mood wajib diisi", []map[string]string{
+			{"field": "mood", "message": "Mood wajib diisi"},
+		}, nil)
+	}
+	if len([]rune(mood)) > maxMoodLength {
+		return RelapseInput{}, errs.New(errs.CodeValidationError, "Mood terlalu panjang", []map[string]string{
+			{"field": "mood", "message": "Mood maksimal 50 karakter"},
+		}, nil)
+	}
+
+	relapseTrigger, err := normalizeRelapseTriggerValues(req.RelapseTrigger)
+	if err != nil {
+		return RelapseInput{}, err
+	}
+	if len(relapseTrigger) == 0 {
+		return RelapseInput{}, errs.New(errs.CodeValidationError, "Pemicu relapse wajib diisi", []map[string]string{
+			{"field": "relapse_trigger", "message": "Isi minimal satu pemicu relapse"},
+		}, nil)
+	}
+
+	commitment := firstNonEmptyPointer(req.Commitment, req.Content)
+	if commitment != nil && len([]rune(*commitment)) > maxCommitmentLength {
+		return RelapseInput{}, errs.New(errs.CodeValidationError, "Catatan relapse terlalu panjang", []map[string]string{
+			{"field": "commitment", "message": "Catatan relapse maksimal 2000 karakter"},
+		}, nil)
+	}
+
+	return RelapseInput{
 		Mood:           mood,
-		IsSuccessful:   *req.IsSuccessful,
-		JournalText:    commitment,
 		RelapseTrigger: relapseTrigger,
+		JournalText:    commitment,
 	}, nil
 }
 

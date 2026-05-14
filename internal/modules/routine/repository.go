@@ -70,6 +70,27 @@ func (r *Repository) CreateJournal(ctx context.Context, journal models.Journal) 
 	return r.db.WithContext(ctx).Create(&journal).Error
 }
 
+// UpsertJournalByCheckInID creates or updates journal content linked to check-in.
+func (r *Repository) UpsertJournalByCheckInID(ctx context.Context, userID string, checkInID string, content string) error {
+	updates := r.db.WithContext(ctx).
+		Model(&models.Journal{}).
+		Where("check_in_id = ?", strings.TrimSpace(checkInID)).
+		Update("content", strings.TrimSpace(content))
+	if updates.Error != nil {
+		return updates.Error
+	}
+	if updates.RowsAffected > 0 {
+		return nil
+	}
+
+	checkInIDCopy := strings.TrimSpace(checkInID)
+	return r.db.WithContext(ctx).Create(&models.Journal{
+		UserID:    strings.TrimSpace(userID),
+		CheckInID: &checkInIDCopy,
+		Content:   strings.TrimSpace(content),
+	}).Error
+}
+
 // FindActiveStreak returns active streak for user.
 func (r *Repository) FindActiveStreak(ctx context.Context, userID string) (models.Streak, error) {
 	var streak models.Streak
@@ -167,6 +188,52 @@ func (r *Repository) ListRelapseCheckInsByUser(ctx context.Context, userID strin
 		Where("user_id = ?", strings.TrimSpace(userID)).
 		Where("is_successful = ?", false).
 		Order("check_in_date desc").
+		Order("created_at desc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// FindRelapseByUserAndDate loads relapse by user and UTC date.
+func (r *Repository) FindRelapseByUserAndDate(ctx context.Context, userID string, relapseDate time.Time) (models.Relapse, error) {
+	var relapse models.Relapse
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Where("relapse_date = ?", relapseDate.UTC()).
+		First(&relapse).Error
+	if err != nil {
+		return models.Relapse{}, err
+	}
+	return relapse, nil
+}
+
+// CreateRelapse inserts relapse row.
+func (r *Repository) CreateRelapse(ctx context.Context, relapse models.Relapse) error {
+	return r.db.WithContext(ctx).Create(&relapse).Error
+}
+
+// ListRelapsesByUser returns all relapse rows sorted by day and creation time.
+func (r *Repository) ListRelapsesByUser(ctx context.Context, userID string) ([]models.Relapse, error) {
+	var rows []models.Relapse
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Order("relapse_date desc").
+		Order("created_at desc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// ListRelapsesByUserWithinDateRange returns relapses within inclusive UTC date range.
+func (r *Repository) ListRelapsesByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.Relapse, error) {
+	var rows []models.Relapse
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID)).
+		Where("relapse_date >= ?", startDate.UTC()).
+		Where("relapse_date <= ?", endDate.UTC()).
+		Order("relapse_date desc").
 		Order("created_at desc").
 		Find(&rows).Error; err != nil {
 		return nil, err

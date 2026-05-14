@@ -21,7 +21,7 @@ This document lists active routes from the current Go Fiber runtime.
 
 | Metric | Value |
 | --- | --- |
-| Total routes | 38 |
+| Total routes | 39 |
 | API prefix | `/api/v1` |
 | Last verified | `2026-05-08` |
 
@@ -65,6 +65,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST` | `/api/v1/community/{post_id}/like` | `api-v1` |
 | `POST` | `/api/v1/journals` | `api-v1` |
 | `POST` | `/api/v1/routine/checkin` | `api-v1` |
+| `POST` | `/api/v1/routine/relapses` | `api-v1` |
 | `PUT` | `/api/v1/ai/persona-preferences` | `api-v1` |
 | `PUT` | `/api/v1/users/settings` | `api-v1` |
 

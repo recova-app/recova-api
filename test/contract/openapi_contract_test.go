@@ -114,6 +114,15 @@ func TestContract_ProtectedRoutes_Unauthenticated_ValidAgainstOpenAPI(t *testing
 		},
 		{name: "routine statistics", method: http.MethodGet, path: "/api/v1/routine/statistics"},
 		{name: "routine activity summary", method: http.MethodGet, path: "/api/v1/routine/statistics/activity-summary"},
+		{
+			name:   "routine relapses create",
+			method: http.MethodPost,
+			path:   "/api/v1/routine/relapses",
+			body: map[string]any{
+				"mood":            "cemas",
+				"relapse_trigger": []string{"stres kerja"},
+			},
+		},
 		{name: "routine relapses", method: http.MethodGet, path: "/api/v1/routine/relapses"},
 		{name: "journals list", method: http.MethodGet, path: "/api/v1/journals"},
 		{name: "journals create", method: http.MethodPost, path: "/api/v1/journals", body: map[string]any{"content": "uji kontrak"}},

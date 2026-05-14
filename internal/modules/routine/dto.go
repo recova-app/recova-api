@@ -11,10 +11,24 @@ type DailyCheckInRequest struct {
 
 // DailyCheckInInput is normalized check-in input used by service layer.
 type DailyCheckInInput struct {
+	Mood         string
+	IsSuccessful bool
+	JournalText  *string
+}
+
+// RelapseRequest is request payload for explicit relapse submission.
+type RelapseRequest struct {
+	Mood           string   `json:"mood"`
+	RelapseTrigger []string `json:"relapse_trigger"`
+	Commitment     *string  `json:"commitment"`
+	Content        *string  `json:"content"`
+}
+
+// RelapseInput is normalized relapse input used by service layer.
+type RelapseInput struct {
 	Mood           string
-	IsSuccessful   bool
-	JournalText    *string
 	RelapseTrigger []string
+	JournalText    *string
 }
 
 // CheckInPayload is API payload for stored check-in record.
@@ -128,11 +142,20 @@ type RelapseSolutionPayload struct {
 
 // RelapsePayload is API payload for one relapse history record.
 type RelapsePayload struct {
-	CheckInID      string   `json:"check_in_id"`
-	CheckInDate    string   `json:"check_in_date"`
-	CheckInDayName string   `json:"check_in_day_name"`
+	ID             string   `json:"id"`
+	UserID         string   `json:"user_id"`
+	RelapseDate    string   `json:"relapse_date"`
+	RelapseDayName string   `json:"relapse_day_name"`
 	Mood           string   `json:"mood"`
 	Commitment     *string  `json:"commitment"`
 	RelapseTrigger []string `json:"relapse_trigger"`
+	CheckInID      *string  `json:"check_in_id"`
 	CreatedAt      string   `json:"created_at"`
+}
+
+// RelapseResponseData combines relapse detail and current statistics.
+type RelapseResponseData struct {
+	Relapse         RelapsePayload          `json:"relapse"`
+	Statistics      StatisticsPayload       `json:"statistics"`
+	RelapseSolution *RelapseSolutionPayload `json:"relapse_solution"`
 }

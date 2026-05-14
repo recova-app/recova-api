@@ -78,7 +78,7 @@ Contoh struktur `streak_goal_comparison`:
 
 - statistik dibaca dari sumber data check-in dan streak yang konsisten,
 - `total_checkins` menghitung check-in sukses valid non-duplicate,
-- `relapse_count` menghitung check-in gagal valid non-duplicate,
+- `relapse_count` menghitung event relapse valid (termasuk relapse tanpa check-in pada hari yang sama),
 - `relapse_rate` = `relapse_count / (successful_checkins + relapse_count)`,
 - `recovery_success_rate` = `successful_checkins / (successful_checkins + relapse_count)`,
 - `checkin_consistency_score` memakai rasio hari aktif pada rolling 30 hari,
@@ -93,6 +93,7 @@ Contoh struktur `streak_goal_comparison`:
 
 - statistik harus mencerminkan state terbaru setelah check-in sukses,
 - perubahan relapse wajib tercermin pada metrik statistik dalam SLA freshness yang sama,
+- check-in dan relapse diproses pada entitas terpisah agar tidak terjadi overwrite data harian,
 - jika pipeline asynchronous digunakan, kontrak eventual consistency harus disebutkan eksplisit di API response metadata.
 
 ## Ownership Rules

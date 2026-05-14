@@ -19,6 +19,7 @@ Dokumen ini menetapkan kontrak check-in harian pengguna.
 
 ```text
 POST /api/v1/routine/checkin
+POST /api/v1/routine/relapses
 ```
 
 ## Input Contract
@@ -26,23 +27,28 @@ POST /api/v1/routine/checkin
 Field minimum:
 
 - `mood` (kategori atau skala mood sesuai kamus domain),
+- `is_successful` wajib `true` pada endpoint check-in,
 - `commitment` (teks komitmen harian),
-- `relapse_trigger` (opsional, array string, hanya saat `is_successful=false`, berisi daftar pemicu relapse),
+- `relapse_trigger` dipindah ke endpoint terpisah (`POST /api/v1/routine/relapses`),
+- `mood` juga wajib pada endpoint relapse (`POST /api/v1/routine/relapses`),
 - `submitted_at` (opsional jika server memakai receive-time sebagai sumber waktu utama).
 
 ## Validation Rules
 
 - `mood` wajib berada pada daftar nilai yang diizinkan,
 - `commitment` wajib memiliki batas panjang minimum/maksimum,
-- `relapse_trigger` boleh kirim multiple item, tiap item maksimal 500 karakter,
-- `relapse_trigger` tidak boleh dikirim saat `is_successful=true`,
+- `is_successful=false` tidak valid di endpoint check-in dan harus memakai endpoint relapse,
+- `relapse_trigger` pada endpoint relapse boleh kirim multiple item, tiap item maksimal 500 karakter,
+- `relapse_trigger` tidak boleh dikirim ke endpoint check-in,
 - payload kosong atau format invalid harus ditolak sebagai `VALIDATION_ERROR`.
 
 ## Idempotency Rules
 
 Kunci idempotency:
 
-- satu check-in per pengguna per tanggal UTC.
+- satu check-in per pengguna per tanggal UTC,
+- endpoint relapse boleh dipanggil tanpa check-in hari itu,
+- endpoint relapse boleh dipanggil setelah check-in hari yang sama tanpa overwrite data check-in.
 
 Perilaku duplicate:
 
@@ -56,7 +62,7 @@ Perilaku duplicate:
 
 ## Storage Integrity Rules
 
-- gunakan constraint unik `(user_id, check_in_date)`,
+- gunakan constraint unik `(user_id, check_in_date)` untuk check-in,
 - gunakan transaksi saat write check-in + update streak/state terkait,
 - error constraint duplicate dipetakan ke respons bisnis yang eksplisit.
 

@@ -125,8 +125,16 @@ func TestService_GetActivitySummary_DefaultWindow(t *testing.T) {
 				ID:           "checkin-2",
 				CheckInDate:  time.Date(2026, 5, 7, 0, 0, 0, 0, time.UTC),
 				Mood:         "cemas",
-				IsSuccessful: false,
+				IsSuccessful: true,
 				CreatedAt:    time.Date(2026, 5, 7, 9, 0, 0, 0, time.UTC),
+			},
+		},
+		windowRelapses: []models.Relapse{
+			{
+				ID:          "relapse-1",
+				RelapseDate: time.Date(2026, 5, 7, 0, 0, 0, 0, time.UTC),
+				Mood:        "cemas",
+				CreatedAt:   time.Date(2026, 5, 7, 11, 0, 0, 0, time.UTC),
 			},
 		},
 		windowJournals: []models.Journal{
@@ -150,8 +158,8 @@ func TestService_GetActivitySummary_DefaultWindow(t *testing.T) {
 	if payload.WindowDays != 30 {
 		t.Fatalf("expected default window=30, got %d", payload.WindowDays)
 	}
-	if payload.SuccessfulCheckins != 1 {
-		t.Fatalf("expected successful checkins=1, got %d", payload.SuccessfulCheckins)
+	if payload.SuccessfulCheckins != 2 {
+		t.Fatalf("expected successful checkins=2, got %d", payload.SuccessfulCheckins)
 	}
 	if payload.Relapses != 1 {
 		t.Fatalf("expected relapses=1, got %d", payload.Relapses)
@@ -159,8 +167,8 @@ func TestService_GetActivitySummary_DefaultWindow(t *testing.T) {
 	if payload.ActiveDays != 2 {
 		t.Fatalf("expected active days=2, got %d", payload.ActiveDays)
 	}
-	if len(payload.RecentActivity) != 3 {
-		t.Fatalf("expected recent activity=3, got %d", len(payload.RecentActivity))
+	if len(payload.RecentActivity) != 4 {
+		t.Fatalf("expected recent activity=4, got %d", len(payload.RecentActivity))
 	}
 	if payload.RecentActivity[0].Type != "journal" {
 		t.Fatalf("expected most recent activity journal, got %s", payload.RecentActivity[0].Type)
@@ -170,23 +178,15 @@ func TestService_GetActivitySummary_DefaultWindow(t *testing.T) {
 func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	repo := &fakeRoutineRepo{
 		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
-		relapseRows: []models.CheckIn{
+		relapseRows: []models.Relapse{
 			{
-				ID:             "checkin-1",
-				CheckInDate:    time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+				ID:             "relapse-1",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
 				Mood:           "cemas",
-				IsSuccessful:   false,
+				Commitment:     func() *string { v := "tetap tenang"; return &v }(),
 				RelapseTrigger: []string{"stres kerja", "sendiri malam"},
 				CreatedAt:      time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC),
-			},
-		},
-		journals: []models.Journal{
-			{
-				CheckInID: func() *string {
-					v := "checkin-1"
-					return &v
-				}(),
-				Content: "tetap tenang",
 			},
 		},
 	}
@@ -205,8 +205,8 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	if len(payload[0].RelapseTrigger) != 2 || payload[0].RelapseTrigger[0] != "stres kerja" {
 		t.Fatalf("expected relapse trigger mapped, got %+v", payload[0].RelapseTrigger)
 	}
-	if payload[0].CheckInDayName != "Jumat" {
-		t.Fatalf("expected check-in day name Jumat, got %s", payload[0].CheckInDayName)
+	if payload[0].RelapseDayName != "Jumat" {
+		t.Fatalf("expected relapse day name Jumat, got %s", payload[0].RelapseDayName)
 	}
 }
 
@@ -217,30 +217,35 @@ func TestIsUniqueViolation_ReturnsTrueForCode23505(t *testing.T) {
 }
 
 type fakeRoutineRepo struct {
-	user             models.User
-	findUserErr      error
-	checkIns         []models.CheckIn
-	windowRows       []models.CheckIn
-	windowJournals   []models.Journal
-	successfulRows   []models.CheckIn
-	relapseRows      []models.CheckIn
-	journals         []models.Journal
-	latestBefore     *time.Time
-	latestBeforeErr  error
-	activeStreak     models.Streak
-	activeStreakErr  error
-	findCheckIn      models.CheckIn
-	findCheckInErr   error
-	createCheckInErr error
-	createJournalErr error
-	createStreakErr  error
-	closeStreakErr   error
-	listAllErr       error
-	listWindowErr    error
-	listJournalErr   error
-	listSuccessErr   error
-	listRelapseErr   error
-	findJournalsErr  error
+	user              models.User
+	findUserErr       error
+	checkIns          []models.CheckIn
+	windowRows        []models.CheckIn
+	windowRelapses    []models.Relapse
+	windowJournals    []models.Journal
+	successfulRows    []models.CheckIn
+	relapseRows       []models.Relapse
+	journals          []models.Journal
+	latestBefore      *time.Time
+	latestBeforeErr   error
+	activeStreak      models.Streak
+	activeStreakErr   error
+	findCheckIn       models.CheckIn
+	findCheckInErr    error
+	findRelapse       models.Relapse
+	findRelapseErr    error
+	createCheckInErr  error
+	createRelapseErr  error
+	createJournalErr  error
+	upsertJournalErr  error
+	createStreakErr   error
+	closeStreakErr    error
+	listAllErr        error
+	listWindowErr     error
+	listJournalErr    error
+	listSuccessErr    error
+	listRelapseErr    error
+	listRelapseWndErr error
 }
 
 func (r *fakeRoutineRepo) DB() *gorm.DB                         { return nil }
@@ -265,6 +270,27 @@ func (r *fakeRoutineRepo) CreateCheckIn(_ context.Context, _ models.CheckIn) err
 }
 func (r *fakeRoutineRepo) CreateJournal(_ context.Context, _ models.Journal) error {
 	return r.createJournalErr
+}
+func (r *fakeRoutineRepo) UpsertJournalByCheckInID(_ context.Context, _ string, _ string, _ string) error {
+	return r.upsertJournalErr
+}
+func (r *fakeRoutineRepo) FindRelapseByUserAndDate(_ context.Context, _ string, _ time.Time) (models.Relapse, error) {
+	if r.findRelapseErr != nil {
+		return models.Relapse{}, r.findRelapseErr
+	}
+	if r.findRelapse.ID == "" {
+		return models.Relapse{}, gorm.ErrRecordNotFound
+	}
+	return r.findRelapse, nil
+}
+func (r *fakeRoutineRepo) CreateRelapse(_ context.Context, relapse models.Relapse) error {
+	if r.createRelapseErr != nil {
+		return r.createRelapseErr
+	}
+	r.findRelapse = relapse
+	r.findRelapse.ID = "relapse-created"
+	r.findRelapse.CreatedAt = time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	return nil
 }
 func (r *fakeRoutineRepo) FindActiveStreak(_ context.Context, _ string) (models.Streak, error) {
 	if r.activeStreakErr != nil {
@@ -297,9 +323,8 @@ func (r *fakeRoutineRepo) ListCheckInsByUser(_ context.Context, _ string) ([]mod
 	if len(r.checkIns) > 0 {
 		return r.checkIns, nil
 	}
-	rows := make([]models.CheckIn, 0, len(r.successfulRows)+len(r.relapseRows))
+	rows := make([]models.CheckIn, 0, len(r.successfulRows))
 	rows = append(rows, r.successfulRows...)
-	rows = append(rows, r.relapseRows...)
 	return rows, nil
 }
 func (r *fakeRoutineRepo) ListCheckInsByUserWithinDateRange(_ context.Context, _ string, _ time.Time, _ time.Time) ([]models.CheckIn, error) {
@@ -308,16 +333,19 @@ func (r *fakeRoutineRepo) ListCheckInsByUserWithinDateRange(_ context.Context, _
 	}
 	return r.windowRows, nil
 }
-func (r *fakeRoutineRepo) ListRelapseCheckInsByUser(_ context.Context, _ string) ([]models.CheckIn, error) {
+func (r *fakeRoutineRepo) ListRelapsesByUser(_ context.Context, _ string) ([]models.Relapse, error) {
 	if r.listRelapseErr != nil {
 		return nil, r.listRelapseErr
 	}
 	return r.relapseRows, nil
 }
-func (r *fakeRoutineRepo) FindJournalsByCheckInIDs(_ context.Context, _ []string) ([]models.Journal, error) {
-	if r.findJournalsErr != nil {
-		return nil, r.findJournalsErr
+func (r *fakeRoutineRepo) ListRelapsesByUserWithinDateRange(_ context.Context, _ string, _ time.Time, _ time.Time) ([]models.Relapse, error) {
+	if r.listRelapseWndErr != nil {
+		return nil, r.listRelapseWndErr
 	}
+	return r.windowRelapses, nil
+}
+func (r *fakeRoutineRepo) FindJournalsByCheckInIDs(_ context.Context, _ []string) ([]models.Journal, error) {
 	return r.journals, nil
 }
 func (r *fakeRoutineRepo) ListJournalsByUserWithinTimeRange(_ context.Context, _ string, _ time.Time, _ time.Time) ([]models.Journal, error) {

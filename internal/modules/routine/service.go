@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	"github.com/recova-app/backend-v2/internal/platform/database"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
@@ -22,6 +21,11 @@ type routineRepository interface {
 	FindCheckInByUserAndDate(ctx context.Context, userID string, check_in_date time.Time) (models.CheckIn, error)
 	CreateCheckIn(ctx context.Context, check_in models.CheckIn) error
 	CreateJournal(ctx context.Context, journal models.Journal) error
+	UpsertJournalByCheckInID(ctx context.Context, userID string, checkInID string, content string) error
+	FindRelapseByUserAndDate(ctx context.Context, userID string, relapseDate time.Time) (models.Relapse, error)
+	CreateRelapse(ctx context.Context, relapse models.Relapse) error
+	ListRelapsesByUser(ctx context.Context, userID string) ([]models.Relapse, error)
+	ListRelapsesByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.Relapse, error)
 	FindActiveStreak(ctx context.Context, userID string) (models.Streak, error)
 	CreateStreak(ctx context.Context, streak models.Streak) error
 	CloseActiveStreak(ctx context.Context, streakID string, endDate time.Time) error
@@ -29,7 +33,6 @@ type routineRepository interface {
 	ListSuccessfulCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
 	ListCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
 	ListCheckInsByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.CheckIn, error)
-	ListRelapseCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error)
 	FindJournalsByCheckInIDs(ctx context.Context, checkInIDs []string) ([]models.Journal, error)
 	ListJournalsByUserWithinTimeRange(ctx context.Context, userID string, startAt time.Time, endAt time.Time) ([]models.Journal, error)
 }
@@ -86,7 +89,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 			CheckInDate:    check_in_date,
 			Mood:           input.Mood,
 			IsSuccessful:   input.IsSuccessful,
-			RelapseTrigger: pq.StringArray(append([]string{}, input.RelapseTrigger...)),
+			RelapseTrigger: nil,
 		}
 		if err := txRepo.CreateCheckIn(ctx, row); err != nil {
 			if IsUniqueViolation(err) {
@@ -125,16 +128,89 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 		return CheckInResponseData{}, err
 	}
 
-	var relapseSolution *RelapseSolutionPayload
-	if !input.IsSuccessful {
-		solution := s.buildRelapseSolution(ctx, userID, input)
-		relapseSolution = &solution
-	}
-
 	return CheckInResponseData{
 		CheckIn:         mapCheckInPayload(stored, input.JournalText),
 		Statistics:      stats,
-		RelapseSolution: relapseSolution,
+		RelapseSolution: nil,
+	}, nil
+}
+
+// CreateRelapse stores relapse trigger for current UTC day, independent from check-in submission route.
+func (s *Service) CreateRelapse(ctx context.Context, userID string, req RelapseRequest) (RelapseResponseData, error) {
+	input, err := NormalizeRelapseRequest(req)
+	if err != nil {
+		return RelapseResponseData{}, err
+	}
+
+	check_in_date := utcDayStart(s.now())
+
+	var stored models.Relapse
+	err = database.WithTransaction(ctx, s.repo.DB(), func(tx *gorm.DB) error {
+		txRepo := s.repo.CloneTx(tx)
+
+		if _, err := txRepo.FindUserByID(ctx, userID); err != nil {
+			if IsRecordNotFound(err) {
+				return errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+			}
+			return errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+		}
+
+		if _, err := txRepo.FindRelapseByUserAndDate(ctx, userID, check_in_date); err == nil {
+			return errs.New(errs.CodeConflict, "Relapse hari ini sudah tercatat", nil, nil)
+		} else if !IsRecordNotFound(err) {
+			return errs.New(errs.CodeInternalError, "Gagal membaca relapse hari ini", nil, err)
+		}
+
+		var checkInID *string
+		todayCheckIn, err := txRepo.FindCheckInByUserAndDate(ctx, userID, check_in_date)
+		if err != nil && !IsRecordNotFound(err) {
+			return errs.New(errs.CodeInternalError, "Gagal membaca check-in hari ini", nil, err)
+		}
+		if err == nil {
+			checkInID = &todayCheckIn.ID
+		}
+
+		row := models.Relapse{
+			UserID:         strings.TrimSpace(userID),
+			CheckInID:      checkInID,
+			RelapseDate:    check_in_date,
+			Mood:           input.Mood,
+			Commitment:     input.JournalText,
+			RelapseTrigger: input.RelapseTrigger,
+		}
+		if err := txRepo.CreateRelapse(ctx, row); err != nil {
+			if IsUniqueViolation(err) {
+				return errs.New(errs.CodeConflict, "Relapse hari ini sudah tercatat", nil, err)
+			}
+			return errs.New(errs.CodeInternalError, "Gagal menyimpan relapse harian", nil, err)
+		}
+
+		if err := s.syncStreak(ctx, txRepo, userID, check_in_date, false); err != nil {
+			return err
+		}
+
+		created, err := txRepo.FindRelapseByUserAndDate(ctx, userID, check_in_date)
+		if err != nil {
+			return errs.New(errs.CodeInternalError, "Gagal membaca relapse terbaru", nil, err)
+		}
+		stored = created
+		return nil
+	})
+	if err != nil {
+		return RelapseResponseData{}, err
+	}
+
+	stats, err := s.GetStatistics(ctx, userID)
+	if err != nil {
+		return RelapseResponseData{}, err
+	}
+
+	solution := s.buildRelapseSolution(ctx, userID, stored.Mood, stored.Commitment, stored.RelapseTrigger)
+
+	return RelapseResponseData{
+		Relapse:         mapRelapsePayload(stored),
+		Statistics:      stats,
+		RelapseSolution: &solution,
 	}, nil
 }
 
@@ -152,8 +228,12 @@ func (s *Service) GetStatistics(ctx context.Context, userID string) (StatisticsP
 	if err != nil {
 		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik check-in", nil, err)
 	}
+	relapses, err := s.repo.ListRelapsesByUser(ctx, userID)
+	if err != nil {
+		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik relapse", nil, err)
+	}
 
-	return computeStatistics(rows, utcDayStart(s.now()), user.PornFreeGoal), nil
+	return computeStatistics(rows, relapses, utcDayStart(s.now()), user.PornFreeGoal), nil
 }
 
 // GetActivitySummary returns periodic activity summary for authenticated user.
@@ -176,6 +256,10 @@ func (s *Service) GetActivitySummary(ctx context.Context, userID string, query A
 	if err != nil {
 		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
 	}
+	relapses, err := s.repo.ListRelapsesByUserWithinDateRange(ctx, userID, startDate, endDate)
+	if err != nil {
+		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
+	}
 
 	endExclusive := endDate.AddDate(0, 0, 1)
 	journals, err := s.repo.ListJournalsByUserWithinTimeRange(ctx, userID, startDate, endExclusive)
@@ -183,10 +267,10 @@ func (s *Service) GetActivitySummary(ctx context.Context, userID string, query A
 		return ActivitySummaryPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca ringkasan aktivitas", nil, err)
 	}
 
-	return computeActivitySummary(window_days, checkIns, journals), nil
+	return computeActivitySummary(window_days, checkIns, relapses, journals), nil
 }
 
-// GetRelapses returns user relapse history (failed check-ins).
+// GetRelapses returns user relapse history.
 func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayload, error) {
 	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
 		if IsRecordNotFound(err) {
@@ -195,47 +279,14 @@ func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayl
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	rows, err := s.repo.ListRelapseCheckInsByUser(ctx, userID)
+	rows, err := s.repo.ListRelapsesByUser(ctx, userID)
 	if err != nil {
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca riwayat relapse", nil, err)
 	}
 
-	checkInIDs := make([]string, 0, len(rows))
-	for _, row := range rows {
-		checkInIDs = append(checkInIDs, row.ID)
-	}
-
-	journals, err := s.repo.FindJournalsByCheckInIDs(ctx, checkInIDs)
-	if err != nil {
-		return nil, errs.New(errs.CodeInternalError, "Gagal membaca catatan relapse", nil, err)
-	}
-
-	journalByCheckIn := map[string]string{}
-	for _, journal := range journals {
-		if journal.CheckInID == nil {
-			continue
-		}
-		journalByCheckIn[strings.TrimSpace(*journal.CheckInID)] = journal.Content
-	}
-
 	result := make([]RelapsePayload, 0, len(rows))
 	for _, row := range rows {
-		commitment := journalByCheckIn[strings.TrimSpace(row.ID)]
-		var commitmentPtr *string
-		if strings.TrimSpace(commitment) != "" {
-			value := commitment
-			commitmentPtr = &value
-		}
-
-		result = append(result, RelapsePayload{
-			CheckInID:      row.ID,
-			CheckInDate:    row.CheckInDate.UTC().Format("2006-01-02"),
-			CheckInDayName: dayNameID(row.CheckInDate),
-			Mood:           row.Mood,
-			Commitment:     commitmentPtr,
-			RelapseTrigger: append([]string{}, row.RelapseTrigger...),
-			CreatedAt:      row.CreatedAt.UTC().Format(time.RFC3339),
-		})
+		result = append(result, mapRelapsePayload(row))
 	}
 
 	return result, nil
@@ -316,8 +367,22 @@ func mapCheckInPayload(row models.CheckIn, commitment *string) CheckInPayload {
 	}
 }
 
-func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time, pornFreeGoal *int) StatisticsPayload {
-	if len(checkIns) == 0 {
+func mapRelapsePayload(row models.Relapse) RelapsePayload {
+	return RelapsePayload{
+		ID:             row.ID,
+		UserID:         row.UserID,
+		RelapseDate:    row.RelapseDate.UTC().Format("2006-01-02"),
+		RelapseDayName: dayNameID(row.RelapseDate),
+		Mood:           row.Mood,
+		Commitment:     row.Commitment,
+		RelapseTrigger: append([]string{}, row.RelapseTrigger...),
+		CheckInID:      row.CheckInID,
+		CreatedAt:      row.CreatedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, todayUTC time.Time, pornFreeGoal *int) StatisticsPayload {
+	if len(checkIns) == 0 && len(relapses) == 0 {
 		return StatisticsPayload{
 			CurrentStreak:           0,
 			LongestStreak:           0,
@@ -336,7 +401,7 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time, pornFreeGo
 			LastCheckInDayName:      nil,
 			LastRelapseDate:         nil,
 			LastRelapseDayName:      nil,
-			WeekdaySummary:          buildWeekdaySummary(nil),
+			WeekdaySummary:          buildWeekdaySummary(nil, nil),
 			StreakGoalComparison:    buildStreakGoalComparison(pornFreeGoal, 0, 0),
 		}
 	}
@@ -379,6 +444,24 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time, pornFreeGo
 		lastRelapseDate = &day
 	}
 
+	for _, row := range relapses {
+		day := utcDayStart(row.RelapseDate)
+		dayKey := day.Format("2006-01-02")
+		active_days[dayKey] = struct{}{}
+		totalCountByDay[dayKey]++
+
+		if _, exists := moodByDay[dayKey]; !exists {
+			moodByDay[dayKey] = map[string]int{}
+		}
+		moodKey := strings.TrimSpace(strings.ToLower(row.Mood))
+		if moodKey == "" {
+			moodKey = "unknown"
+		}
+		moodByDay[dayKey][moodKey]++
+		relapse_count++
+		lastRelapseDate = &day
+	}
+
 	totalAttempts := successCount + relapse_count
 	recovery_success_rate := safeRatio(successCount, totalAttempts)
 	relapse_rate := safeRatio(relapse_count, totalAttempts)
@@ -389,7 +472,7 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time, pornFreeGo
 	weekly_progress := computeProgressPayload(checkIns, todayUTC, 7)
 	monthly_progress := computeProgressPayload(checkIns, todayUTC, 30)
 	mood_trend := buildMoodTrendPayload(moodByDay, successCountByDay, totalCountByDay)
-	weekdaySummary := buildWeekdaySummary(checkIns)
+	weekdaySummary := buildWeekdaySummary(checkIns, relapses)
 	lastCheckInDateRaw, lastCheckInDayName := mapLastDatePayload(lastCheckInDate)
 	lastRelapseDateRaw, lastRelapseDayName := mapLastDatePayload(lastRelapseDate)
 
@@ -416,9 +499,9 @@ func computeStatistics(checkIns []models.CheckIn, todayUTC time.Time, pornFreeGo
 	}
 }
 
-func computeActivitySummary(window_days int, checkIns []models.CheckIn, journals []models.Journal) ActivitySummaryPayload {
+func computeActivitySummary(window_days int, checkIns []models.CheckIn, relapses []models.Relapse, journals []models.Journal) ActivitySummaryPayload {
 	successful_checkins := 0
-	relapses := 0
+	relapseCount := 0
 	active_days := map[string]struct{}{}
 	checkinByID := make(map[string]models.CheckIn, len(checkIns))
 	activities := make([]activityTimelineItem, 0, len(checkIns)+len(journals))
@@ -430,13 +513,14 @@ func computeActivitySummary(window_days int, checkIns []models.CheckIn, journals
 
 		if row.IsSuccessful {
 			successful_checkins++
-		} else {
-			relapses++
+		}
+		if !row.IsSuccessful {
+			relapseCount++
 		}
 
-		eventType := "checkin_relapse"
-		if row.IsSuccessful {
-			eventType = "checkin_success"
+		eventType := "checkin_success"
+		if !row.IsSuccessful {
+			eventType = "checkin_relapse"
 		}
 		mood := strings.TrimSpace(row.Mood)
 		var moodPtr *string
@@ -451,6 +535,27 @@ func computeActivitySummary(window_days int, checkIns []models.CheckIn, journals
 			Type:      eventType,
 			Mood:      moodPtr,
 			Timestamp: row.CreatedAt.UTC(),
+		})
+	}
+
+	for _, relapse := range relapses {
+		day := utcDayStart(relapse.RelapseDate).Format("2006-01-02")
+		active_days[day] = struct{}{}
+		relapseCount++
+
+		mood := strings.TrimSpace(relapse.Mood)
+		var moodPtr *string
+		if mood != "" {
+			value := mood
+			moodPtr = &value
+		}
+
+		activities = append(activities, activityTimelineItem{
+			Date:      day,
+			DayName:   dayNameID(relapse.RelapseDate),
+			Type:      "relapse",
+			Mood:      moodPtr,
+			Timestamp: relapse.CreatedAt.UTC(),
 		})
 	}
 
@@ -495,7 +600,7 @@ func computeActivitySummary(window_days int, checkIns []models.CheckIn, journals
 	return ActivitySummaryPayload{
 		WindowDays:         window_days,
 		SuccessfulCheckins: successful_checkins,
-		Relapses:           relapses,
+		Relapses:           relapseCount,
 		ActiveDays:         len(active_days),
 		RecentActivity:     recent_activity,
 	}
@@ -624,16 +729,16 @@ func buildMoodTrendPayload(moodByDay map[string]map[string]int, successByDay map
 	return result
 }
 
-func (s *Service) buildRelapseSolution(ctx context.Context, userID string, input DailyCheckInInput) RelapseSolutionPayload {
-	fallback := buildFallbackRelapseSolution(input.Mood, input.RelapseTrigger, s.now())
+func (s *Service) buildRelapseSolution(ctx context.Context, userID string, mood string, commitment *string, relapseTrigger []string) RelapseSolutionPayload {
+	fallback := buildFallbackRelapseSolution(mood, relapseTrigger, s.now())
 	if s.advisor == nil {
 		return fallback
 	}
 
 	response, err := s.advisor.GenerateRelapseSolution(ctx, userID, aimodule.RelapseSolutionRequest{
-		Mood:           input.Mood,
-		RelapseTrigger: input.RelapseTrigger,
-		Commitment:     input.JournalText,
+		Mood:           mood,
+		RelapseTrigger: relapseTrigger,
+		Commitment:     commitment,
 	})
 	if err != nil {
 		return fallback
@@ -664,7 +769,7 @@ func buildFallbackRelapseSolution(mood string, relapseTrigger []string, nowUTC t
 	}
 }
 
-func buildWeekdaySummary(checkIns []models.CheckIn) []WeekdaySummaryPayload {
+func buildWeekdaySummary(checkIns []models.CheckIn, relapses []models.Relapse) []WeekdaySummaryPayload {
 	type dayCounter struct {
 		success int
 		relapse int
@@ -681,6 +786,13 @@ func buildWeekdaySummary(checkIns []models.CheckIn) []WeekdaySummaryPayload {
 		} else {
 			counter.relapse++
 		}
+		counters[day] = counter
+	}
+	for _, relapse := range relapses {
+		day := utcDayStart(relapse.RelapseDate).Weekday()
+		counter := counters[day]
+		counter.total++
+		counter.relapse++
 		counters[day] = counter
 	}
 
