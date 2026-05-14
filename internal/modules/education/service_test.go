@@ -67,7 +67,8 @@ func TestService_ListContents_Success(t *testing.T) {
 				Description:  ptrString("deskripsi"),
 				URL:          "https://example.test/edu",
 				ThumbnailURL: ptrString("https://example.test/img.png"),
-				Category:     "mindset",
+				Category:     "regulasi_emosi",
+				Type:         "video",
 				PublishedAt:  &published_at,
 			},
 		},
@@ -83,8 +84,39 @@ func TestService_ListContents_Success(t *testing.T) {
 	if rows[0].ID != "education-1" {
 		t.Fatalf("unexpected id: %s", rows[0].ID)
 	}
+	if rows[0].Category != "regulasi emosi" {
+		t.Fatalf("unexpected category: %s", rows[0].Category)
+	}
+	if rows[0].Type != "video" {
+		t.Fatalf("unexpected type: %s", rows[0].Type)
+	}
 	if rows[0].PublishedAt == nil {
 		t.Fatal("expected published_at payload")
+	}
+}
+
+func TestService_ListContents_DefaultTypeFallback(t *testing.T) {
+	svc := NewService(&fakeEducationRepo{
+		listRows: []models.EducationContent{
+			{
+				ID:       "education-1",
+				Title:    "judul",
+				URL:      "https://example.test/edu",
+				Category: "mindset",
+				Type:     "",
+			},
+		},
+	})
+
+	rows, err := svc.ListContents(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("list contents: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected one row, got: %d", len(rows))
+	}
+	if rows[0].Type != "artikel" {
+		t.Fatalf("expected fallback type artikel, got: %s", rows[0].Type)
 	}
 }
 

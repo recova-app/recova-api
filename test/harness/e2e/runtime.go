@@ -170,10 +170,10 @@ func seedReferenceContent(ctx context.Context, client *database.Client) error {
 	}
 
 	statements := []string{
-		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, is_active, published_at)
+		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, type, is_active, published_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111','Memahami Pemicu dan Pola Harian','Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.','https://recova.app/education/memahami-pemicu-dan-pola-harian',NULL,'pola_pikir',true,now()),
-  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'regulasi_emosi',true,now())
+  ('11111111-1111-1111-1111-111111111111','Memahami Pemicu dan Pola Harian','Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.','https://recova.app/education/memahami-pemicu-dan-pola-harian',NULL,'pola pikir','artikel',true,now()),
+  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'regulasi emosi','artikel',true,now())
 ON CONFLICT (id) DO NOTHING;`,
 		`INSERT INTO daily_motivations (id, content, is_active, created_at)
 VALUES

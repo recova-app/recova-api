@@ -2209,7 +2209,8 @@ paths:
                         description: Langkah praktis menjaga konsistensi
                         url: https://example.com/edukasi/kebiasaan
                         thumbnail_url: null
-                        category: recovery
+                        category: kebiasaan
+                        type: artikel
                         published_at: "2026-05-09T00:00:00Z"
                     meta: null
         "401":
@@ -4036,6 +4037,7 @@ components:
         - title
         - url
         - category
+        - type
       properties:
         id:
           type: string
@@ -4055,6 +4057,9 @@ components:
             - type: "null"
         category:
           type: string
+        type:
+          type: string
+          enum: [artikel, video]
         published_at:
           oneOf:
             - type: string

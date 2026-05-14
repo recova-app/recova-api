@@ -3,6 +3,7 @@ package education
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
@@ -46,10 +47,31 @@ func (s *Service) ListContents(ctx context.Context, userID string) ([]ContentPay
 			Description:  row.Description,
 			URL:          row.URL,
 			ThumbnailURL: row.ThumbnailURL,
-			Category:     row.Category,
+			Category:     normalizeUserFacingLabel(row.Category),
+			Type:         normalizeEducationType(row.Type),
 			PublishedAt:  formatPublishedAt(row.PublishedAt),
 		})
 	}
 
 	return payload, nil
+}
+
+func normalizeUserFacingLabel(raw string) string {
+	cleaned := strings.TrimSpace(raw)
+	if cleaned == "" {
+		return cleaned
+	}
+	cleaned = strings.ReplaceAll(cleaned, "_", " ")
+	return strings.Join(strings.Fields(cleaned), " ")
+}
+
+func normalizeEducationType(raw string) string {
+	switch strings.TrimSpace(raw) {
+	case "video":
+		return "video"
+	case "artikel":
+		return "artikel"
+	default:
+		return "artikel"
+	}
 }

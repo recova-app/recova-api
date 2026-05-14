@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/education.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-14
 ---
 
 # Education Module
@@ -37,6 +37,7 @@ Route prefix:
 Entitas utama:
 
 - `education_contents`,
+- `education_contents.type` (`artikel` atau `video`),
 - metadata status publikasi dan timestamp.
 
 Constraint minimum:
@@ -54,12 +55,15 @@ Constraint minimum:
 
 - sorting konten harus deterministik,
 - konten tidak aktif tidak boleh muncul di payload,
+- payload item wajib selalu memuat `type` dengan nilai `artikel` atau `video`,
+- label kategori user-facing harus natural (spasi), bukan snake_case,
 - fallback data harus aman jika stok konten terbatas.
 
 ## Validation Rules
 
 - `title` dan ringkasan konten wajib valid,
 - `status` hanya nilai yang diizinkan,
+- `type` hanya boleh `artikel` atau `video`,
 - atribut bahasa/label konten harus sesuai format,
 - payload invalid ditolak sebelum persist.
 
@@ -93,6 +97,8 @@ Metrik minimum:
 - unit test validator metadata,
 - integration test query konten aktif,
 - contract test response list education,
+- regression test memastikan field `type` selalu ada dan valid,
+- regression test memastikan label user-facing category tidak mengandung underscore,
 - regression test fallback behavior saat data minim.
 
 ## Open Gaps

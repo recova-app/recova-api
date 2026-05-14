@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api-reference.md
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-14
 ---
 
 # Recova Backend API Reference
@@ -94,6 +94,12 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 | Query schema            | covered | terspesifikasi per endpoint di OpenAPI          |
 | Success response schema | covered | tervalidasi contract test + OpenAPI             |
 | Error response schema   | covered | tervalidasi contract test + OpenAPI             |
+
+## Education Response Notes
+
+- response `GET /api/v1/education` mengandung field `type` pada setiap item konten,
+- nilai `type` dibatasi ke `artikel` atau `video`,
+- label kategori user-facing pada payload menggunakan format natural (spasi), bukan snake_case.
 
 ## Gap Register
 

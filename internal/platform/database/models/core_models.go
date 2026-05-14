@@ -145,6 +145,7 @@ type EducationContent struct {
 	URL          string     `gorm:"not null"`
 	ThumbnailURL *string    `gorm:"column:thumbnail_url"`
 	Category     string     `gorm:"not null"`
+	Type         string     `gorm:"column:type;not null;default:artikel"`
 	IsActive     bool       `gorm:"column:is_active;not null;default:true"`
 	PublishedAt  *time.Time `gorm:"column:published_at"`
 }

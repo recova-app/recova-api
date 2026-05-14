@@ -3,6 +3,7 @@ package education
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,6 +40,26 @@ func TestRegisterRoutes_Success(t *testing.T) {
 	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data, ok := resp.JSON["data"].([]any)
+	if !ok || len(data) != 1 {
+		t.Fatalf("unexpected data payload: %#v", resp.JSON["data"])
+	}
+	first, ok := data[0].(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected first item payload: %#v", data[0])
+	}
+	contentType, ok := first["type"].(string)
+	if !ok || contentType != "artikel" {
+		t.Fatalf("unexpected type payload: %#v", first["type"])
+	}
+	category, ok := first["category"].(string)
+	if !ok {
+		t.Fatalf("unexpected category payload: %#v", first["category"])
+	}
+	if strings.Contains(category, "_") {
+		t.Fatalf("category must not contain underscore: %s", category)
+	}
 }
 
 type educationRouteRepo struct{}
@@ -54,7 +75,8 @@ func (r *educationRouteRepo) ListActiveContents(_ context.Context) ([]models.Edu
 		Title:       "judul",
 		Description: ptrStringEducation("deskripsi"),
 		URL:         "https://example.test/edu",
-		Category:    "mindset",
+		Category:    "regulasi_emosi",
+		Type:        "artikel",
 		PublishedAt: &published_at,
 	}}, nil
 }
