@@ -110,6 +110,75 @@ func TestService_GetStatistics_EnhancedFields(t *testing.T) {
 	}
 }
 
+func TestService_GetStatistics_SameDayRelapseRemovesStreakContribution(t *testing.T) {
+	today := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		checkIns: []models.CheckIn{
+			{CheckInDate: time.Date(2026, 5, 6, 0, 0, 0, 0, time.UTC), Mood: "fokus", IsSuccessful: true},
+			{CheckInDate: time.Date(2026, 5, 7, 0, 0, 0, 0, time.UTC), Mood: "tenang", IsSuccessful: true},
+			{CheckInDate: time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC), Mood: "cemas", IsSuccessful: true},
+		},
+		relapseRows: []models.Relapse{
+			{RelapseDate: time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC), Mood: "cemas"},
+		},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return today }
+
+	payload, err := svc.GetStatistics(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("get statistics: %v", err)
+	}
+
+	if payload.CurrentStreak != 0 {
+		t.Fatalf("expected current streak=0 when relapse exists today, got %d", payload.CurrentStreak)
+	}
+	if payload.LongestStreak != 2 {
+		t.Fatalf("expected longest streak=2 excluding relapse day, got %d", payload.LongestStreak)
+	}
+	if payload.TotalCheckins != 2 {
+		t.Fatalf("expected total checkins=2 excluding relapse day success, got %d", payload.TotalCheckins)
+	}
+	if payload.RelapseCount != 1 {
+		t.Fatalf("expected relapse count=1, got %d", payload.RelapseCount)
+	}
+	if payload.TotalAttempts != 3 {
+		t.Fatalf("expected total attempts=3, got %d", payload.TotalAttempts)
+	}
+	if len(payload.StreakCalendar) != 2 || payload.StreakCalendar[0] != "2026-05-06" || payload.StreakCalendar[1] != "2026-05-07" {
+		t.Fatalf("expected streak calendar without relapse day, got %+v", payload.StreakCalendar)
+	}
+}
+
+func TestService_syncStreak_DoesNotOpenStreakWhenSameDayRelapseExists(t *testing.T) {
+	repo := &fakeRoutineRepo{
+		activeStreak: models.Streak{
+			ID:        "streak-1",
+			UserID:    "user-1",
+			StartDate: time.Date(2026, 5, 5, 0, 0, 0, 0, time.UTC),
+			IsActive:  true,
+		},
+		findRelapse: models.Relapse{
+			ID:          "relapse-1",
+			UserID:      "user-1",
+			RelapseDate: time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	svc := NewService(repo)
+	day := time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC)
+
+	if err := svc.syncStreak(context.Background(), repo, "user-1", day, true); err != nil {
+		t.Fatalf("sync streak: %v", err)
+	}
+	if len(repo.createdStreaks) != 0 {
+		t.Fatalf("expected no streak creation on same-day relapse, got %d", len(repo.createdStreaks))
+	}
+	if len(repo.closedStreakIDs) != 1 || repo.closedStreakIDs[0] != "streak-1" {
+		t.Fatalf("expected active streak closed once, got %+v", repo.closedStreakIDs)
+	}
+}
+
 func TestService_GetActivitySummary_DefaultWindow(t *testing.T) {
 	repo := &fakeRoutineRepo{
 		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
@@ -246,6 +315,9 @@ type fakeRoutineRepo struct {
 	listSuccessErr    error
 	listRelapseErr    error
 	listRelapseWndErr error
+	createdStreaks    []models.Streak
+	closedStreakIDs   []string
+	closedStreakDates []time.Time
 }
 
 func (r *fakeRoutineRepo) DB() *gorm.DB                         { return nil }
@@ -301,10 +373,17 @@ func (r *fakeRoutineRepo) FindActiveStreak(_ context.Context, _ string) (models.
 	}
 	return r.activeStreak, nil
 }
-func (r *fakeRoutineRepo) CreateStreak(_ context.Context, _ models.Streak) error {
+func (r *fakeRoutineRepo) CreateStreak(_ context.Context, streak models.Streak) error {
+	if r.createStreakErr == nil {
+		r.createdStreaks = append(r.createdStreaks, streak)
+	}
 	return r.createStreakErr
 }
-func (r *fakeRoutineRepo) CloseActiveStreak(_ context.Context, _ string, _ time.Time) error {
+func (r *fakeRoutineRepo) CloseActiveStreak(_ context.Context, streakID string, endDate time.Time) error {
+	if r.closeStreakErr == nil {
+		r.closedStreakIDs = append(r.closedStreakIDs, streakID)
+		r.closedStreakDates = append(r.closedStreakDates, endDate.UTC())
+	}
 	return r.closeStreakErr
 }
 func (r *fakeRoutineRepo) LatestSuccessfulCheckInBeforeDate(_ context.Context, _ string, _ time.Time) (*time.Time, error) {

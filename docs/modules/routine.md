@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/routine.md
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-14
 ---
 
 # Routine Module
@@ -64,6 +64,8 @@ Constraint minimum:
 - `is_successful=false` tidak diproses pada endpoint check-in,
 - relapse boleh dicatat walau check-in hari itu belum ada, dan kejadian relapse menutup streak aktif,
 - endpoint relapse bisa dipanggil setelah check-in sukses pada hari UTC yang sama,
+- check-in sukses pada hari yang sudah memiliki relapse tidak boleh membuka/menambah streak,
+- jika relapse terjadi di hari berjalan maka `current_streak` pada statistik hari itu harus `0`,
 - race condition check-in/relapse paralel harus ditangani aman tanpa overwrite lintas entitas.
 
 ## Validation Rules

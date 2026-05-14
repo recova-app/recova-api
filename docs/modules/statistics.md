@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/statistics.md
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-14
 ---
 
 # Statistics Module
@@ -77,10 +77,13 @@ Contoh struktur `streak_goal_comparison`:
 ## Computation Rules
 
 - statistik dibaca dari sumber data check-in dan streak yang konsisten,
-- `total_checkins` menghitung check-in sukses valid non-duplicate,
+- `total_checkins` menghitung check-in sukses valid non-duplicate pada tanggal yang tidak memiliki relapse UTC di hari yang sama,
 - `relapse_count` menghitung event relapse valid (termasuk relapse tanpa check-in pada hari yang sama),
 - `relapse_rate` = `relapse_count / (successful_checkins + relapse_count)`,
 - `recovery_success_rate` = `successful_checkins / (successful_checkins + relapse_count)`,
+- `streak_calendar` hanya berisi tanggal sukses yang bebas relapse pada tanggal UTC yang sama,
+- `current_streak` harus `0` bila ada relapse pada tanggal UTC hari ini,
+- data relapse legacy dari `check_ins.is_successful=false` dan data `relapses` tidak boleh dihitung ganda pada tanggal UTC yang sama,
 - `checkin_consistency_score` memakai rasio hari aktif pada rolling 30 hari,
 - `weekly_progress` dan `monthly_progress` dihitung dari baseline window sebelumnya (week-over-week dan month-over-month),
 - semua angka statistik harus non-negatif,

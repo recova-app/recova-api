@@ -307,12 +307,24 @@ func (s *Service) syncStreak(ctx context.Context, repo routineRepository, userID
 		return nil
 	}
 
+	if _, relapseErr := repo.FindRelapseByUserAndDate(ctx, userID, check_in_date); relapseErr == nil {
+		// Relapse on the same UTC day means this day cannot contribute to active streak.
+		if active.ID != "" {
+			if closeErr := repo.CloseActiveStreak(ctx, active.ID, check_in_date); closeErr != nil {
+				return errs.New(errs.CodeInternalError, "Gagal menutup streak aktif", nil, closeErr)
+			}
+		}
+		return nil
+	} else if !IsRecordNotFound(relapseErr) {
+		return errs.New(errs.CodeInternalError, "Gagal membaca data relapse harian", nil, relapseErr)
+	}
+
 	previousSuccessfulDate, err := repo.LatestSuccessfulCheckInBeforeDate(ctx, userID, check_in_date)
 	if err != nil {
 		return errs.New(errs.CodeInternalError, "Gagal membaca histori check-in", nil, err)
 	}
 
-	if err != nil || IsRecordNotFound(err) {
+	if previousSuccessfulDate == nil && active.ID == "" {
 		if createErr := repo.CreateStreak(ctx, models.Streak{
 			UserID:    strings.TrimSpace(userID),
 			StartDate: check_in_date,
@@ -407,10 +419,10 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 	}
 
 	successDates := make([]time.Time, 0, len(checkIns))
-	calendar := make([]string, 0, len(checkIns))
+	calendarDays := make(map[string]struct{}, len(checkIns))
 	active_days := map[string]struct{}{}
-	successCount := 0
-	relapse_count := 0
+	relapseDays := map[string]struct{}{}
+	legacyRelapseDays := map[string]struct{}{}
 	moodByDay := map[string]map[string]int{}
 	successCountByDay := map[string]int{}
 	totalCountByDay := map[string]int{}
@@ -422,7 +434,7 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 		dayKey := day.Format("2006-01-02")
 		active_days[dayKey] = struct{}{}
 		totalCountByDay[dayKey]++
-		lastCheckInDate = &day
+		lastCheckInDate = maxDayPtr(lastCheckInDate, day)
 
 		if _, exists := moodByDay[dayKey]; !exists {
 			moodByDay[dayKey] = map[string]int{}
@@ -433,21 +445,24 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 		}
 		moodByDay[dayKey][moodKey]++
 
-		if row.IsSuccessful {
-			successCount++
-			successCountByDay[dayKey]++
-			successDates = append(successDates, day)
-			calendar = append(calendar, dayKey)
-			continue
+		if !row.IsSuccessful {
+			legacyRelapseDays[dayKey] = struct{}{}
+			relapseDays[dayKey] = struct{}{}
+			lastRelapseDate = maxDayPtr(lastRelapseDate, day)
 		}
-		relapse_count++
-		lastRelapseDate = &day
 	}
 
 	for _, row := range relapses {
 		day := utcDayStart(row.RelapseDate)
 		dayKey := day.Format("2006-01-02")
 		active_days[dayKey] = struct{}{}
+		lastRelapseDate = maxDayPtr(lastRelapseDate, day)
+		relapseDays[dayKey] = struct{}{}
+
+		if _, fromLegacy := legacyRelapseDays[dayKey]; fromLegacy {
+			continue
+		}
+
 		totalCountByDay[dayKey]++
 
 		if _, exists := moodByDay[dayKey]; !exists {
@@ -458,16 +473,40 @@ func computeStatistics(checkIns []models.CheckIn, relapses []models.Relapse, tod
 			moodKey = "unknown"
 		}
 		moodByDay[dayKey][moodKey]++
-		relapse_count++
-		lastRelapseDate = &day
 	}
 
+	successCount := 0
+	for _, row := range checkIns {
+		if !row.IsSuccessful {
+			continue
+		}
+		day := utcDayStart(row.CheckInDate)
+		dayKey := day.Format("2006-01-02")
+		if _, blocked := relapseDays[dayKey]; blocked {
+			continue
+		}
+		successCount++
+		successCountByDay[dayKey]++
+		successDates = append(successDates, day)
+		calendarDays[dayKey] = struct{}{}
+	}
+
+	calendar := make([]string, 0, len(calendarDays))
+	for day := range calendarDays {
+		calendar = append(calendar, day)
+	}
+	sort.Strings(calendar)
+
+	relapse_count := len(relapseDays)
 	totalAttempts := successCount + relapse_count
 	recovery_success_rate := safeRatio(successCount, totalAttempts)
 	relapse_rate := safeRatio(relapse_count, totalAttempts)
 	success_rate := safeRatio(successCount, totalAttempts)
 
 	current_streak, longest_streak := computeStreaks(successDates, todayUTC)
+	if _, hasRelapseToday := relapseDays[todayUTC.Format("2006-01-02")]; hasRelapseToday {
+		current_streak = 0
+	}
 	checkin_consistency_score := safeRatio(len(active_days), 30)
 	weekly_progress := computeProgressPayload(checkIns, todayUTC, 7)
 	monthly_progress := computeProgressPayload(checkIns, todayUTC, 30)
@@ -777,18 +816,25 @@ func buildWeekdaySummary(checkIns []models.CheckIn, relapses []models.Relapse) [
 	}
 
 	counters := map[time.Weekday]dayCounter{}
+	legacyRelapseDays := map[string]struct{}{}
 	for _, row := range checkIns {
 		day := utcDayStart(row.CheckInDate).Weekday()
+		dayKey := utcDayStart(row.CheckInDate).Format("2006-01-02")
 		counter := counters[day]
 		counter.total++
 		if row.IsSuccessful {
 			counter.success++
 		} else {
 			counter.relapse++
+			legacyRelapseDays[dayKey] = struct{}{}
 		}
 		counters[day] = counter
 	}
 	for _, relapse := range relapses {
+		dayKey := utcDayStart(relapse.RelapseDate).Format("2006-01-02")
+		if _, fromLegacy := legacyRelapseDays[dayKey]; fromLegacy {
+			continue
+		}
 		day := utcDayStart(relapse.RelapseDate).Weekday()
 		counter := counters[day]
 		counter.total++
@@ -850,6 +896,15 @@ func buildStreakGoalComparison(pornFreeGoal *int, currentStreak int, longestStre
 	payload.RemainingDays = &remaining
 	payload.ProgressRate = roundRatio(float64(currentStreak) / float64(goal))
 	return payload
+}
+
+func maxDayPtr(current *time.Time, next time.Time) *time.Time {
+	day := utcDayStart(next)
+	if current == nil || day.After(*current) {
+		value := day
+		return &value
+	}
+	return current
 }
 
 func mapLastDatePayload(date *time.Time) (*string, *string) {
