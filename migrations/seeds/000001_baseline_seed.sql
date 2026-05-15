@@ -538,7 +538,7 @@ SET
 -- 12) Daily challenges
 INSERT INTO daily_challenges (id, title, description, content, is_active, created_at)
 SELECT
-  seed.id,
+  seed.id::uuid,
   'Tantangan Harian',
   seed.content,
   seed.content,
