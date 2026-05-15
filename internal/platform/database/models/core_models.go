@@ -160,10 +160,21 @@ type DailyMotivation struct {
 
 // DailyChallenge stores one daily challenge catalog item.
 type DailyChallenge struct {
-	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Content   string    `gorm:"not null;uniqueIndex"`
-	IsActive  bool      `gorm:"column:is_active;not null;default:true"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Title       string    `gorm:"not null"`
+	Description string    `gorm:"not null"`
+	Content     string    `gorm:"not null;uniqueIndex"`
+	IsActive    bool      `gorm:"column:is_active;not null;default:true"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
+}
+
+// DailyPhysicalChallenge stores one daily physical challenge catalog item.
+type DailyPhysicalChallenge struct {
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Title       string    `gorm:"not null"`
+	Description string    `gorm:"not null"`
+	IsActive    bool      `gorm:"column:is_active;not null;default:true"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
 }
 
 // AIChat stores one AI conversation message for one user.

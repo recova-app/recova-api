@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/database-seeding.md
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-15
 ---
 
 # Database Seeding
@@ -30,7 +30,8 @@ Contoh:
 
 - konten edukasi default,
 - daily motivations,
-- daily challenges.
+- daily challenges,
+- daily physical challenges.
 - achievement catalog.
 
 Aturan:
@@ -126,7 +127,7 @@ Aturan:
 Runner `scripts/staging-deploy.sh` menjalankan verifikasi seeding otomatis:
 
 1. jalankan seed pass pertama,
-2. simpan row count `education_contents`, `daily_motivations`, `daily_challenges`, `achievements`,
+2. simpan row count `education_contents`, `daily_motivations`, `daily_challenges`, `daily_physical_challenges`, `achievements`,
 3. jalankan seed pass kedua,
 4. pastikan row count tidak berubah (idempotent),
 5. pastikan tidak ada duplicate content pada tabel reference harian dan tidak ada duplicate `achievements.code`.
@@ -138,6 +139,7 @@ Untuk baseline reference data non-production, jumlah minimum saat verifikasi see
 - `education_contents >= 8`,
 - `daily_motivations >= 10`,
 - `daily_challenges >= 10`,
+- `daily_physical_challenges >= 10`,
 - `achievements >= 10`.
 
 ## Related Documents

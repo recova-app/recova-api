@@ -536,7 +536,15 @@ SET
   is_active = EXCLUDED.is_active;
 
 -- 12) Daily challenges
-INSERT INTO daily_challenges (id, content, is_active, created_at)
+INSERT INTO daily_challenges (id, title, description, content, is_active, created_at)
+SELECT
+  seed.id,
+  'Tantangan Harian',
+  seed.content,
+  seed.content,
+  seed.is_active,
+  seed.created_at
+FROM (
 VALUES
   ('40000000-0000-0000-0000-000000000001', 'Bangun lebih awal dan mulai hari dengan rencana 3 prioritas sehat.', true, now()),
   ('40000000-0000-0000-0000-000000000002', 'Baca konten edukatif pemulihan minimal 15 menit.', true, now()),
@@ -608,12 +616,44 @@ VALUES
   ('40000000-0000-0000-0000-000000000068', 'Tuliskan 1 kemenangan kecil hari ini lalu bagikan ke accountability partner.', true, now()),
   ('40000000-0000-0000-0000-000000000069', 'Saat dorongan naik: berhenti, bernapas, pindah lokasi, lalu mulai aktivitas pengganti.', true, now()),
   ('40000000-0000-0000-0000-000000000070', 'Akhiri hari dengan review 5 menit dan niat spesifik untuk esok pagi.', true, now())
+) AS seed (id, content, is_active, created_at)
 ON CONFLICT (id) DO UPDATE
 SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
   content = EXCLUDED.content,
   is_active = EXCLUDED.is_active;
 
--- 13) Achievements catalog
+-- 13) Daily physical challenges
+INSERT INTO daily_physical_challenges (id, title, description, is_active, created_at)
+VALUES
+  ('41000000-0000-0000-0000-000000000001', 'Aktivasi Pagi', 'Lakukan peregangan seluruh tubuh selama 10 menit setelah bangun tidur.', true, now()),
+  ('41000000-0000-0000-0000-000000000002', 'Jalan Cepat', 'Jalan cepat 20 menit tanpa ponsel untuk reset energi dan fokus.', true, now()),
+  ('41000000-0000-0000-0000-000000000003', 'Push-up Set', 'Selesaikan 3 set push-up (masing-masing 10 repetisi) dengan jeda terkontrol.', true, now()),
+  ('41000000-0000-0000-0000-000000000004', 'Squat Set', 'Selesaikan 3 set squat (masing-masing 15 repetisi) untuk aktivasi kaki.', true, now()),
+  ('41000000-0000-0000-0000-000000000005', 'Core Challenge', 'Tahan plank total 3 menit (boleh dibagi beberapa set).', true, now()),
+  ('41000000-0000-0000-0000-000000000006', 'Mobility Break', 'Ambil 3 jeda mobilitas @5 menit sepanjang hari kerja.', true, now()),
+  ('41000000-0000-0000-0000-000000000007', 'Cardio Ringan', 'Lakukan jogging atau sepeda statis minimal 15 menit dengan intensitas ringan.', true, now()),
+  ('41000000-0000-0000-0000-000000000008', 'Tangga Aktif', 'Naik turun tangga total 10 menit sebagai pengganti duduk lama.', true, now()),
+  ('41000000-0000-0000-0000-000000000009', 'Cold Finish', 'Akhiri mandi dengan 60 detik air dingin untuk melatih kontrol impuls.', true, now()),
+  ('41000000-0000-0000-0000-000000000010', 'Breath + Body', 'Kombinasikan 5 menit napas terarah lalu 20 burpee ringan.', true, now()),
+  ('41000000-0000-0000-0000-000000000011', 'Sunlight Walk', 'Kena paparan sinar matahari pagi sambil jalan santai 15 menit.', true, now()),
+  ('41000000-0000-0000-0000-000000000012', 'Desk Reset', 'Setiap 60 menit duduk, lakukan 1 menit gerak aktif (stretch atau squat).', true, now()),
+  ('41000000-0000-0000-0000-000000000013', 'Evening Stretch', 'Lakukan routine peregangan malam 12 menit sebelum tidur.', true, now()),
+  ('41000000-0000-0000-0000-000000000014', 'Glute Bridge', 'Kerjakan 3 set glute bridge (masing-masing 15 repetisi).', true, now()),
+  ('41000000-0000-0000-0000-000000000015', 'Wall Sit', 'Tahan wall sit total 2 menit, dibagi menjadi 2-4 set.', true, now()),
+  ('41000000-0000-0000-0000-000000000016', 'Lunge Flow', 'Lakukan alternating lunge total 24 repetisi dengan gerakan terkontrol.', true, now()),
+  ('41000000-0000-0000-0000-000000000017', 'Low Impact HIIT', 'Selesaikan 10 menit low-impact HIIT (work 30 detik, rest 30 detik).', true, now()),
+  ('41000000-0000-0000-0000-000000000018', 'Hip Mobility', 'Lakukan latihan mobilitas pinggul 8-10 menit untuk kurangi ketegangan.', true, now()),
+  ('41000000-0000-0000-0000-000000000019', 'Shoulder Release', 'Kerjakan drill bahu dan punggung atas 10 menit untuk postur lebih baik.', true, now()),
+  ('41000000-0000-0000-0000-000000000020', 'Night Walk', 'Jalan santai 15 menit setelah makan malam untuk menurunkan stres.', true, now())
+ON CONFLICT (id) DO UPDATE
+SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  is_active = EXCLUDED.is_active;
+
+-- 14) Achievements catalog
 INSERT INTO achievements (
   id,
   code,
@@ -650,7 +690,7 @@ SET
   is_active = EXCLUDED.is_active,
   updated_at = now();
 
--- 14) Achievement progress
+-- 15) Achievement progress
 WITH progress_seed (user_id, achievement_code, progress_value, unlocked_at, evaluated_at) AS (
   VALUES
     ('10000000-0000-0000-0000-000000000001', 'streak_7_days', 14, now() - interval '20 days', now()),
@@ -706,7 +746,7 @@ SET
   last_evaluated_at = EXCLUDED.last_evaluated_at,
   updated_at = now();
 
--- 15) AI persona preferences
+-- 16) AI persona preferences
 INSERT INTO user_ai_persona_preferences (
   user_id,
   persona,
@@ -724,7 +764,7 @@ SET
   persona = EXCLUDED.persona,
   updated_at = now();
 
--- 16) AI chats
+-- 17) AI chats
 INSERT INTO ai_chats (
   id,
   user_id,
@@ -757,7 +797,7 @@ SET
   content = EXCLUDED.content,
   created_at = EXCLUDED.created_at;
 
--- 17) Relapses (dari check-in gagal 14 hari terakhir)
+-- 18) Relapses (dari check-in gagal 14 hari terakhir)
 INSERT INTO relapses (
   id,
   user_id,
@@ -799,7 +839,7 @@ SET
   relapse_trigger = EXCLUDED.relapse_trigger,
   created_at = EXCLUDED.created_at;
 
--- 18) Auth refresh tokens (hash-only)
+-- 19) Auth refresh tokens (hash-only)
 INSERT INTO auth_refresh_tokens (
   id,
   user_id,

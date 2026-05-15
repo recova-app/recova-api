@@ -12,14 +12,18 @@ import (
 )
 
 const (
-	fallbackMotivation = "Teruslah maju, sekecil apapun langkahmu."
-	fallbackChallenge  = "Tuliskan satu hal yang kamu syukuri hari ini."
+	fallbackMotivation               = "Teruslah maju, sekecil apapun langkahmu."
+	fallbackChallengeTitle           = "Refleksi Harian"
+	fallbackChallengeDescription     = "Tuliskan satu hal yang kamu syukuri hari ini."
+	fallbackPhysicalChallengeTitle   = "Gerak Ringan Harian"
+	fallbackPhysicalChallengeDetails = "Lakukan jalan kaki 10 menit untuk reset fokus."
 )
 
 type contentRepository interface {
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	ListActiveMotivations(ctx context.Context) ([]models.DailyMotivation, error)
 	ListActiveChallenges(ctx context.Context) ([]models.DailyChallenge, error)
+	ListActivePhysicalChallenges(ctx context.Context) ([]models.DailyPhysicalChallenge, error)
 }
 
 // Service owns daily content selection rules.
@@ -38,7 +42,7 @@ func NewService(repo contentRepository) *Service {
 	}
 }
 
-// GetDailyContent returns deterministic daily motivation/challenge for authenticated user.
+// GetDailyContent returns deterministic daily motivation, challenge, and physical challenge for authenticated user.
 func (s *Service) GetDailyContent(ctx context.Context, userID string) (DailyContentPayload, error) {
 	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -55,6 +59,10 @@ func (s *Service) GetDailyContent(ctx context.Context, userID string) (DailyCont
 	if err != nil {
 		return DailyContentPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca tantangan harian", nil, err)
 	}
+	physicalChallenges, err := s.repo.ListActivePhysicalChallenges(ctx)
+	if err != nil {
+		return DailyContentPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca tantangan fisik harian", nil, err)
+	}
 
 	today := dayStartUTC(s.now())
 	dateKey := today.Format("2006-01-02")
@@ -68,19 +76,50 @@ func (s *Service) GetDailyContent(ctx context.Context, userID string) (DailyCont
 		}
 	}
 
-	challenge := fallbackChallenge
+	challenge := DailyChallengePayload{
+		Title:       fallbackChallengeTitle,
+		Description: fallbackChallengeDescription,
+	}
 	if len(challenges) > 0 {
 		idx := stableIndexForDate(today, len(challenges))
-		candidate := strings.TrimSpace(challenges[idx].Content)
-		if candidate != "" {
-			challenge = candidate
+		selected := challenges[idx]
+		title := strings.TrimSpace(selected.Title)
+		if title == "" {
+			title = fallbackChallengeTitle
 		}
+		description := strings.TrimSpace(selected.Description)
+		if description == "" {
+			description = strings.TrimSpace(selected.Content)
+		}
+		if description == "" {
+			description = fallbackChallengeDescription
+		}
+		challenge = DailyChallengePayload{Title: title, Description: description}
+	}
+
+	physicalChallenge := DailyChallengePayload{
+		Title:       fallbackPhysicalChallengeTitle,
+		Description: fallbackPhysicalChallengeDetails,
+	}
+	if len(physicalChallenges) > 0 {
+		idx := stableIndexForDate(today, len(physicalChallenges))
+		selected := physicalChallenges[idx]
+		title := strings.TrimSpace(selected.Title)
+		if title == "" {
+			title = fallbackPhysicalChallengeTitle
+		}
+		description := strings.TrimSpace(selected.Description)
+		if description == "" {
+			description = fallbackPhysicalChallengeDetails
+		}
+		physicalChallenge = DailyChallengePayload{Title: title, Description: description}
 	}
 
 	return DailyContentPayload{
-		Date:       dateKey,
-		Motivation: motivation,
-		Challenge:  challenge,
+		Date:              dateKey,
+		Motivation:        motivation,
+		Challenge:         challenge,
+		PhysicalChallenge: physicalChallenge,
 	}, nil
 }
 

@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/database.md
-last_reviewed: 2026-05-13
+last_reviewed: 2026-05-15
 ---
 
 # Recova Backend Database
@@ -31,6 +31,7 @@ Entitas domain yang sudah teridentifikasi:
 - ai coach chats
 - daily motivations
 - daily challenges
+- daily physical challenges
 
 ## Ownership Boundary
 
@@ -59,7 +60,7 @@ CommunityPost
   -> Comment (1:N)
   -> Like (1:N)
 
-Content (Education / Daily Motivation / Daily Challenge)
+Content (Education / Daily Motivation / Daily Challenge / Daily Physical Challenge)
   -> disajikan ke User melalui API read flows
 ```
 
@@ -76,28 +77,29 @@ Skema baseline SQL saat ini berada di migration:
 
 Tabel inti:
 
-| Table                  | Purpose                           |
-| ---------------------- | --------------------------------- |
-| `users`                | identitas akun pengguna           |
-| `profiles`             | data onboarding/profile pengguna  |
-| `streaks`              | histori streak pengguna           |
-| `check_ins`            | catatan check-in harian           |
-| `journals`             | jurnal pengguna                   |
-| `community_posts`      | posting komunitas                 |
-| `community_comments`   | komentar komunitas                |
-| `community_post_likes` | relasi like per pengguna-per-post |
-| `education_contents`   | konten edukasi aplikasi           |
-| `daily_motivations`    | konten motivasi harian            |
-| `daily_challenges`     | konten tantangan harian           |
-| `ai_chats`             | histori chat AI per pengguna      |
-| `auth_refresh_tokens`  | state refresh token ter-rotasi    |
+| Table                       | Purpose                           |
+| --------------------------- | --------------------------------- |
+| `users`                     | identitas akun pengguna           |
+| `profiles`                  | data onboarding/profile pengguna  |
+| `streaks`                   | histori streak pengguna           |
+| `check_ins`                 | catatan check-in harian           |
+| `journals`                  | jurnal pengguna                   |
+| `community_posts`           | posting komunitas                 |
+| `community_comments`        | komentar komunitas                |
+| `community_post_likes`      | relasi like per pengguna-per-post |
+| `education_contents`        | konten edukasi aplikasi           |
+| `daily_motivations`         | konten motivasi harian            |
+| `daily_challenges`          | konten tantangan harian           |
+| `daily_physical_challenges` | konten tantangan fisik harian     |
+| `ai_chats`                  | histori chat AI per pengguna      |
+| `auth_refresh_tokens`       | state refresh token ter-rotasi    |
 
 Constraint/index baseline:
 
 - unique: `users.google_id` (nullable), `users.email`, `users.username` (nullable), `profiles.user_id`,
 - unique: `check_ins(user_id, check_in_date)`,
 - unique: `journals.check_in_id`,
-- unique: `daily_motivations.content`, `daily_challenges.content`,
+- unique: `daily_motivations.content`, `daily_challenges.content`, `daily_physical_challenges(title, description)`,
 - unique: `auth_refresh_tokens.token_hash`,
 - FK seluruh child entity ke `users.id`,
 - index agregasi utama: `ai_chats(user_id, created_at)`,

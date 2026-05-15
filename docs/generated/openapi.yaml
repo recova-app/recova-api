@@ -2373,7 +2373,12 @@ paths:
                     data:
                       date: "2026-05-10"
                       motivation: Satu langkah kecil hari ini tetap berarti.
-                      challenge: Tulis 3 hal yang kamu syukuri.
+                      challenge:
+                        title: Refleksi Harian
+                        description: Tulis 3 hal yang kamu syukuri.
+                      physical_challenge:
+                        title: Aktivasi Pagi
+                        description: Lakukan peregangan seluruh tubuh selama 10 menit setelah bangun tidur.
                     meta: null
         "401":
           description: Access token is invalid
@@ -4282,6 +4287,7 @@ components:
         - date
         - motivation
         - challenge
+        - physical_challenge
       properties:
         date:
           type: string
@@ -4289,6 +4295,18 @@ components:
         motivation:
           type: string
         challenge:
+          $ref: "#/components/schemas/DailyChallengeContentData"
+        physical_challenge:
+          $ref: "#/components/schemas/DailyChallengeContentData"
+    DailyChallengeContentData:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+        description:
           type: string
     AIAskCoachData:
       type: object
