@@ -62,3 +62,28 @@ func TestResolvePersonaOrDefault(t *testing.T) {
 		t.Fatalf("expected default persona, got %q", got)
 	}
 }
+
+func TestNormalizeRelapseSolutionRequest(t *testing.T) {
+	normalized, err := NormalizeRelapseSolutionRequest(RelapseSolutionRequest{
+		Mood:           " cemas ",
+		RelapseTrigger: []string{" sosmed malam ", "  "},
+		Commitment:     ptr(" lanjut recovery "),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if normalized.Mood != "cemas" {
+		t.Fatalf("expected mood normalized, got %q", normalized.Mood)
+	}
+	if len(normalized.RelapseTrigger) != 1 || normalized.RelapseTrigger[0] != "sosmed malam" {
+		t.Fatalf("expected relapse trigger normalized, got %+v", normalized.RelapseTrigger)
+	}
+
+	if _, err := NormalizeRelapseSolutionRequest(RelapseSolutionRequest{Mood: " "}); err == nil {
+		t.Fatal("expected validation error for empty mood")
+	}
+}
+
+func ptr(v string) *string {
+	return &v
+}

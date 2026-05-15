@@ -21,7 +21,7 @@ This document lists active routes from the current Go Fiber runtime.
 
 | Metric | Value |
 | --- | --- |
-| Total routes | 37 |
+| Total routes | 40 |
 | API prefix | `/api/v1` |
 | Last verified | `2026-05-08` |
 
@@ -42,6 +42,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `GET` | `/api/v1/education` | `api-v1` |
 | `GET` | `/api/v1/journals` | `api-v1` |
 | `GET` | `/api/v1/routine/relapses` | `api-v1` |
+| `GET` | `/api/v1/routine/relapses/statistics` | `api-v1` |
 | `GET` | `/api/v1/routine/statistics` | `api-v1` |
 | `GET` | `/api/v1/routine/statistics/activity-summary` | `api-v1` |
 | `GET` | `/api/v1/users/me` | `api-v1` |
@@ -52,6 +53,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `GET` | `/openapi.yaml` | `platform` |
 | `POST` | `/api/v1/ai/ask-coach` | `api-v1` |
 | `POST` | `/api/v1/ai/onboarding-analysis` | `api-v1` |
+| `POST` | `/api/v1/ai/relapse-solution` | `api-v1` |
 | `POST` | `/api/v1/auth/google` | `api-v1` |
 | `POST` | `/api/v1/auth/login` | `api-v1` |
 | `POST` | `/api/v1/auth/logout` | `api-v1` |
@@ -64,6 +66,7 @@ This document lists active routes from the current Go Fiber runtime.
 | `POST` | `/api/v1/community/{post_id}/like` | `api-v1` |
 | `POST` | `/api/v1/journals` | `api-v1` |
 | `POST` | `/api/v1/routine/checkin` | `api-v1` |
+| `POST` | `/api/v1/routine/relapses` | `api-v1` |
 | `PUT` | `/api/v1/ai/persona-preferences` | `api-v1` |
 | `PUT` | `/api/v1/users/settings` | `api-v1` |
 

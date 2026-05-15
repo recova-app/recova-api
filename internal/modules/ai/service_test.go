@@ -79,8 +79,56 @@ func TestService_AskCoach_SuccessStoresConversation(t *testing.T) {
 	if len(repo.createdMessages) != 2 {
 		t.Fatalf("expected 2 stored rows, got %d", len(repo.createdMessages))
 	}
-	if repo.createdMessages[0].Role != "user" || repo.createdMessages[1].Role != "model" {
+	if repo.createdMessages[0].Role != "user" || repo.createdMessages[1].Role != "assistant" {
 		t.Fatalf("unexpected stored roles: %+v", repo.createdMessages)
+	}
+}
+
+func TestService_AskCoach_StripsLeakedPersonaMarkerFromReply(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		persona: models.UserAIPersonaPreference{UserID: "user-1", Persona: "direct"},
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Ok.\n\nrecova.persona.direct.v1"}}
+	service := NewService(repo, provider)
+
+	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "hello"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Response != "Ok." {
+		t.Fatalf("expected sanitized reply, got %q", payload.Response)
+	}
+	if len(repo.createdMessages) != 2 {
+		t.Fatalf("expected 2 stored rows, got %d", len(repo.createdMessages))
+	}
+	if repo.createdMessages[1].Content != "Ok." {
+		t.Fatalf("expected sanitized stored assistant message, got %q", repo.createdMessages[1].Content)
+	}
+}
+
+func TestService_GetChatHistory_NormalizesRoleToContract(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		history: []models.AIChat{
+			{ID: "chat-1", Role: "model", Content: "A", CreatedAt: time.Date(2026, 5, 8, 9, 0, 0, 0, time.UTC)},
+			{ID: "chat-2", Role: "user", Content: "B", CreatedAt: time.Date(2026, 5, 8, 9, 1, 0, 0, time.UTC)},
+		},
+	}
+	service := NewService(repo, &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "ok"}})
+
+	payload, err := service.GetChatHistory(context.Background(), "user-1", ChatHistoryQuery{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(payload) != 2 {
+		t.Fatalf("expected 2 history rows, got %d", len(payload))
+	}
+	if payload[0].Role != "assistant" {
+		t.Fatalf("expected model role normalized to assistant, got %q", payload[0].Role)
+	}
+	if payload[1].Role != "user" {
+		t.Fatalf("expected user role kept as user, got %q", payload[1].Role)
 	}
 }
 
@@ -129,6 +177,45 @@ func TestService_AnalyzeOnboarding_Success(t *testing.T) {
 	}
 	if payload.Level != "Moderate" || payload.PatternAnalysis != "Stress pattern" {
 		t.Fatalf("unexpected payload: %+v", payload)
+	}
+}
+
+func TestService_AnalyzeOnboarding_InvalidLevel(t *testing.T) {
+	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: `{"level":"Unknown","title":"Initial Analysis","level_description":"Explanation","pattern_analysis":"Stress pattern","encouragement":"You can do this"}`}}
+	service := NewService(repo, provider)
+
+	_, err := service.AnalyzeOnboarding(context.Background(), "user-1", OnboardingAnalysisRequest{
+		Answers: map[string]any{"frequency": "daily"},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if mapped := errs.Map(err); mapped.Code != errs.CodeDownstreamError {
+		t.Fatalf("expected DOWNSTREAM_ERROR, got %s", mapped.Code)
+	}
+}
+
+func TestService_GenerateRelapseSolution_Success(t *testing.T) {
+	repo := &fakeAIRepo{user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"}}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{
+		Text: `{"title":"Stabilkan Diri","analysis":"Pemicu utama terlihat dari kebiasaan scrolling saat lelah.","summary":"Solusi terbaik: blok akses perangkat pemicu di jam rawan lalu pindah ke aktivitas fisik singkat."}`,
+	}}
+	service := NewService(repo, provider)
+
+	payload, err := service.GenerateRelapseSolution(context.Background(), "user-1", RelapseSolutionRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"scrolling malam", "sendiri kamar"},
+		Commitment:     ptrString("ingin kembali fokus"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Title == "" || payload.Analysis == "" {
+		t.Fatalf("unexpected payload: %+v", payload)
+	}
+	if payload.Summary == "" {
+		t.Fatalf("expected relapse summary, got %+v", payload)
 	}
 }
 
@@ -187,6 +274,36 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
+	if !strings.Contains(provider.lastReq.SystemInstruction, "signature_id: recova.persona.friendly.v1") {
+		t.Fatalf("expected friendly signature in system instruction, got: %s", provider.lastReq.SystemInstruction)
+	}
+}
+
+func TestPersonaStyleInstruction_HasDistinctSignature(t *testing.T) {
+	supportive := personaStyleInstruction("supportive")
+	friendly := personaStyleInstruction("friendly")
+	direct := personaStyleInstruction("direct")
+	concise := personaStyleInstruction("concise")
+
+	if !strings.Contains(supportive, "signature_id: recova.persona.supportive.v1") || !strings.Contains(supportive, "validasi emosi") {
+		t.Fatalf("supportive signature missing: %s", supportive)
+	}
+	if !strings.Contains(friendly, "signature_id: recova.persona.friendly.v1") || !strings.Contains(friendly, "sapaan santai") {
+		t.Fatalf("friendly signature missing: %s", friendly)
+	}
+	if !strings.Contains(direct, "signature_id: recova.persona.direct.v1") || !strings.Contains(direct, "langkah bernomor") {
+		t.Fatalf("direct signature missing: %s", direct)
+	}
+	if !strings.Contains(concise, "signature_id: recova.persona.concise.v1") || !strings.Contains(concise, "maksimal 3 kalimat") {
+		t.Fatalf("concise signature missing: %s", concise)
+	}
+	if supportive == friendly || friendly == direct || direct == concise {
+		t.Fatal("persona signature must be distinct across personas")
+	}
+}
+
+func ptrString(v string) *string {
+	return &v
 }
 
 type fakeAIRepo struct {

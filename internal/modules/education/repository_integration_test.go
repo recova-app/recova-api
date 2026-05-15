@@ -29,6 +29,7 @@ func TestIntegration_Repository_ListActiveContents(t *testing.T) {
 		Title:    "active",
 		URL:      "https://example.test/active",
 		Category: "mindset",
+		Type:     "artikel",
 		IsActive: true,
 	}).Error; err != nil {
 		t.Fatalf("create active content: %v", err)
@@ -37,6 +38,7 @@ func TestIntegration_Repository_ListActiveContents(t *testing.T) {
 		Title:    "inactive",
 		URL:      "https://example.test/inactive",
 		Category: "mindset",
+		Type:     "video",
 		IsActive: false,
 	}).Error; err != nil {
 		t.Fatalf("create inactive content: %v", err)
@@ -47,14 +49,19 @@ func TestIntegration_Repository_ListActiveContents(t *testing.T) {
 		t.Fatalf("list active contents: %v", err)
 	}
 	found := false
+	contentType := ""
 	for _, row := range rows {
 		if row.Title == "active" {
 			found = true
+			contentType = row.Type
 			break
 		}
 	}
 	if !found {
 		t.Fatalf("expected inserted active content present, got rows=%+v", rows)
+	}
+	if contentType != "artikel" {
+		t.Fatalf("expected active content type artikel, got: %q", contentType)
 	}
 }
 

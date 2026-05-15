@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	defaultHistoryLimit = 50
-	maxHistoryLimit     = 200
-	maxPromptLength     = 4000
+	defaultHistoryLimit  = 50
+	maxHistoryLimit      = 200
+	maxPromptLength      = 4000
+	maxMoodLength        = 50
+	maxRelapseTextLength = 500
 
 	// DefaultPersona is safe fallback persona when user preference is empty/invalid.
 	DefaultPersona = "supportive"
@@ -93,6 +95,39 @@ func NormalizePersonaPreferenceRequest(req PersonaPreferenceRequest) (PersonaPre
 	return PersonaPreferenceInput{Persona: persona}, nil
 }
 
+// NormalizeRelapseSolutionRequest validates and normalizes relapse-solution payload.
+func NormalizeRelapseSolutionRequest(req RelapseSolutionRequest) (RelapseSolutionInput, error) {
+	mood := strings.TrimSpace(req.Mood)
+	if mood == "" {
+		return RelapseSolutionInput{}, errs.New(errs.CodeValidationError, "Mood wajib diisi", []map[string]string{{
+			"field": "mood", "message": "Mood wajib diisi",
+		}}, nil)
+	}
+	if len([]rune(mood)) > maxMoodLength {
+		return RelapseSolutionInput{}, errs.New(errs.CodeValidationError, "Mood terlalu panjang", []map[string]string{{
+			"field": "mood", "message": "Mood maksimal 50 karakter",
+		}}, nil)
+	}
+
+	relapseTrigger, err := normalizeRelapseTriggerValues(req.RelapseTrigger)
+	if err != nil {
+		return RelapseSolutionInput{}, err
+	}
+
+	commitment := normalizeOptionalText(req.Commitment)
+	if commitment != nil && len([]rune(*commitment)) > maxPromptLength {
+		return RelapseSolutionInput{}, errs.New(errs.CodeValidationError, "Catatan terlalu panjang", []map[string]string{{
+			"field": "commitment", "message": "Catatan maksimal 4000 karakter",
+		}}, nil)
+	}
+
+	return RelapseSolutionInput{
+		Mood:           mood,
+		RelapseTrigger: relapseTrigger,
+		Commitment:     commitment,
+	}, nil
+}
+
 // NormalizePersona validates persona enum and returns normalized lower-case value.
 func NormalizePersona(raw string) (string, bool) {
 	persona := strings.ToLower(strings.TrimSpace(raw))
@@ -111,4 +146,39 @@ func ResolvePersonaOrDefault(raw string) string {
 		return persona
 	}
 	return DefaultPersona
+}
+
+func normalizeOptionalText(raw *string) *string {
+	if raw == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*raw)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+func normalizeRelapseTriggerValues(raw []string) ([]string, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	normalized := make([]string, 0, len(raw))
+	for _, item := range raw {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			continue
+		}
+		if len([]rune(trimmed)) > maxRelapseTextLength {
+			return nil, errs.New(errs.CodeValidationError, "Pemicu relapse terlalu panjang", []map[string]string{{
+				"field": "relapse_trigger", "message": "Pemicu relapse maksimal 500 karakter",
+			}}, nil)
+		}
+		normalized = append(normalized, trimmed)
+	}
+	if len(normalized) == 0 {
+		return nil, nil
+	}
+	return normalized, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -120,9 +121,10 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		return AskCoachResponseData{}, mapProviderError(err)
 	}
 
+	assistantText := sanitizeCoachReply(strings.TrimSpace(reply.Text))
 	chatRows := []models.AIChat{
 		{UserID: strings.TrimSpace(userID), Role: "user", Content: input.Message},
-		{UserID: strings.TrimSpace(userID), Role: "model", Content: strings.TrimSpace(reply.Text)},
+		{UserID: strings.TrimSpace(userID), Role: "assistant", Content: assistantText},
 	}
 	if err := s.repo.CreateChatMessages(ctx, chatRows); err != nil {
 		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
@@ -131,9 +133,78 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 
 	s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, nil)
 	return AskCoachResponseData{
-		Response:    strings.TrimSpace(reply.Text),
+		Response:    assistantText,
 		PersonaUsed: persona,
 	}, nil
+}
+
+func sanitizeCoachReply(text string) string {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return ""
+	}
+
+	lines := strings.Split(trimmed, "\n")
+	filtered := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isInternalPersonaMarkerLine(strings.TrimSpace(line)) {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	last := strings.TrimSpace(filtered[len(filtered)-1])
+	if cleaned, ok := stripTrailingPersonaMarkerToken(last); ok {
+		filtered[len(filtered)-1] = cleaned
+	}
+
+	out := strings.Join(filtered, "\n")
+	out = internalPersonaMarkerTokenRe.ReplaceAllString(out, "")
+	return strings.TrimSpace(out)
+}
+
+var internalPersonaMarkerTokenRe = regexp.MustCompile(`\brecova\.persona\.[a-z_]+\.(?:v\d+)\b`)
+
+func isInternalPersonaMarkerLine(line string) bool {
+	if line == "" {
+		return false
+	}
+	if strings.HasPrefix(line, "signature_id: recova.persona.") || strings.HasPrefix(line, "- signature_id: recova.persona.") {
+		return true
+	}
+	return isInternalPersonaMarkerToken(line)
+}
+
+func stripTrailingPersonaMarkerToken(line string) (string, bool) {
+	if line == "" {
+		return "", false
+	}
+
+	parts := strings.Fields(line)
+	if len(parts) == 0 {
+		return "", false
+	}
+
+	last := parts[len(parts)-1]
+	if !isInternalPersonaMarkerToken(last) {
+		return line, false
+	}
+
+	without := strings.TrimSpace(strings.TrimSuffix(line, last))
+	return strings.TrimSpace(strings.TrimRight(without, ".,;:")), true
+}
+
+func isInternalPersonaMarkerToken(token string) bool {
+	if !strings.HasPrefix(token, "recova.persona.") {
+		return false
+	}
+	if !strings.Contains(token, ".v") {
+		return false
+	}
+	return true
 }
 
 // GetChatHistory returns authenticated user chat history.
@@ -159,7 +230,7 @@ func (s *Service) GetChatHistory(ctx context.Context, userID string, query ChatH
 	for _, row := range rows {
 		payload = append(payload, ChatHistoryItem{
 			ID:        row.ID,
-			Role:      strings.TrimSpace(row.Role),
+			Role:      normalizeChatHistoryRole(row.Role),
 			Content:   row.Content,
 			CreatedAt: row.CreatedAt.UTC().Format(time.RFC3339),
 		})
@@ -219,6 +290,36 @@ func (s *Service) AnalyzeOnboarding(ctx context.Context, userID string, req Onbo
 		return OnboardingAnalysisResponseData{}, errs.New(errs.CodeDownstreamError, "Respons analisis onboarding tidak valid", nil, err)
 	}
 	return result, nil
+}
+
+// GenerateRelapseSolution builds AI trigger analysis and best-solution summary for relapse events.
+func (s *Service) GenerateRelapseSolution(ctx context.Context, userID string, req RelapseSolutionRequest) (RelapseSolutionResponseData, error) {
+	input, err := NormalizeRelapseSolutionRequest(req)
+	if err != nil {
+		return RelapseSolutionResponseData{}, err
+	}
+
+	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
+		if IsRecordNotFound(err) {
+			return RelapseSolutionResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+		}
+		return RelapseSolutionResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+	}
+
+	generated, err := s.provider.Generate(ctx, aiplatform.GenerateRequest{
+		SystemInstruction: relapseSolutionSystemInstruction,
+		UserPrompt:        buildRelapseSolutionPrompt(input),
+		ForceJSON:         true,
+	})
+	if err != nil {
+		return RelapseSolutionResponseData{}, mapProviderError(err)
+	}
+
+	parsed, err := parseRelapseSolutionJSON(generated.Text)
+	if err != nil {
+		return RelapseSolutionResponseData{}, errs.New(errs.CodeDownstreamError, "Respons solusi relapse tidak valid", nil, err)
+	}
+	return parsed, nil
 }
 
 // GetPersonaPreference returns user persona preference with safe fallback default.
@@ -345,10 +446,12 @@ BATASAN & KEAMANAN
 - Jangan memberi diagnosis medis atau mempermalukan/menyalahkan user.
 - Jika ada indikasi krisis/niat menyakiti diri: arahkan ke bantuan darurat lokal/tenaga profesional dan minta lokasi singkat.
 - Jika topik di luar pemulihan: tolak singkat dan arahkan kembali ke pemulihan.
+- Jangan tulis metadata internal (contoh: signature_id atau recova.persona.*).
+- Jangan campur gaya antar persona. Ikuti signature persona aktif secara konsisten.
 
 Persona aktif:
 - nama persona: %s
-- arahan gaya: %s
+- signature persona (WAJIB TERLIHAT): %s
 Konteks user:
 - panggilan: %s
 - streak (hari): %d
@@ -362,6 +465,16 @@ Skema wajib:
 Aturan:
 - Value "level" wajib salah satu dari: "Low", "Moderate", atau "High".
 - Field lain tulis dalam Bahasa Indonesia, nada suportif, tidak menghakimi.`
+
+const relapseSolutionSystemInstruction = `Anda adalah AI relapse coach Recova. Selalu jawab HANYA JSON valid, tanpa markdown.
+Skema wajib:
+{"title":"...","analysis":"...","summary":"..."}
+Aturan:
+- Bahasa Indonesia, singkat, suportif, tidak menghakimi.
+- analysis wajib membedah pola trigger utama user (konteks emosi, situasi, waktu rawan bila ada).
+- summary wajib berisi solusi terbaik paling relevan untuk trigger utama saat ini.
+- Hindari detail seksual eksplisit.
+- Jika trigger kosong, tetap berikan analisis umum yang aman dan solusi paling aman.`
 
 func buildOnboardingPrompt(answers map[string]any) string {
 	keys := make([]string, 0, len(answers))
@@ -382,6 +495,24 @@ func buildOnboardingPrompt(answers map[string]any) string {
 	}
 	builder.WriteString("Klasifikasikan level ketergantungan (Low|Moderate|High) dan berikan dorongan yang realistis.")
 	return builder.String()
+}
+
+func buildRelapseSolutionPrompt(input RelapseSolutionInput) string {
+	trigger := strings.TrimSpace(strings.Join(input.RelapseTrigger, ", "))
+	if trigger == "" {
+		trigger = "tidak disebutkan"
+	}
+	commitment := strings.TrimSpace(valueOrEmpty(input.Commitment))
+	if commitment == "" {
+		commitment = "tidak ada catatan tambahan"
+	}
+
+	return fmt.Sprintf(
+		"Analisis relapse user dengan konteks:\n- mood: %s\n- pemicu relapse: %s\n- catatan user: %s\nKeluarkan analisis trigger paling dominan dan satu solusi terbaik yang paling relevan.",
+		input.Mood,
+		trigger,
+		commitment,
+	)
 }
 
 func formatAnswerValue(value any) string {
@@ -432,7 +563,37 @@ func parseOnboardingAnalysisJSON(raw string) (OnboardingAnalysisResponseData, er
 	if result.Level == "" || result.Title == "" || result.LevelDescription == "" || result.PatternAnalysis == "" || result.Encouragement == "" {
 		return OnboardingAnalysisResponseData{}, fmt.Errorf("incomplete analysis response")
 	}
+	if !isAllowedOnboardingLevel(result.Level) {
+		return OnboardingAnalysisResponseData{}, fmt.Errorf("invalid onboarding level")
+	}
 
+	return result, nil
+}
+
+func parseRelapseSolutionJSON(raw string) (RelapseSolutionResponseData, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return RelapseSolutionResponseData{}, fmt.Errorf("empty relapse solution response")
+	}
+
+	var parsed struct {
+		Title    string `json:"title"`
+		Analysis string `json:"analysis"`
+		Summary  string `json:"summary"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &parsed); err != nil {
+		return RelapseSolutionResponseData{}, err
+	}
+
+	result := RelapseSolutionResponseData{
+		Title:    strings.TrimSpace(parsed.Title),
+		Analysis: strings.TrimSpace(parsed.Analysis),
+		Summary:  strings.TrimSpace(parsed.Summary),
+	}
+
+	if result.Title == "" || result.Analysis == "" || result.Summary == "" {
+		return RelapseSolutionResponseData{}, fmt.Errorf("incomplete relapse solution response")
+	}
 	return result, nil
 }
 
@@ -457,12 +618,54 @@ func (s *Service) resolvePersonaPreference(ctx context.Context, userID string) (
 func personaStyleInstruction(persona string) string {
 	switch ResolvePersonaOrDefault(persona) {
 	case "friendly":
-		return "bahasa ramah, hangat, dan ringan; tetap jaga batas aman; tetap ringkas"
+		return `
+- signature_id: recova.persona.friendly.v1
+- tujuan: jadi sahabat ngobrol yang bikin user merasa ditemani.
+- pembuka: pakai sapaan santai dan ringan (contoh: "Oke, kita hadapi pelan-pelan.").
+- struktur: 1 jawaban inti + 1 ajakan ringan yang positif (opsional).
+- diksi: hangat, kasual, membumi; boleh sedikit playful tapi tetap sopan.
+- larangan: jangan terlalu formal, jangan terdengar kaku seperti manual.`
 	case "concise":
-		return "langsung ke inti; kalimat pendek; empatik; hindari kalimat panjang"
+		return `
+- signature_id: recova.persona.concise.v1
+- tujuan: hemat kata, tetap empatik.
+- pembuka: langsung ke inti tanpa basa-basi.
+- struktur: maksimal 3 kalimat pendek ATAU maksimal 3 bullet.
+- diksi: ringkas, presisi, tanpa pengulangan.
+- larangan: jangan jelaskan panjang jika tidak diminta.`
 	case "direct":
-		return "tegas dan to-the-point; langkah aksi jelas; tanpa menghakimi"
+		return `
+- signature_id: recova.persona.direct.v1
+- tujuan: jaga akuntabilitas dengan arahan praktis.
+- pembuka: langsung sebut inti masalah tanpa small talk.
+- struktur: format langkah bernomor (1-3) jika user butuh tindakan.
+- diksi: tegas, jelas, berorientasi aksi; tetap tidak menghakimi.
+- larangan: jangan melembutkan instruksi sampai jadi ambigu.`
 	default:
-		return "suportif, empatik, menenangkan"
+		return `
+- signature_id: recova.persona.supportive.v1
+- tujuan: pendamping empatik saat user merasa down.
+- pembuka: validasi emosi user dulu sebelum saran (contoh: "Wajar kalau ini terasa berat.").
+- struktur: 1 afirmasi empatik + 1 saran kecil yang realistis.
+- diksi: menenangkan, lembut, non-judgmental, memberi harapan.
+- larangan: jangan terdengar dingin atau menggurui.`
+	}
+}
+
+func normalizeChatHistoryRole(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "assistant", "model":
+		return "assistant"
+	default:
+		return "user"
+	}
+}
+
+func isAllowedOnboardingLevel(raw string) bool {
+	switch strings.TrimSpace(raw) {
+	case "Low", "Moderate", "High":
+		return true
+	default:
+		return false
 	}
 }

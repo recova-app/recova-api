@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 )
@@ -14,23 +15,34 @@ type usersRepository interface {
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	FindProfileByUserID(ctx context.Context, userID string) (models.Profile, error)
 	UpdateUserFields(ctx context.Context, userID string, fields map[string]any) error
-	CompleteOnboarding(ctx context.Context, userID string, input OnboardingInput) (models.User, models.Profile, error)
+	CompleteOnboarding(ctx context.Context, userID string, input OnboardingInput, aiSummary *string) (models.User, models.Profile, error)
 	ResetUserDataForTesting(ctx context.Context, userID string) error
+}
+
+type onboardingAnalyzer interface {
+	AnalyzeOnboarding(ctx context.Context, userID string, req aimodule.OnboardingAnalysisRequest) (aimodule.OnboardingAnalysisResponseData, error)
 }
 
 // Service owns users and onboarding business rules.
 type Service struct {
 	repo        usersRepository
+	analyzer    onboardingAnalyzer
 	allowDevOps bool
 }
 
 // NewService constructs users service with runtime guard configuration.
-func NewService(repo usersRepository, appEnv string, nodeEnv string) *Service {
+func NewService(repo usersRepository, appEnv string, nodeEnv string, analyzers ...onboardingAnalyzer) *Service {
 	allowReset := strings.EqualFold(strings.TrimSpace(appEnv), "local") ||
 		strings.EqualFold(strings.TrimSpace(nodeEnv), "development")
 
+	var analyzer onboardingAnalyzer
+	if len(analyzers) > 0 {
+		analyzer = analyzers[0]
+	}
+
 	return &Service{
 		repo:        repo,
+		analyzer:    analyzer,
 		allowDevOps: allowReset,
 	}
 }
@@ -74,40 +86,63 @@ func (s *Service) UpdateSettings(ctx context.Context, userID string, req Setting
 }
 
 // CompleteOnboarding validates onboarding payload and persists completion state.
-func (s *Service) CompleteOnboarding(ctx context.Context, userID string, req OnboardingRequest) (UserProfilePayload, error) {
+func (s *Service) CompleteOnboarding(ctx context.Context, userID string, req OnboardingRequest) (OnboardingCompletionPayload, error) {
 	input, err := NormalizeOnboardingRequest(req)
 	if err != nil {
-		return UserProfilePayload{}, err
+		return OnboardingCompletionPayload{}, err
 	}
 
 	user, err := s.repo.FindUserByID(ctx, userID)
 	if err != nil {
 		if IsRecordNotFound(err) {
-			return UserProfilePayload{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
+			return OnboardingCompletionPayload{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
 		}
-		return UserProfilePayload{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
+		return OnboardingCompletionPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
 	existingProfile, err := s.repo.FindProfileByUserID(ctx, userID)
 	if err == nil {
 		if sameOnboardingState(user, existingProfile, input) {
-			return buildUserProfilePayload(user, true), nil
+			return OnboardingCompletionPayload{
+				UserProfilePayload: buildUserProfilePayload(user, true),
+			}, nil
 		}
-		return UserProfilePayload{}, errs.New(errs.CodeConflict, "Pengguna sudah menyelesaikan onboarding", nil, nil)
+		return OnboardingCompletionPayload{}, errs.New(errs.CodeConflict, "Pengguna sudah menyelesaikan onboarding", nil, nil)
 	}
 	if !IsRecordNotFound(err) {
-		return UserProfilePayload{}, errs.New(errs.CodeInternalError, "Gagal membaca status onboarding", nil, err)
+		return OnboardingCompletionPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca status onboarding", nil, err)
 	}
 
-	updatedUser, _, err := s.repo.CompleteOnboarding(ctx, userID, input)
+	if s.analyzer == nil {
+		return OnboardingCompletionPayload{}, errs.New(errs.CodeInternalError, "Layanan analisis onboarding belum siap", nil, nil)
+	}
+
+	analysis, err := s.analyzer.AnalyzeOnboarding(ctx, userID, aimodule.OnboardingAnalysisRequest{
+		Answers: input.Answers,
+	})
+	if err != nil {
+		return OnboardingCompletionPayload{}, err
+	}
+	summary := composeOnboardingAISummary(analysis)
+
+	updatedUser, _, err := s.repo.CompleteOnboarding(ctx, userID, input, &summary)
 	if err != nil {
 		if IsUniqueViolation(err) {
-			return UserProfilePayload{}, errs.New(errs.CodeConflict, "Data onboarding mengalami konflik", nil, err)
+			return OnboardingCompletionPayload{}, errs.New(errs.CodeConflict, "Data onboarding mengalami konflik", nil, err)
 		}
-		return UserProfilePayload{}, errs.New(errs.CodeInternalError, "Gagal menyimpan onboarding", nil, err)
+		return OnboardingCompletionPayload{}, errs.New(errs.CodeInternalError, "Gagal menyimpan onboarding", nil, err)
 	}
 
-	return buildUserProfilePayload(updatedUser, true), nil
+	return OnboardingCompletionPayload{
+		UserProfilePayload: buildUserProfilePayload(updatedUser, true),
+		OnboardingAnalysis: &OnboardingAnalysisPayload{
+			Level:            analysis.Level,
+			Title:            analysis.Title,
+			LevelDescription: analysis.LevelDescription,
+			PatternAnalysis:  analysis.PatternAnalysis,
+			Encouragement:    analysis.Encouragement,
+		},
+	}, nil
 }
 
 // ResetUserDataForTesting clears user-generated data on allowed development env only.
@@ -144,6 +179,7 @@ func buildUserProfilePayload(user models.User, completed bool) UserProfilePayloa
 		Nickname:            user.Nickname,
 		RecoveryReason:      user.UserWhy,
 		DailyCheckInTime:    formatCheckInTime(user.CheckInTime),
+		PornFreeGoal:        copyIntPointer(user.PornFreeGoal),
 		OnboardingCompleted: completed,
 	}
 }
@@ -172,6 +208,9 @@ func sameOnboardingState(user models.User, profile models.Profile, input Onboard
 	if strings.TrimSpace(*formatCheckInTime(user.CheckInTime)) != strings.TrimSpace(input.DailyCheckInRaw) {
 		return false
 	}
+	if user.PornFreeGoal == nil || *user.PornFreeGoal != input.PornFreeGoal {
+		return false
+	}
 
 	currentDependency := strings.TrimSpace(valueOrEmpty(profile.DependencyLevel))
 	expectedDependency := strings.TrimSpace(valueOrEmpty(input.DependencyLevel))
@@ -192,6 +231,36 @@ func valueOrEmpty(v *string) string {
 		return ""
 	}
 	return *v
+}
+
+func copyIntPointer(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	copied := *v
+	return &copied
+}
+
+func composeOnboardingAISummary(analysis aimodule.OnboardingAnalysisResponseData) string {
+	segments := []string{
+		strings.TrimSpace(analysis.Title),
+		strings.TrimSpace(analysis.LevelDescription),
+		strings.TrimSpace(analysis.PatternAnalysis),
+		strings.TrimSpace(analysis.Encouragement),
+	}
+
+	filtered := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		if segment == "" {
+			continue
+		}
+		filtered = append(filtered, segment)
+	}
+	if len(filtered) == 0 {
+		return "Ringkasan onboarding belum tersedia."
+	}
+
+	return strings.TrimSpace(strings.Join(filtered, " "))
 }
 
 func normalizeTimeString(raw string) string {

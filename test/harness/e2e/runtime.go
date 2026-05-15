@@ -66,7 +66,6 @@ func NewRuntime(t testing.TB) *Runtime {
 		&fakeGoogleVerifier{},
 		authmodule.NewTokenManager(cfg),
 	)
-	usersService := usersmodule.NewService(usersmodule.NewRepository(client.Gorm()), cfg.Application.AppEnv, cfg.Application.NodeEnv)
 	routineService := routinemodule.NewService(routinemodule.NewRepository(client.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(client.Gorm()))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(client.Gorm()))
@@ -76,6 +75,12 @@ func NewRuntime(t testing.TB) *Runtime {
 	recorder := observability.NewRecorder()
 	aiService := aimodule.NewService(aimodule.NewRepository(client.Gorm()), &fakeAIProvider{})
 	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(recorder))
+	usersService := usersmodule.NewService(
+		usersmodule.NewRepository(client.Gorm()),
+		cfg.Application.AppEnv,
+		cfg.Application.NodeEnv,
+		aiService,
+	)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
@@ -165,20 +170,20 @@ func seedReferenceContent(ctx context.Context, client *database.Client) error {
 	}
 
 	statements := []string{
-		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, is_active, published_at)
+		`INSERT INTO education_contents (id, title, description, url, thumbnail_url, category, type, is_active, published_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111','Memahami Pemicu dan Pola Harian','Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.','https://recova.app/education/memahami-pemicu-dan-pola-harian',NULL,'pola_pikir',true,now()),
-  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'regulasi_emosi',true,now())
+  ('11111111-1111-1111-1111-111111111111','Memahami Pemicu dan Pola Harian','Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.','https://recova.app/education/memahami-pemicu-dan-pola-harian',NULL,'pola pikir','artikel',true,now()),
+  ('22222222-2222-2222-2222-222222222222','Teknik Grounding 5-4-3-2-1','Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.','https://recova.app/education/teknik-grounding-5-4-3-2-1',NULL,'regulasi emosi','artikel',true,now())
 ON CONFLICT (id) DO NOTHING;`,
 		`INSERT INTO daily_motivations (id, content, is_active, created_at)
 VALUES
   ('33333333-3333-3333-3333-333333333333','Satu langkah kecil hari ini tetap berarti untuk masa depanmu.',true,now()),
   ('44444444-4444-4444-4444-444444444444','Konsisten tidak harus sempurna, yang penting terus bergerak.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
-		`INSERT INTO daily_challenges (id, content, is_active, created_at)
+		`INSERT INTO daily_challenges (id, title, description, content, is_active, created_at)
 VALUES
-  ('55555555-5555-5555-5555-555555555555','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.',true,now()),
-  ('66666666-6666-6666-6666-666666666666','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.',true,now())
+  ('55555555-5555-5555-5555-555555555555','Tantangan Harian','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.',true,now()),
+  ('66666666-6666-6666-6666-666666666666','Tantangan Harian','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 	}
 

@@ -5,24 +5,31 @@ INSERT INTO users (
   id,
   google_id,
   email,
+  username,
+  password_hash,
   nickname,
   user_why,
+  porn_free_goal,
   check_in_time,
   created_at,
   updated_at
 )
 VALUES
-  ('10000000-0000-0000-0000-000000000001', '108234567890123456789', 'andre.wijaya@gmail.com', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', '07:00', now() - interval '120 days', now()),
-  ('10000000-0000-0000-0000-000000000002', '109876543210987654321', 'budi.santoso@gmail.com', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', '06:30', now() - interval '118 days', now()),
-  ('10000000-0000-0000-0000-000000000003', '107654321098765432109', 'david.chen@yahoo.com', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', '08:00', now() - interval '115 days', now()),
-  ('10000000-0000-0000-0000-000000000004', '106543210987654321098', 'ryan.pratama@gmail.com', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', '06:00', now() - interval '110 days', now()),
-  ('10000000-0000-0000-0000-000000000005', '105432109876543210987', 'faisal.rahman@outlook.com', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', '07:30', now() - interval '108 days', now()),
-  ('10000000-0000-0000-0000-000000000006', '104321098765432109876', 'eric.tan@gmail.com', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', '05:30', now() - interval '105 days', now())
-ON CONFLICT (google_id) DO UPDATE
+  ('10000000-0000-0000-0000-000000000001', 'google-oauth2|andre-seed-001', 'andre.wijaya@gmail.com', 'andre_wijaya', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Andre', 'Saya ingin pulih dari kecanduan ini untuk memperbaiki hubungan dengan pasangan dan menjadi pribadi yang lebih baik bagi keluarga saya.', 90, '07:00', now() - interval '120 days', now()),
+  ('10000000-0000-0000-0000-000000000002', 'google-oauth2|budi-seed-002', 'budi.santoso@gmail.com', 'budi_santoso', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Budi', 'Ingin membangun hubungan yang sehat dan bermakna agar hidup lebih stabil dan bertanggung jawab.', 60, '06:30', now() - interval '118 days', now()),
+  ('10000000-0000-0000-0000-000000000003', NULL, 'david.chen@yahoo.com', 'david_chen', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'David', 'Saya ingin kembali produktif dan keluar dari pola yang selama ini menghambat karier dan kualitas hidup.', 120, '08:00', now() - interval '115 days', now()),
+  ('10000000-0000-0000-0000-000000000004', NULL, 'ryan.pratama@gmail.com', 'ryan_pratama', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Ryan', 'Saya ingin kesehatan mental lebih stabil, emosi lebih terkendali, dan hubungan sosial lebih sehat.', 45, '06:00', now() - interval '110 days', now()),
+  ('10000000-0000-0000-0000-000000000005', NULL, 'faisal.rahman@outlook.com', 'faisal_rahman', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Faisal', 'Saya ingin fokus akademik kembali kuat, menyelesaikan studi tepat waktu, dan membangun masa depan lebih baik.', 75, '07:30', now() - interval '108 days', now()),
+  ('10000000-0000-0000-0000-000000000006', NULL, 'eric.tan@gmail.com', 'eric_tan', '$2a$10$gT8OqnXWNmeKUTUDJCYSN.T80XB41R3WT.IWl3UVYomJ6k5VOvbAe', 'Eric', 'Saya ingin hidup lebih selaras dengan nilai pribadi dan spiritual, dengan kebiasaan harian yang lebih sehat.', 100, '05:30', now() - interval '105 days', now())
+ON CONFLICT (email) DO UPDATE
 SET
+  username = EXCLUDED.username,
+  password_hash = EXCLUDED.password_hash,
+  google_id = EXCLUDED.google_id,
   email = EXCLUDED.email,
   nickname = EXCLUDED.nickname,
   user_why = EXCLUDED.user_why,
+  porn_free_goal = EXCLUDED.porn_free_goal,
   check_in_time = EXCLUDED.check_in_time,
   updated_at = now();
 
@@ -178,6 +185,7 @@ INSERT INTO check_ins (
   check_in_date,
   mood,
   is_successful,
+  relapse_trigger,
   created_at
 )
 SELECT
@@ -186,12 +194,19 @@ SELECT
   current_date - cs.day_offset,
   cs.mood,
   cs.is_successful,
+  CASE
+    WHEN cs.is_successful THEN NULL
+    WHEN cs.mood IN ('Cemas', 'Sedikit Cemas', 'Gelisah') THEN ARRAY['stres kerja', 'kecemasan malam']
+    WHEN cs.mood IN ('Frustasi', 'Sedih', 'Bingung') THEN ARRAY['emosi negatif', 'isolasi']
+    ELSE ARRAY['kelelahan', 'paparan media sosial']
+  END::text[],
   now() - make_interval(days => cs.day_offset)
 FROM checkin_seed cs
 ON CONFLICT (user_id, check_in_date) DO UPDATE
 SET
   mood = EXCLUDED.mood,
-  is_successful = EXCLUDED.is_successful;
+  is_successful = EXCLUDED.is_successful,
+  relapse_trigger = EXCLUDED.relapse_trigger;
 
 -- 5) Journals (1:1 dengan check-in)
 WITH journal_source AS (
@@ -267,7 +282,17 @@ VALUES
   ('50000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000003', 'Template Recovery Plan Mingguan', 'Saya bagikan template sederhana: target check-in, target tidur, target olahraga, dan trigger log.', 'saran', 0, 0, now() - interval '12 days', now()),
   ('50000000-0000-0000-0000-000000000010', '10000000-0000-0000-0000-000000000004', 'Cerita: Dari Isolasi ke Komunikasi Terbuka', 'Dulu saya menutup diri. Setelah jujur ke support system, tekanan berkurang signifikan.', 'cerita', 0, 0, now() - interval '11 days', now()),
   ('50000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000005', 'Butuh Saran Saat Deadline Menumpuk', 'Saat deadline kuliah menumpuk, urge meningkat. Bagaimana menjaga fokus belajar tanpa burnout?', 'bantuan', 0, 0, now() - interval '10 days', now()),
-  ('50000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000006', 'Pertanyaan: Menjaga Konsistensi Setelah Relapse', 'Apa indikator paling penting untuk memastikan kita benar-benar pulih setelah relapse?', 'pertanyaan', 0, 0, now() - interval '9 days', now())
+  ('50000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000006', 'Pertanyaan: Menjaga Konsistensi Setelah Relapse', 'Apa indikator paling penting untuk memastikan kita benar-benar pulih setelah relapse?', 'pertanyaan', 0, 0, now() - interval '9 days', now()),
+  ('50000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000001', 'Update 45 Hari: Lebih Stabil Secara Emosi', 'Masuk hari ke-45, emosi mulai lebih stabil dan pola tidur membaik. Yang paling membantu: kurangi scroll malam dan journaling singkat.', 'cerita', 0, 0, now() - interval '8 days', now()),
+  ('50000000-0000-0000-0000-000000000014', '10000000-0000-0000-0000-000000000002', 'Tips Saat Urge Datang Tiba-Tiba', 'Saya pakai pola 3 langkah: tarik napas, pindah lokasi, lalu mulai aktivitas fisik ringan 10 menit. Cukup efektif buat meredakan dorongan awal.', 'saran', 0, 0, now() - interval '8 days' + interval '3 hours', now()),
+  ('50000000-0000-0000-0000-000000000015', '10000000-0000-0000-0000-000000000003', 'Butuh Saran Menghadapi Weekend', 'Di akhir pekan urge sering naik karena waktu kosong. Kalian biasanya bikin struktur aktivitas seperti apa?', 'bantuan', 0, 0, now() - interval '7 days' + interval '2 hours', now()),
+  ('50000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000004', 'Relapse Log: Belajar dari Pola yang Sama', 'Saya catat relapse terakhir terjadi saat begadang + stres kerja. Sekarang lagi coba fokus ke sleep hygiene dan batas layar malam.', 'cerita', 0, 0, now() - interval '7 days' + interval '6 hours', now()),
+  ('50000000-0000-0000-0000-000000000017', '10000000-0000-0000-0000-000000000005', 'Mencari Rekomendasi Podcast Recovery', 'Ada rekomendasi podcast atau channel yang bahas recovery PMO secara praktis dan tidak menghakimi?', 'pertanyaan', 0, 0, now() - interval '6 days' + interval '1 hours', now()),
+  ('50000000-0000-0000-0000-000000000018', '10000000-0000-0000-0000-000000000006', 'Checklist Harian yang Membantu Saya', 'Checklist sederhana: tidur cukup, olahraga 20 menit, no-scroll malam, dan check-in emosi. Kecil, tapi dampaknya terasa.', 'saran', 0, 0, now() - interval '6 days' + interval '4 hours', now()),
+  ('50000000-0000-0000-0000-000000000019', '10000000-0000-0000-0000-000000000002', 'Hari Sulit Bukan Berarti Gagal', 'Kemarin hari berat dan hampir relapse, tapi berhasil stop sebelum terlambat. Mau ngingetin: progres itu juga tentang cara kita bangkit.', 'motivasi', 0, 0, now() - interval '5 days' + interval '2 hours', now()),
+  ('50000000-0000-0000-0000-000000000020', '10000000-0000-0000-0000-000000000003', 'Template No-Social Window Malam', 'Saya coba aturan tanpa media sosial setelah jam 20.30. Hasilnya pikiran lebih tenang dan tidur lebih cepat.', 'saran', 0, 0, now() - interval '4 days' + interval '1 hours', now()),
+  ('50000000-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000004', 'Pertanyaan: Menjaga Fokus Saat WFH', 'Saat kerja dari rumah, trigger digital lebih sering muncul. Kalian punya setup kerja yang efektif untuk meminimalkan distraksi?', 'pertanyaan', 0, 0, now() - interval '3 days' + interval '3 hours', now()),
+  ('50000000-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000001', 'Ajak Bikin Grup Check-in Pagi', 'Kalau ada yang mau, kita bikin grup kecil check-in pagi 5 menit biar saling jaga ritme sebelum mulai aktivitas.', 'bantuan', 0, 0, now() - interval '2 days' + interval '5 hours', now())
 ON CONFLICT (id) DO UPDATE
 SET
   user_id = EXCLUDED.user_id,
@@ -312,7 +337,27 @@ VALUES
   ('60000000-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', 'Setuju, saya pakai pola serupa dengan tambahan journaling 5 menit tiap malam.', 1, 0, now() - interval '19 days' + interval '5 hours'),
   ('60000000-0000-0000-0000-000000000023', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000022', 'Mantap, journaling pendek memang sangat membantu buat awareness emosi.', 2, 0, now() - interval '19 days' + interval '6 hours'),
   ('60000000-0000-0000-0000-000000000024', '10000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000004', '60000000-0000-0000-0000-000000000008', 'Kalau perlu, buat daftar orang yang bisa dihubungi dalam 10 menit saat krisis.', 1, 0, now() - interval '16 days' + interval '6 hours'),
-  ('60000000-0000-0000-0000-000000000025', '10000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000011', '60000000-0000-0000-0000-000000000020', 'Saya tambahkan aturan no-scroll sebelum deadline agar fokus tetap aman.', 1, 0, now() - interval '9 days' + interval '5 hours')
+  ('60000000-0000-0000-0000-000000000025', '10000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000011', '60000000-0000-0000-0000-000000000020', 'Saya tambahkan aturan no-scroll sebelum deadline agar fokus tetap aman.', 1, 0, now() - interval '9 days' + interval '5 hours'),
+  ('60000000-0000-0000-0000-000000000026', '10000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000013', NULL, 'Keren progresnya. Saya juga ngerasa tidur lebih rapi bikin urge jauh lebih rendah.', 0, 0, now() - interval '8 days' + interval '2 hours'),
+  ('60000000-0000-0000-0000-000000000027', '10000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000013', NULL, 'Setuju soal journaling pendek, 5 menit aja sudah bantu menenangkan pikiran.', 0, 0, now() - interval '8 days' + interval '3 hours'),
+  ('60000000-0000-0000-0000-000000000028', '10000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000014', NULL, 'Teknik 3 langkah ini praktis banget. Saya biasa tambah minum air dulu sebelum pindah lokasi.', 0, 0, now() - interval '8 days' + interval '5 hours'),
+  ('60000000-0000-0000-0000-000000000029', '10000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000014', '60000000-0000-0000-0000-000000000028', 'Nice tambahan. Saya juga pakai timer 10 menit biar tetap konsisten.', 1, 0, now() - interval '8 days' + interval '6 hours'),
+  ('60000000-0000-0000-0000-000000000030', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000015', NULL, 'Weekend saya isi blok waktu: olahraga pagi, ketemu teman, dan review mingguan malam.', 0, 0, now() - interval '7 days' + interval '3 hours'),
+  ('60000000-0000-0000-0000-000000000031', '10000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000015', NULL, 'Coba bikin rencana dari Jumat malam supaya Sabtu-Minggu tidak kosong.', 0, 0, now() - interval '7 days' + interval '4 hours'),
+  ('60000000-0000-0000-0000-000000000032', '10000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000016', NULL, 'Bagus banget kamu sudah catat polanya. Sleep hygiene biasanya jadi game changer.', 0, 0, now() - interval '7 days' + interval '7 hours'),
+  ('60000000-0000-0000-0000-000000000033', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000016', '60000000-0000-0000-0000-000000000032', 'Setuju. Saya bantu dengan alarm winding-down 1 jam sebelum tidur.', 1, 0, now() - interval '7 days' + interval '8 hours'),
+  ('60000000-0000-0000-0000-000000000034', '10000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000017', NULL, 'Podcast yang menekankan habit dan regulasi emosi paling membantu buat saya.', 0, 0, now() - interval '6 days' + interval '2 hours'),
+  ('60000000-0000-0000-0000-000000000035', '10000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000018', NULL, 'Checklist harian ini simpel dan realistis. Saya mau adaptasi untuk jam kerja saya.', 0, 0, now() - interval '6 days' + interval '5 hours'),
+  ('60000000-0000-0000-0000-000000000036', '10000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000018', '60000000-0000-0000-0000-000000000035', 'Sip, saya tambahkan kolom mood biar bisa lihat pola emosinya juga.', 1, 0, now() - interval '6 days' + interval '6 hours'),
+  ('60000000-0000-0000-0000-000000000037', '10000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000019', NULL, 'Respect, bisa stop sebelum relapse itu kemenangan besar. Keep going.', 0, 0, now() - interval '5 days' + interval '3 hours'),
+  ('60000000-0000-0000-0000-000000000038', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000019', NULL, 'Setuju, yang penting bukan sempurna, tapi cepat kembali ke rencana.', 0, 0, now() - interval '5 days' + interval '4 hours'),
+  ('60000000-0000-0000-0000-000000000039', '10000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000020', NULL, 'No-social window malam memang powerful. Saya pakai dari 20.00 sampai tidur.', 0, 0, now() - interval '4 days' + interval '2 hours'),
+  ('60000000-0000-0000-0000-000000000040', '10000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000020', '60000000-0000-0000-0000-000000000039', 'Sama, saya kombinasi dengan mode grayscale supaya less tempting.', 1, 0, now() - interval '4 days' + interval '3 hours'),
+  ('60000000-0000-0000-0000-000000000041', '10000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000021', NULL, 'Untuk WFH, saya pisahkan akun kerja dan akun personal di browser.', 0, 0, now() - interval '3 days' + interval '4 hours'),
+  ('60000000-0000-0000-0000-000000000042', '10000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000021', NULL, 'Coba juga pakai website blocker saat jam fokus utama.', 0, 0, now() - interval '3 days' + interval '5 hours'),
+  ('60000000-0000-0000-0000-000000000043', '10000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000022', NULL, 'Saya ikut grup check-in pagi. Format 5 menit cocok buat jaga konsistensi.', 0, 0, now() - interval '2 days' + interval '6 hours'),
+  ('60000000-0000-0000-0000-000000000044', '10000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000022', NULL, 'Ikut juga. Mungkin bisa pakai template: mood, target, dan 1 komitmen hari ini.', 0, 0, now() - interval '2 days' + interval '7 hours'),
+  ('60000000-0000-0000-0000-000000000045', '10000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000022', '60000000-0000-0000-0000-000000000044', 'Setuju, besok saya mulai dengan format itu ya.', 1, 0, now() - interval '2 days' + interval '8 hours')
 ON CONFLICT (id) DO UPDATE
 SET
   user_id = EXCLUDED.user_id,
@@ -401,33 +446,41 @@ INSERT INTO education_contents (
   url,
   thumbnail_url,
   category,
+  type,
   is_active,
   published_at
 )
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Memahami Pemicu dan Pola Harian', 'Dasar mengenali pemicu harian dan menyusun respon yang lebih sehat.', 'https://recova.app/education/memahami-pemicu-dan-pola-harian', NULL, 'pola_pikir', true, now() - interval '60 days'),
-  ('22222222-2222-2222-2222-222222222222', 'Teknik Grounding 5-4-3-2-1', 'Latihan sederhana untuk mengembalikan fokus saat dorongan muncul.', 'https://recova.app/education/teknik-grounding-5-4-3-2-1', NULL, 'regulasi_emosi', true, now() - interval '58 days'),
-  ('12121212-1212-1212-1212-121212121212', 'Menyusun Rencana Darurat 10 Menit', 'Panduan membuat langkah cepat saat situasi terasa berat.', 'https://recova.app/education/rencana-darurat-10-menit', NULL, 'strategi_harian', true, now() - interval '56 days'),
-  ('13131313-1313-1313-1313-131313131313', 'Jeda Napas untuk Menurunkan Impuls', 'Teknik jeda napas untuk meredakan reaksi spontan.', 'https://recova.app/education/jeda-napas-menurunkan-impuls', NULL, 'regulasi_emosi', true, now() - interval '55 days'),
-  ('14141414-1414-1414-1414-141414141414', 'Audit Lingkungan Pemulihan', 'Cara menata lingkungan agar lebih mendukung proses pemulihan.', 'https://recova.app/education/audit-lingkungan-pemulihan', NULL, 'strategi_harian', true, now() - interval '54 days'),
-  ('15151515-1515-1515-1515-151515151515', 'Menjaga Konsistensi di Hari Sibuk', 'Kiat mempertahankan kebiasaan kecil saat jadwal padat.', 'https://recova.app/education/konsistensi-di-hari-sibuk', NULL, 'kebiasaan', true, now() - interval '53 days'),
-  ('16161616-1616-1616-1616-161616161616', 'Mengenali Pikiran Otomatis Negatif', 'Langkah praktis mengidentifikasi dan menantang pikiran otomatis negatif.', 'https://recova.app/education/mengenali-pikiran-otomatis-negatif', NULL, 'pola_pikir', true, now() - interval '52 days'),
-  ('17171717-1717-1717-1717-171717171717', 'Refleksi Mingguan yang Efektif', 'Template refleksi mingguan untuk melihat progres secara objektif.', 'https://recova.app/education/refleksi-mingguan-efektif', NULL, 'refleksi', true, now() - interval '51 days'),
-  ('71000000-0000-0000-0000-000000000001', 'CURE Your PORN ADDICTION | A Doctors Guide to Breaking The Habit', 'Panduan dokter untuk memutus pola adiksi dengan langkah praktis dan realistis.', 'http://www.youtube.com/watch?v=D2x6vY3r5K8', 'https://i.ytimg.com/vi/D2x6vY3r5K8/maxresdefault.jpg', 'kesehatan_mental', true, now() - interval '50 days'),
-  ('71000000-0000-0000-0000-000000000002', 'Langkah Pertama Berhenti dari Kecanduan Pornografi', 'Membahas pergeseran pola pikir awal dari penyangkalan ke tindakan pemulihan.', 'http://www.youtube.com/watch?v=a37iuykI9Io', 'https://i.ytimg.com/vi/a37iuykI9Io/maxresdefault.jpg', 'kesehatan_mental', true, now() - interval '49 days'),
-  ('71000000-0000-0000-0000-000000000003', 'Apa yang Terjadi Saat Berhenti Konsumsi Pornografi', 'Penjelasan timeline pemulihan fisik-mental setelah berhenti paparan konten adiktif.', 'http://www.youtube.com/watch?v=gJjsm2xcOy8', 'https://i.ytimg.com/vi/gJjsm2xcOy8/maxresdefault.jpg', 'kesehatan_holistik', true, now() - interval '48 days'),
-  ('71000000-0000-0000-0000-000000000004', 'Cara Memanage Nafsu - Ustadz Adi Hidayat', 'Kajian pengelolaan dorongan dari perspektif spiritual dan disiplin diri.', 'http://www.youtube.com/watch?v=TqZIsmrQ06o', 'https://i.ytimg.com/vi/TqZIsmrQ06o/maxresdefault.jpg', 'spiritualitas', true, now() - interval '47 days'),
-  ('71000000-0000-0000-0000-000000000005', 'Apa yang Terjadi Saat Orang Ketagihan Pornografi?', 'Penjelasan ilmiah dampak adiksi terhadap otak dan perilaku.', 'http://www.youtube.com/watch?v=Sq1s564ukTI', 'https://i.ytimg.com/vi/Sq1s564ukTI/maxresdefault.jpg', 'kesehatan_mental', true, now() - interval '46 days'),
-  ('71000000-0000-0000-0000-000000000006', 'Tips Disiplin Membangun Kebiasaan', 'Ringkasan prinsip habit design agar perubahan perilaku lebih sustain.', 'http://www.youtube.com/watch?v=uqGf4PWDOUw', 'https://i.ytimg.com/vi/uqGf4PWDOUw/maxresdefault.jpg', 'pengembangan_diri', true, now() - interval '45 days'),
-  ('71000000-0000-0000-0000-000000000007', 'Cara Reset Hidup dalam 7 Hari', 'Strategi reset rutinitas untuk memutus pola destruktif dan bangun arah baru.', 'http://www.youtube.com/watch?v=gPdKGv9ZuAU', 'https://i.ytimg.com/vi/gPdKGv9ZuAU/maxresdefault.jpg', 'pengembangan_diri', true, now() - interval '44 days'),
-  ('71000000-0000-0000-0000-000000000008', 'Rahasia Mengatasi Malas dan Kembali Produktif', 'Teknik praktis untuk memulai aksi kecil saat motivasi turun.', 'http://www.youtube.com/watch?v=WMfRHf5kjsE', 'https://i.ytimg.com/vi/WMfRHf5kjsE/maxresdefault.jpg', 'produktivitas', true, now() - interval '43 days'),
-  ('71000000-0000-0000-0000-000000000009', 'How to Be So Productive it Feels Illegal', 'Kumpulan habit produktivitas yang bisa diadaptasi ke rutinitas recovery.', 'http://www.youtube.com/watch?v=hSGt_rhu49U', 'https://i.ytimg.com/vi/hSGt_rhu49U/maxresdefault.jpg', 'produktivitas', true, now() - interval '42 days'),
-  ('71000000-0000-0000-0000-000000000010', 'Kunci Kebahagiaan dan Fokus Prioritas Hidup', 'Membahas pemilihan prioritas agar energi mental tidak habis pada hal tidak penting.', 'http://www.youtube.com/watch?v=dAI12OGD04A', 'https://i.ytimg.com/vi/dAI12OGD04A/maxresdefault.jpg', 'kesadaran_diri', true, now() - interval '41 days'),
-  ('71000000-0000-0000-0000-000000000011', 'Supaya Hidup Tidak Overthinking', 'Prinsip stoikisme praktis untuk mengelola pikiran berlebih.', 'http://www.youtube.com/watch?v=9qwR3GmR63I', 'https://i.ytimg.com/vi/9qwR3GmR63I/maxresdefault.jpg', 'kesadaran_diri', true, now() - interval '40 days'),
-  ('71000000-0000-0000-0000-000000000012', 'Cara Meningkatkan Fokus dan Kecerdasan Belajar', 'Strategi belajar terstruktur untuk memperkuat daya pikir.', 'http://www.youtube.com/watch?v=H-DeO-hnyTc', 'https://i.ytimg.com/vi/H-DeO-hnyTc/maxresdefault.jpg', 'pengembangan_diri', true, now() - interval '39 days'),
-  ('71000000-0000-0000-0000-000000000013', 'Mengatasi Rasa Kesepian', 'Panduan membangun koneksi sosial sehat untuk menurunkan risiko relapse.', 'http://www.youtube.com/watch?v=0b9Qzow_lv0', 'https://i.ytimg.com/vi/0b9Qzow_lv0/maxresdefault.jpg', 'kesehatan_mental', true, now() - interval '38 days'),
-  ('71000000-0000-0000-0000-000000000014', 'Yang Capek Jadi Dewasa, Nonton Ini', 'Membahas tekanan hidup dewasa dan langkah menjaga kestabilan emosi.', 'http://www.youtube.com/watch?v=ZOQhVk_YuSY', 'https://i.ytimg.com/vi/ZOQhVk_YuSY/maxresdefault.jpg', 'kesehatan_mental', true, now() - interval '37 days'),
-  ('71000000-0000-0000-0000-000000000015', 'Rahasia Jadi Manusia Bernilai', 'Insight pengembangan karakter dan keberanian mengambil tanggung jawab personal.', 'http://www.youtube.com/watch?v=E14rVsVJk0M', 'https://i.ytimg.com/vi/E14rVsVJk0M/maxresdefault.jpg', 'pengembangan_diri', true, now() - interval '36 days')
+  ('18181818-1818-1818-1818-181818181818', 'Kecanduan Pornografi: Penyebab, Gejala, dan Perawatan', 'Membahas tanda kecanduan, perubahan kerja otak, serta opsi penanganan medis dan psikologis.', 'https://www.alodokter.com/kecanduan-pornografi-penyebab-gejala-dan-perawatan', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '50 days'),
+  ('19191919-1919-1919-1919-191919191919', '6 Dampak Menonton Video Porno yang Tidak Boleh Disepelekan', 'Merangkum dampak pada tanggung jawab, relasi, produktivitas, dan kesehatan mental akibat kebiasaan menonton berlebihan.', 'https://www.alodokter.com/dampak-buruk-yang-dapat-dialami-penggemar-video-porno', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '49 days'),
+  ('20202020-2020-2020-2020-202020202020', 'Aktivitas Otak Pecandu Pornografi Mirip Pecandu Narkoba', 'Ulasan populer tentang respons sistem reward otak pada konsumsi pornografi berulang.', 'https://tirto.id/aktivitas-otak-pecandu-pornografi-mirip-pecandu-narkoba-ch4R', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '48 days'),
+  ('21212121-2121-2121-2121-212121212121', 'Nonton Film Porno Itu Wajar, Tapi Waspadai Juga Segudang Risikonya', 'Menjelaskan batas wajar konsumsi, ciri kecanduan, dan risiko bila kebiasaan menjadi berlebihan.', 'https://hellosehat.com/mental/kecanduan/pria-suka-nonton-film-porno/', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '47 days'),
+  ('23232323-2323-2323-2323-232323232323', 'Tanda-Tanda Kecanduan Pornografi dan Cara Mengatasinya', 'Panduan mengenali gejala adiksi serta langkah pemulihan yang bisa diterapkan bertahap.', 'https://hellosehat.com/mental/kecanduan/kecanduan-pornografi/', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '46 days'),
+  ('24242424-2424-2424-2424-242424242424', 'Disfungsi Ereksi Akibat Kecanduan Film Porno, Mungkinkah?', 'Membahas kaitan paparan konten dewasa berlebih dengan risiko gangguan ereksi dan fungsi seksual.', 'https://www.klikdokter.com/gaya-hidup/perawatan-pria/disfungsi-ereksi-akibat-kecanduan-film-porno-mungkinkah', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '45 days'),
+  ('25252525-2525-2525-2525-252525252525', 'Awas, Pria yang Kecanduan Pornografi Malah Berisiko Alami Impotensi', 'Menjelaskan mekanisme penurunan sensitivitas rangsangan seksual akibat konsumsi porno berlebihan.', 'https://hellosehat.com/pria/penyakit-pria/kecanduan-pornografi-risiko-impoten/', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '44 days'),
+  ('26262626-2626-2626-2626-262626262626', 'Terapi untuk Remaja yang Kecanduan Pornografi', 'Membahas opsi terapi untuk remaja, termasuk modifikasi perilaku, psikoterapi, dan pendampingan keluarga.', 'https://www.klikdokter.com/psikologi/kesehatan-mental/terapi-untuk-remaja-yang-kecanduan-pornografi', NULL, 'Dampak Pornografi', 'artikel', true, now() - interval '43 days'),
+  ('27272727-2727-2727-2727-272727272727', 'Strategi Mencegah dan Mengatasi Kecanduan Porno', 'Membahas langkah pencegahan, CBT, dukungan sosial, dan rutinitas sehat untuk pemulihan.', 'https://www.klikdokter.com/psikologi/kesehatan-mental/menavigasi-lautan-digital-strategi-menarik-untuk-mencegah-dan-mengatasi-kecanduan-porno', NULL, 'Pemulihan', 'artikel', true, now() - interval '42 days'),
+  ('28282828-2828-2828-2828-282828282828', 'Ini Efek Kecanduan Pornografi pada Kesehatan Mental', 'Membahas dampak ke kecemasan, mood, produktivitas, dan kualitas relasi sehari-hari.', 'https://www.halodoc.com/artikel/ini-efek-kecanduan-pornografi-pada-kesehatan-mental', NULL, 'Pemulihan', 'artikel', true, now() - interval '41 days'),
+  ('29292929-2929-2929-2929-292929292929', 'Efek Kecanduan Pornografi pada Disfungsi Ereksi', 'Menjelaskan kaitan perubahan respons otak akibat konten pornografi dengan disfungsi ereksi.', 'https://www.halodoc.com/artikel/efek-kecanduan-pornografi-pada-disfungsi-ereksi', NULL, 'Pemulihan', 'artikel', true, now() - interval '40 days'),
+  ('30303030-3030-3030-3030-303030303030', 'Dopamine Detox, Pilihan Metode untuk Mengatasi Kecanduan', 'Menjelaskan konsep dopamine detox sebagai strategi pembatasan stimulasi instan secara bertahap.', 'https://www.alodokter.com/dopamine-detox-pilihan-metode-untuk-mengatasi-kecanduan', NULL, 'Pemulihan', 'artikel', true, now() - interval '39 days'),
+  ('31313131-3131-3131-3131-313131313131', 'Mengenal Dopamine Detox, Manfaat dan Cara Melakukannya', 'Membahas manfaat, batasan ilmiah, dan langkah praktis menerapkan dopamine detox dengan aman.', 'https://www.halodoc.com/artikel/mengenal-dopamine-detox-manfaat-dan-cara-melakukannya', NULL, 'Pemulihan', 'artikel', true, now() - interval '38 days'),
+  ('32323232-3232-3232-3232-323232323232', 'Cara Jitu Agar Tidak Kecanduan PMO', 'Panduan langkah preventif dan intervensi dini agar siklus pornografi-masturbasi-orgasme tidak semakin berat.', 'https://www.halodoc.com/artikel/cara-jitu-agar-tidak-kecanduan-pmo', NULL, 'Pemulihan', 'artikel', true, now() - interval '37 days'),
+  ('33333333-3333-3333-3333-333333333333', '7 Cara Berhenti Onani supaya Lepas dari Kecanduan', 'Strategi mengenali pemicu, menghindari konten pornografi, dan mencari bantuan profesional bila perlu.', 'https://www.alodokter.com/7-cara-berhenti-onani-supaya-lepas-dari-kecanduan', NULL, 'Pemulihan', 'artikel', true, now() - interval '36 days'),
+  ('34343434-3434-3434-3434-343434343434', 'Pasangan Kecanduan Pornografi? Ini Cara Mengatasinya', 'Tips komunikasi, dukungan, dan batasan sehat untuk membantu pasangan keluar dari pola adiktif.', 'https://www.alodokter.com/pasangan-kecanduan-pornografi-ini-cara-mengatasinya', NULL, 'Pemulihan', 'artikel', true, now() - interval '35 days'),
+  ('71000000-0000-0000-0000-000000000002', 'Langkah Pertama Berhenti dari Kecanduan Pornografi', 'Membahas pergeseran pola pikir awal dari penyangkalan ke tindakan pemulihan.', 'http://www.youtube.com/watch?v=a37iuykI9Io', 'https://i.ytimg.com/vi/a37iuykI9Io/maxresdefault.jpg', 'Kesehatan Mental', 'video', true, now() - interval '49 days'),
+  ('71000000-0000-0000-0000-000000000003', 'Apa yang Terjadi Saat Berhenti Konsumsi Pornografi', 'Penjelasan timeline pemulihan fisik-mental setelah berhenti paparan konten adiktif.', 'http://www.youtube.com/watch?v=gJjsm2xcOy8', 'https://i.ytimg.com/vi/gJjsm2xcOy8/maxresdefault.jpg', 'Kesehatan Holistik', 'video', true, now() - interval '48 days'),
+  ('71000000-0000-0000-0000-000000000004', 'Cara Memanage Nafsu - Ustadz Adi Hidayat', 'Kajian pengelolaan dorongan dari perspektif spiritual dan disiplin diri.', 'http://www.youtube.com/watch?v=TqZIsmrQ06o', 'https://i.ytimg.com/vi/TqZIsmrQ06o/maxresdefault.jpg', 'Spiritualitas', 'video', true, now() - interval '47 days'),
+  ('71000000-0000-0000-0000-000000000005', 'Apa yang Terjadi Saat Orang Ketagihan Pornografi?', 'Penjelasan ilmiah dampak adiksi terhadap otak dan perilaku.', 'http://www.youtube.com/watch?v=Sq1s564ukTI', 'https://i.ytimg.com/vi/Sq1s564ukTI/maxresdefault.jpg', 'Kesehatan Mental', 'video', true, now() - interval '46 days'),
+  ('71000000-0000-0000-0000-000000000006', 'Tips Disiplin Membangun Kebiasaan', 'Ringkasan prinsip habit design agar perubahan perilaku lebih sustain.', 'http://www.youtube.com/watch?v=uqGf4PWDOUw', 'https://i.ytimg.com/vi/uqGf4PWDOUw/maxresdefault.jpg', 'Pengembangan Diri', 'video', true, now() - interval '45 days'),
+  ('71000000-0000-0000-0000-000000000007', 'Cara Reset Hidup dalam 7 Hari', 'Strategi reset rutinitas untuk memutus pola destruktif dan bangun arah baru.', 'http://www.youtube.com/watch?v=gPdKGv9ZuAU', 'https://i.ytimg.com/vi/gPdKGv9ZuAU/maxresdefault.jpg', 'Pengembangan Diri', 'video', true, now() - interval '44 days'),
+  ('71000000-0000-0000-0000-000000000008', 'Rahasia Mengatasi Malas dan Kembali Produktif', 'Teknik praktis untuk memulai aksi kecil saat motivasi turun.', 'http://www.youtube.com/watch?v=WMfRHf5kjsE', 'https://i.ytimg.com/vi/WMfRHf5kjsE/maxresdefault.jpg', 'Produktivitas', 'video', true, now() - interval '43 days'),
+  ('71000000-0000-0000-0000-000000000009', 'How to Be So Productive it Feels Illegal', 'Kumpulan habit produktivitas yang bisa diadaptasi ke rutinitas recovery.', 'http://www.youtube.com/watch?v=hSGt_rhu49U', 'https://i.ytimg.com/vi/hSGt_rhu49U/maxresdefault.jpg', 'Produktivitas', 'video', true, now() - interval '42 days'),
+  ('71000000-0000-0000-0000-000000000010', 'Kunci Kebahagiaan dan Fokus Prioritas Hidup', 'Membahas pemilihan prioritas agar energi mental tidak habis pada hal tidak penting.', 'http://www.youtube.com/watch?v=dAI12OGD04A', 'https://i.ytimg.com/vi/dAI12OGD04A/maxresdefault.jpg', 'Kesadaran Diri', 'video', true, now() - interval '41 days'),
+  ('71000000-0000-0000-0000-000000000011', 'Supaya Hidup Tidak Overthinking', 'Prinsip stoikisme praktis untuk mengelola pikiran berlebih.', 'http://www.youtube.com/watch?v=9qwR3GmR63I', 'https://i.ytimg.com/vi/9qwR3GmR63I/maxresdefault.jpg', 'Kesadaran Diri', 'video', true, now() - interval '40 days'),
+  ('71000000-0000-0000-0000-000000000012', 'Cara Meningkatkan Fokus dan Kecerdasan Belajar', 'Strategi belajar terstruktur untuk memperkuat daya pikir.', 'http://www.youtube.com/watch?v=H-DeO-hnyTc', 'https://i.ytimg.com/vi/H-DeO-hnyTc/maxresdefault.jpg', 'Pengembangan Diri', 'video', true, now() - interval '39 days'),
+  ('71000000-0000-0000-0000-000000000013', 'Mengatasi Rasa Kesepian', 'Panduan membangun koneksi sosial sehat untuk menurunkan risiko relapse.', 'http://www.youtube.com/watch?v=0b9Qzow_lv0', 'https://i.ytimg.com/vi/0b9Qzow_lv0/maxresdefault.jpg', 'Kesehatan Mental', 'video', true, now() - interval '38 days'),
+  ('71000000-0000-0000-0000-000000000014', 'Yang Capek Jadi Dewasa, Nonton Ini', 'Membahas tekanan hidup dewasa dan langkah menjaga kestabilan emosi.', 'http://www.youtube.com/watch?v=ZOQhVk_YuSY', 'https://i.ytimg.com/vi/ZOQhVk_YuSY/maxresdefault.jpg', 'Kesehatan Mental', 'video', true, now() - interval '37 days'),
+  ('71000000-0000-0000-0000-000000000015', 'Rahasia Jadi Manusia Bernilai', 'Insight pengembangan karakter dan keberanian mengambil tanggung jawab personal.', 'http://www.youtube.com/watch?v=E14rVsVJk0M', 'https://i.ytimg.com/vi/E14rVsVJk0M/maxresdefault.jpg', 'Pengembangan Diri', 'video', true, now() - interval '36 days')
 ON CONFLICT (id) DO UPDATE
 SET
   title = EXCLUDED.title,
@@ -435,6 +488,7 @@ SET
   url = EXCLUDED.url,
   thumbnail_url = EXCLUDED.thumbnail_url,
   category = EXCLUDED.category,
+  type = EXCLUDED.type,
   is_active = EXCLUDED.is_active,
   published_at = EXCLUDED.published_at;
 
@@ -482,7 +536,15 @@ SET
   is_active = EXCLUDED.is_active;
 
 -- 12) Daily challenges
-INSERT INTO daily_challenges (id, content, is_active, created_at)
+INSERT INTO daily_challenges (id, title, description, content, is_active, created_at)
+SELECT
+  seed.id::uuid,
+  'Tantangan Harian',
+  seed.content,
+  seed.content,
+  seed.is_active,
+  seed.created_at
+FROM (
 VALUES
   ('40000000-0000-0000-0000-000000000001', 'Bangun lebih awal dan mulai hari dengan rencana 3 prioritas sehat.', true, now()),
   ('40000000-0000-0000-0000-000000000002', 'Baca konten edukatif pemulihan minimal 15 menit.', true, now()),
@@ -518,13 +580,80 @@ VALUES
   ('40000000-0000-0000-0000-000000000032', 'Gunakan mode fokus 2 sesi x 45 menit untuk tugas utama.', true, now()),
   ('40000000-0000-0000-0000-000000000033', 'Lakukan check-in emosi 3 kali: pagi, siang, malam.', true, now()),
   ('40000000-0000-0000-0000-000000000034', 'Siapkan emergency note di ponsel untuk dibaca saat krisis.', true, now()),
-  ('40000000-0000-0000-0000-000000000035', 'Tutup hari dengan evaluasi: apa pemicu, apa respon, apa pelajaran.', true, now())
+  ('40000000-0000-0000-0000-000000000035', 'Tutup hari dengan evaluasi: apa pemicu, apa respon, apa pelajaran.', true, now()),
+  ('40000000-0000-0000-0000-000000000036', 'Lakukan digital sunset: hentikan layar 60 menit sebelum tidur.', true, now()),
+  ('40000000-0000-0000-0000-000000000037', 'Buat daftar 5 aktivitas pengganti saat urge muncul.', true, now()),
+  ('40000000-0000-0000-0000-000000000038', 'Praktikkan teknik grounding 5-4-3-2-1 minimal 2 kali hari ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000039', 'Lakukan jalan kaki 20 menit tanpa ponsel untuk reset pikiran.', true, now()),
+  ('40000000-0000-0000-0000-000000000040', 'Bersihkan feed media sosial dari akun atau kata kunci pemicu.', true, now()),
+  ('40000000-0000-0000-0000-000000000041', 'Tulis jurnal 10 menit tentang emosi yang paling dominan hari ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000042', 'Gunakan teknik pomodoro 3 sesi untuk tugas penting hari ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000043', 'Siapkan rencana besok malam ini: 3 prioritas dan 1 batasan digital.', true, now()),
+  ('40000000-0000-0000-0000-000000000044', 'Hubungi satu orang support system dan kirim update progres singkat.', true, now()),
+  ('40000000-0000-0000-0000-000000000045', 'Praktik self-talk sehat: ubah 3 pikiran negatif jadi kalimat realistis.', true, now()),
+  ('40000000-0000-0000-0000-000000000046', 'Lakukan latihan napas 4-7-8 selama 5 menit saat stres meningkat.', true, now()),
+  ('40000000-0000-0000-0000-000000000047', 'Atur ulang kamar/ruang kerja agar lebih minim distraksi visual.', true, now()),
+  ('40000000-0000-0000-0000-000000000048', 'Buat checklist rutinitas pagi dan jalankan minimal 80%.', true, now()),
+  ('40000000-0000-0000-0000-000000000049', 'Selesaikan 1 tugas yang paling sering ditunda (minimal 25 menit).', true, now()),
+  ('40000000-0000-0000-0000-000000000050', 'Tutup hari dengan gratitude: tulis 3 hal baik yang terjadi hari ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000051', 'No gadget 30 menit setelah bangun agar pagi lebih terarah.', true, now()),
+  ('40000000-0000-0000-0000-000000000052', 'Siapkan satu makanan sehat hari ini untuk menjaga energi stabil.', true, now()),
+  ('40000000-0000-0000-0000-000000000053', 'Tuliskan 3 trigger utama minggu ini dan 1 respon pengganti untuk tiap trigger.', true, now()),
+  ('40000000-0000-0000-0000-000000000054', 'Lakukan peregangan 10 menit setiap kali pikiran mulai buntu.', true, now()),
+  ('40000000-0000-0000-0000-000000000055', 'Matikan notifikasi non-penting selama jam fokus utama.', true, now()),
+  ('40000000-0000-0000-0000-000000000056', 'Baca ulang alasan recovery pribadimu sebelum tidur malam ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000057', 'Lakukan 1 aksi sosial positif: menyapa, membantu, atau memberi apresiasi.', true, now()),
+  ('40000000-0000-0000-0000-000000000058', 'Gunakan rule 10 menit: mulai tugas sulit minimal 10 menit tanpa jeda.', true, now()),
+  ('40000000-0000-0000-0000-000000000059', 'Selesaikan hari ini tanpa membuka konten random di jam rawan.', true, now()),
+  ('40000000-0000-0000-0000-000000000060', 'Tulis rencana emergency 3 langkah untuk menghadapi urge mendadak.', true, now()),
+  ('40000000-0000-0000-0000-000000000061', 'Lakukan check-in emosi tiap 4 jam dan catat perubahan mood.', true, now()),
+  ('40000000-0000-0000-0000-000000000062', 'Luangkan 20 menit belajar skill baru sebagai pengganti scrolling.', true, now()),
+  ('40000000-0000-0000-0000-000000000063', 'Rapikan file/folder digital untuk mengurangi distraksi visual.', true, now()),
+  ('40000000-0000-0000-0000-000000000064', 'Jaga hidrasi: minum air teratur sepanjang hari minimal 8 gelas.', true, now()),
+  ('40000000-0000-0000-0000-000000000065', 'Lakukan evaluasi sore: apa yang memicu, apa yang berhasil, apa yang diperbaiki.', true, now()),
+  ('40000000-0000-0000-0000-000000000066', 'Pasang batas aplikasi hiburan maksimal 45 menit hari ini.', true, now()),
+  ('40000000-0000-0000-0000-000000000067', 'Jadwalkan aktivitas malam yang menenangkan selain layar.', true, now()),
+  ('40000000-0000-0000-0000-000000000068', 'Tuliskan 1 kemenangan kecil hari ini lalu bagikan ke accountability partner.', true, now()),
+  ('40000000-0000-0000-0000-000000000069', 'Saat dorongan naik: berhenti, bernapas, pindah lokasi, lalu mulai aktivitas pengganti.', true, now()),
+  ('40000000-0000-0000-0000-000000000070', 'Akhiri hari dengan review 5 menit dan niat spesifik untuk esok pagi.', true, now())
+) AS seed (id, content, is_active, created_at)
 ON CONFLICT (id) DO UPDATE
 SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
   content = EXCLUDED.content,
   is_active = EXCLUDED.is_active;
 
--- 13) Achievements catalog
+-- 13) Daily physical challenges
+INSERT INTO daily_physical_challenges (id, title, description, is_active, created_at)
+VALUES
+  ('41000000-0000-0000-0000-000000000001', 'Aktivasi Pagi', 'Lakukan peregangan seluruh tubuh selama 10 menit setelah bangun tidur.', true, now()),
+  ('41000000-0000-0000-0000-000000000002', 'Jalan Cepat', 'Jalan cepat 20 menit tanpa ponsel untuk reset energi dan fokus.', true, now()),
+  ('41000000-0000-0000-0000-000000000003', 'Push-up Set', 'Selesaikan 3 set push-up (masing-masing 10 repetisi) dengan jeda terkontrol.', true, now()),
+  ('41000000-0000-0000-0000-000000000004', 'Squat Set', 'Selesaikan 3 set squat (masing-masing 15 repetisi) untuk aktivasi kaki.', true, now()),
+  ('41000000-0000-0000-0000-000000000005', 'Core Challenge', 'Tahan plank total 3 menit (boleh dibagi beberapa set).', true, now()),
+  ('41000000-0000-0000-0000-000000000006', 'Mobility Break', 'Ambil 3 jeda mobilitas @5 menit sepanjang hari kerja.', true, now()),
+  ('41000000-0000-0000-0000-000000000007', 'Cardio Ringan', 'Lakukan jogging atau sepeda statis minimal 15 menit dengan intensitas ringan.', true, now()),
+  ('41000000-0000-0000-0000-000000000008', 'Tangga Aktif', 'Naik turun tangga total 10 menit sebagai pengganti duduk lama.', true, now()),
+  ('41000000-0000-0000-0000-000000000009', 'Cold Finish', 'Akhiri mandi dengan 60 detik air dingin untuk melatih kontrol impuls.', true, now()),
+  ('41000000-0000-0000-0000-000000000010', 'Breath + Body', 'Kombinasikan 5 menit napas terarah lalu 20 burpee ringan.', true, now()),
+  ('41000000-0000-0000-0000-000000000011', 'Sunlight Walk', 'Kena paparan sinar matahari pagi sambil jalan santai 15 menit.', true, now()),
+  ('41000000-0000-0000-0000-000000000012', 'Desk Reset', 'Setiap 60 menit duduk, lakukan 1 menit gerak aktif (stretch atau squat).', true, now()),
+  ('41000000-0000-0000-0000-000000000013', 'Evening Stretch', 'Lakukan routine peregangan malam 12 menit sebelum tidur.', true, now()),
+  ('41000000-0000-0000-0000-000000000014', 'Glute Bridge', 'Kerjakan 3 set glute bridge (masing-masing 15 repetisi).', true, now()),
+  ('41000000-0000-0000-0000-000000000015', 'Wall Sit', 'Tahan wall sit total 2 menit, dibagi menjadi 2-4 set.', true, now()),
+  ('41000000-0000-0000-0000-000000000016', 'Lunge Flow', 'Lakukan alternating lunge total 24 repetisi dengan gerakan terkontrol.', true, now()),
+  ('41000000-0000-0000-0000-000000000017', 'Low Impact HIIT', 'Selesaikan 10 menit low-impact HIIT (work 30 detik, rest 30 detik).', true, now()),
+  ('41000000-0000-0000-0000-000000000018', 'Hip Mobility', 'Lakukan latihan mobilitas pinggul 8-10 menit untuk kurangi ketegangan.', true, now()),
+  ('41000000-0000-0000-0000-000000000019', 'Shoulder Release', 'Kerjakan drill bahu dan punggung atas 10 menit untuk postur lebih baik.', true, now()),
+  ('41000000-0000-0000-0000-000000000020', 'Night Walk', 'Jalan santai 15 menit setelah makan malam untuk menurunkan stres.', true, now())
+ON CONFLICT (id) DO UPDATE
+SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  is_active = EXCLUDED.is_active;
+
+-- 14) Achievements catalog
 INSERT INTO achievements (
   id,
   code,
@@ -561,7 +690,7 @@ SET
   is_active = EXCLUDED.is_active,
   updated_at = now();
 
--- 14) Achievement progress
+-- 15) Achievement progress
 WITH progress_seed (user_id, achievement_code, progress_value, unlocked_at, evaluated_at) AS (
   VALUES
     ('10000000-0000-0000-0000-000000000001', 'streak_7_days', 14, now() - interval '20 days', now()),
@@ -617,7 +746,7 @@ SET
   last_evaluated_at = EXCLUDED.last_evaluated_at,
   updated_at = now();
 
--- 15) AI persona preferences
+-- 16) AI persona preferences
 INSERT INTO user_ai_persona_preferences (
   user_id,
   persona,
@@ -635,7 +764,7 @@ SET
   persona = EXCLUDED.persona,
   updated_at = now();
 
--- 16) AI chats
+-- 17) AI chats
 INSERT INTO ai_chats (
   id,
   user_id,
@@ -666,6 +795,74 @@ ON CONFLICT (id) DO UPDATE
 SET
   role = EXCLUDED.role,
   content = EXCLUDED.content,
+  created_at = EXCLUDED.created_at;
+
+-- 18) Relapses (dari check-in gagal 14 hari terakhir)
+INSERT INTO relapses (
+  id,
+  user_id,
+  check_in_id,
+  relapse_date,
+  mood,
+  commitment,
+  relapse_trigger,
+  created_at
+)
+SELECT
+  gen_random_uuid(),
+  ci.user_id,
+  ci.id,
+  ci.check_in_date,
+  left(ci.mood, 50),
+  format(
+    'Komitmen reset %s: batasi akses pemicu, hubungi support system, dan jalankan emergency routine 15 menit.',
+    to_char(ci.check_in_date, 'YYYY-MM-DD')
+  ),
+  COALESCE(ci.relapse_trigger, ARRAY['pemicu belum tercatat']::text[]),
+  ci.check_in_date::timestamp + interval '22 hours'
+FROM check_ins ci
+WHERE ci.user_id IN (
+  '10000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003',
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000006'
+)
+  AND ci.check_in_date BETWEEN current_date - 13 AND current_date
+  AND ci.is_successful = false
+ON CONFLICT (user_id, relapse_date) DO UPDATE
+SET
+  check_in_id = EXCLUDED.check_in_id,
+  mood = EXCLUDED.mood,
+  commitment = EXCLUDED.commitment,
+  relapse_trigger = EXCLUDED.relapse_trigger,
+  created_at = EXCLUDED.created_at;
+
+-- 19) Auth refresh tokens (hash-only)
+INSERT INTO auth_refresh_tokens (
+  id,
+  user_id,
+  token_hash,
+  expires_at,
+  revoked_at,
+  rotated_from_id,
+  created_at
+)
+VALUES
+  ('a1000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'sha256:seed-user1-active-v1', now() + interval '20 days', NULL, NULL, now() - interval '2 days'),
+  ('a1000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'sha256:seed-user2-rotated-v1', now() + interval '15 days', now() - interval '5 days', NULL, now() - interval '20 days'),
+  ('a1000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'sha256:seed-user2-active-v2', now() + interval '25 days', NULL, 'a1000000-0000-0000-0000-000000000002', now() - interval '5 days'),
+  ('a1000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', 'sha256:seed-user3-expired-v1', now() - interval '1 day', NULL, NULL, now() - interval '30 days'),
+  ('a1000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000004', 'sha256:seed-user4-revoked-v1', now() + interval '10 days', now() - interval '1 day', NULL, now() - interval '12 days'),
+  ('a1000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000005', 'sha256:seed-user5-active-v1', now() + interval '30 days', NULL, NULL, now() - interval '3 days'),
+  ('a1000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000006', 'sha256:seed-user6-active-v1', now() + interval '18 days', NULL, NULL, now() - interval '4 days')
+ON CONFLICT (id) DO UPDATE
+SET
+  token_hash = EXCLUDED.token_hash,
+  expires_at = EXCLUDED.expires_at,
+  revoked_at = EXCLUDED.revoked_at,
+  rotated_from_id = EXCLUDED.rotated_from_id,
   created_at = EXCLUDED.created_at;
 
 COMMIT;

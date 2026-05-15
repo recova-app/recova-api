@@ -192,6 +192,7 @@ func TestE2E_CriticalFlows(t *testing.T) {
 			"nickname":           "e2e-user",
 			"recovery_reason":    "ingin pulih konsisten",
 			"daily_checkin_time": "08:30",
+			"porn_free_goal":     7,
 			"answers": map[string]any{
 				"motivation": "keluarga",
 			},

@@ -14,12 +14,12 @@ paths:
       operationId: getHealthLive
       summary: Check service liveness status
       responses:
-        '200':
+        "200":
           description: Service is live
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 success:
                   value:
@@ -35,12 +35,12 @@ paths:
       operationId: getHealthReady
       summary: Check service dependency readiness
       responses:
-        '200':
+        "200":
           description: Service is ready to accept requests
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ready:
                   value:
@@ -54,12 +54,12 @@ paths:
                           healthy: true
                           message: Database connection is healthy
                     meta: null
-        '503':
+        "503":
           description: Service is not ready yet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 not_ready:
                   value:
@@ -77,7 +77,7 @@ paths:
       operationId: getMetrics
       summary: Expose runtime metrics in Prometheus format
       responses:
-        '200':
+        "200":
           description: Runtime metrics in text/plain format
           content:
             text/plain:
@@ -90,18 +90,18 @@ paths:
       operationId: getOpenAPIArtifact
       summary: Expose generated OpenAPI YAML artifact for documentation tooling
       responses:
-        '200':
+        "200":
           description: OpenAPI YAML document is available
           content:
             application/yaml:
               schema:
                 type: string
-        '503':
+        "503":
           description: OpenAPI document is not available at runtime
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 openapi_unavailable:
                   value:
@@ -119,18 +119,18 @@ paths:
       operationId: getScalarAPIReference
       summary: Serve interactive Scalar API reference page
       responses:
-        '200':
+        "200":
           description: Scalar API reference HTML page
           content:
             text/html:
               schema:
                 type: string
-        '500':
+        "500":
           description: Failed to render documentation page
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 docs_render_failed:
                   value:
@@ -152,14 +152,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AuthGoogleLoginRequest'
+              $ref: "#/components/schemas/AuthGoogleLoginRequest"
       responses:
-        '200':
+        "200":
           description: Login succeeded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 login_success:
                   value:
@@ -178,12 +178,12 @@ paths:
                         token_type: Bearer
                         expires_in: 900
                     meta: null
-        '401':
+        "401":
           description: Google token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 google_token_invalid:
                   value:
@@ -194,12 +194,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_auth_google_401
-        '422':
+        "422":
           description: Invalid payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -223,14 +223,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AuthManualRegisterRequest'
+              $ref: "#/components/schemas/AuthManualRegisterRequest"
       responses:
-        '201':
+        "201":
           description: Registration succeeded and an active session was issued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 register_success:
                   value:
@@ -249,12 +249,12 @@ paths:
                         token_type: Bearer
                         expires_in: 900
                     meta: null
-        '409':
+        "409":
           description: Email or username is already in use
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 email_conflict:
                   value:
@@ -278,12 +278,12 @@ paths:
                         field: username
                         message: Username sudah digunakan
                       request_id: req_auth_register_409_username
-        '422':
+        "422":
           description: Invalid registration payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 password_mismatch:
                   value:
@@ -307,12 +307,12 @@ paths:
                         - field: password
                           message: Password minimal 8 karakter
                       request_id: req_auth_register_422_password
-        '500':
+        "500":
           description: Failed to create manual account
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 register_internal_error:
                   value:
@@ -334,14 +334,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AuthManualLoginRequest'
+              $ref: "#/components/schemas/AuthManualLoginRequest"
       responses:
-        '200':
+        "200":
           description: Manual login succeeded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 login_success:
                   value:
@@ -360,12 +360,12 @@ paths:
                         token_type: Bearer
                         expires_in: 900
                     meta: null
-        '401':
+        "401":
           description: Account not found or invalid credentials
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 account_not_found:
                   value:
@@ -385,12 +385,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_auth_login_401_password
-        '422':
+        "422":
           description: Invalid login payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -403,12 +403,12 @@ paths:
                         - field: identifier
                           message: Identifier login wajib diisi
                       request_id: req_auth_login_422_identifier
-        '500':
+        "500":
           description: Failed to process login
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 login_internal_error:
                   value:
@@ -432,14 +432,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OnboardingRequest'
+              $ref: "#/components/schemas/OnboardingRequest"
       responses:
-        '201':
+        "201":
           description: Onboarding data saved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 created:
                   value:
@@ -451,14 +451,21 @@ paths:
                       nickname: pejuang_pulih
                       recovery_reason: Ingin kembali fokus hidup sehat
                       daily_checkin_time: "09:00"
+                      porn_free_goal: 7
                       onboarding_completed: true
+                      onboarding_analysis:
+                        level: Moderate
+                        title: Perlu Konsistensi Bertahap
+                        level_description: Kamu butuh pola dukungan ringan tapi konsisten.
+                        pattern_analysis: Jawaban menunjukkan motivasi baik namun ritme belum stabil.
+                        encouragement: Pertahankan langkah kecil harian, progres kamu sudah bagus.
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -469,28 +476,28 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_onboarding_401
-        '409':
+        "409":
           description: Onboarding already completed with different data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 conflict:
                   value:
                     success: false
-                    message: Data onboarding sudah tersimpan dengan nilai berbeda
+                    message: Pengguna sudah menyelesaikan onboarding
                     data: null
                     error:
                       code: CONFLICT
                       details: null
                       request_id: req_onboarding_409
-        '422':
+        "422":
           description: Invalid onboarding payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -512,12 +519,12 @@ paths:
       security:
         - RefreshCookieAuth: []
       responses:
-        '200':
+        "200":
           description: Session refreshed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 refresh_success:
                   value:
@@ -536,12 +543,12 @@ paths:
                         token_type: Bearer
                         expires_in: 900
                     meta: null
-        '401':
+        "401":
           description: Refresh token is invalid or expired
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_session:
                   value:
@@ -561,12 +568,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Logout succeeded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 logout_success:
                   value:
@@ -575,12 +582,12 @@ paths:
                     data:
                       logged_out: true
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -600,12 +607,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: User profile fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 user_profile:
                   value:
@@ -617,14 +624,15 @@ paths:
                       nickname: pejuang_pulih
                       recovery_reason: Ingin hidup lebih terarah
                       daily_checkin_time: "09:00"
+                      porn_free_goal: 30
                       onboarding_completed: true
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -635,12 +643,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_users_me_401
-        '404':
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 user_not_found:
                   value:
@@ -664,14 +672,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserSettingsUpdateRequest'
+              $ref: "#/components/schemas/UserSettingsUpdateRequest"
       responses:
-        '200':
+        "200":
           description: User settings updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 settings_updated:
                   value:
@@ -683,14 +691,15 @@ paths:
                       nickname: pejuang_baru
                       recovery_reason: Fokus bertumbuh
                       daily_checkin_time: "07:30"
+                      porn_free_goal: 30
                       onboarding_completed: true
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -701,12 +710,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_users_settings_401
-        '422':
+        "422":
           description: Invalid update payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -716,8 +725,8 @@ paths:
                     error:
                       code: VALIDATION_ERROR
                       details:
-                        - field: payload
-                          message: Payload update kosong
+                        - field: body
+                          message: Setidaknya satu field pengaturan wajib diisi
                       request_id: req_users_settings_422
   /api/v1/users/me/reset-data:
     delete:
@@ -728,12 +737,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: User data reset successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 reset_success:
                   value:
@@ -742,12 +751,12 @@ paths:
                     data:
                       reset: true
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -758,12 +767,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_users_reset_401
-        '403':
+        "403":
           description: Reset endpoint is not allowed in this environment
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 forbidden:
                   value:
@@ -787,14 +796,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RoutineCheckInRequest'
+              $ref: "#/components/schemas/RoutineCheckInRequest"
       responses:
-        '200':
+        "200":
           description: Daily check-in saved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 checkin_success:
                   value:
@@ -805,15 +814,22 @@ paths:
                         id: checkin_123
                         user_id: user_123
                         check_in_date: "2026-05-10"
+                        check_in_day_name: Sabtu
                         mood: tenang
                         is_successful: true
                         commitment: Tetap konsisten
+                        relapse_trigger: []
                         created_at: "2026-05-10T09:00:00Z"
                       statistics:
                         current_streak: 5
                         longest_streak: 12
                         total_checkins: 24
-                        streak_calendar: ["2026-05-08", "2026-05-09", "2026-05-10"]
+                        total_attempts: 28
+                        success_rate: 0.86
+                        streak_calendar:
+                          ["2026-05-08", "2026-05-09", "2026-05-10"]
+                        relapse_calendar:
+                          ["2026-05-06", "2026-05-08"]
                         relapse_count: 3
                         relapse_rate: 0.12
                         recovery_success_rate: 0.88
@@ -832,15 +848,34 @@ paths:
                           delta_rate: 0.2
                         mood_trend:
                           - date: "2026-05-10"
+                            day_name: Sabtu
                             dominant_mood: tenang
                             successful_ratio: 1
+                        last_check_in_date: "2026-05-10"
+                        last_check_in_day_name: Sabtu
+                        last_relapse_date: "2026-05-08"
+                        last_relapse_day_name: Kamis
+                        weekday_summary:
+                          - day_name: Senin
+                            successful_checkins: 3
+                            relapse_count: 1
+                            total_checkins: 4
+                            success_rate: 0.75
+                        streak_goal_comparison:
+                          porn_free_goal: 30
+                          current_streak: 5
+                          longest_streak: 12
+                          goal_reached: false
+                          remaining_days: 25
+                          progress_rate: 0.17
+                      relapse_solution: null
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -851,12 +886,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_routine_checkin_401
-        '409':
+        "409":
           description: User already checked in on the same UTC day
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 conflict:
                   value:
@@ -867,12 +902,12 @@ paths:
                       code: CONFLICT
                       details: null
                       request_id: req_routine_checkin_409
-        '422':
+        "422":
           description: Invalid check-in payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -894,12 +929,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Routine statistics fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 statistics_success:
                   value:
@@ -909,7 +944,12 @@ paths:
                       current_streak: 5
                       longest_streak: 12
                       total_checkins: 24
-                      streak_calendar: ["2026-05-08", "2026-05-09", "2026-05-10"]
+                      total_attempts: 28
+                      success_rate: 0.86
+                      streak_calendar:
+                        ["2026-05-08", "2026-05-09", "2026-05-10"]
+                      relapse_calendar:
+                        ["2026-05-06", "2026-05-08"]
                       relapse_count: 3
                       relapse_rate: 0.12
                       recovery_success_rate: 0.88
@@ -928,15 +968,33 @@ paths:
                         delta_rate: 0.2
                       mood_trend:
                         - date: "2026-05-10"
+                          day_name: Sabtu
                           dominant_mood: tenang
                           successful_ratio: 1
+                      last_check_in_date: "2026-05-10"
+                      last_check_in_day_name: Sabtu
+                      last_relapse_date: "2026-05-08"
+                      last_relapse_day_name: Kamis
+                      weekday_summary:
+                        - day_name: Senin
+                          successful_checkins: 3
+                          relapse_count: 1
+                          total_checkins: 4
+                          success_rate: 0.75
+                      streak_goal_comparison:
+                        porn_free_goal: 30
+                        current_streak: 5
+                        longest_streak: 12
+                        goal_reached: false
+                        remaining_days: 25
+                        progress_rate: 0.17
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -964,12 +1022,12 @@ paths:
             minimum: 7
             maximum: 90
       responses:
-        '200':
+        "200":
           description: Activity summary fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 activity_summary_success:
                   value:
@@ -982,15 +1040,16 @@ paths:
                       active_days: 27
                       recent_activity:
                         - date: "2026-05-10"
-                          type: checkin
+                          day_name: Sabtu
+                          type: checkin_success
                           mood: tenang
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1001,12 +1060,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_routine_activity_401
-        '422':
+        "422":
           description: window_days value is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_window_days:
                   value:
@@ -1020,6 +1079,160 @@ paths:
                           message: Nilai window_days tidak valid
                       request_id: req_routine_activity_422
   /api/v1/routine/relapses:
+    post:
+      tags:
+        - routine
+      operationId: postRoutineRelapse
+      summary: Save user relapse trigger for current UTC day
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoutineRelapseRequest"
+      responses:
+        "200":
+          description: Relapse trigger saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+              examples:
+                relapse_success:
+                  value:
+                    success: true
+                    message: Relapse berhasil dicatat
+                    data:
+                      relapse:
+                        id: relapse_123
+                        user_id: user_123
+                        relapse_date: "2026-05-10"
+                        relapse_day_name: Sabtu
+                        mood: cemas
+                        commitment: Tetap bangkit
+                        relapse_trigger: [stres kerja, sendiri malam]
+                        check_in_id: checkin_123
+                        created_at: "2026-05-10T09:00:00Z"
+                      statistics:
+                        current_streak: 0
+                        longest_streak: 12
+                        total_checkins: 23
+                        total_attempts: 28
+                        success_rate: 0.82
+                        streak_calendar: ["2026-05-08", "2026-05-09"]
+                        relapse_calendar: ["2026-05-06", "2026-05-10"]
+                        relapse_count: 4
+                        relapse_rate: 0.14
+                        recovery_success_rate: 0.82
+                        checkin_consistency_score: 84.5
+                        weekly_progress:
+                          window_days: 7
+                          current_successful_checkins: 5
+                          previous_successful_checkins: 5
+                          delta: 0
+                          delta_rate: 0
+                        monthly_progress:
+                          window_days: 30
+                          current_successful_checkins: 23
+                          previous_successful_checkins: 20
+                          delta: 3
+                          delta_rate: 0.15
+                        mood_trend:
+                          - date: "2026-05-10"
+                            day_name: Sabtu
+                            dominant_mood: tenang
+                            successful_ratio: 0
+                        last_check_in_date: "2026-05-10"
+                        last_check_in_day_name: Sabtu
+                        last_relapse_date: "2026-05-10"
+                        last_relapse_day_name: Sabtu
+                        weekday_summary:
+                          - day_name: Senin
+                            successful_checkins: 3
+                            relapse_count: 1
+                            total_checkins: 4
+                            success_rate: 0.75
+                        streak_goal_comparison:
+                          porn_free_goal: 30
+                          current_streak: 0
+                          longest_streak: 12
+                          goal_reached: false
+                          remaining_days: 30
+                          progress_rate: 0
+                      relapse_solution:
+                        title: Langkah Pemulihan Cepat
+                        analysis: Relapse terdeteksi saat trigger utama aktif. Fokus putus rantai pemicu dan stabilkan emosi.
+                        summary: Solusi terbaik saat ini adalah batasi akses pemicu di jam rawan, pindah ke aktivitas aman, lalu jaga akuntabilitas singkat.
+                        generated_at: "2026-05-10T09:05:00Z"
+                    meta: null
+        "401":
+          description: Access token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                unauthenticated:
+                  value:
+                    success: false
+                    message: Autentikasi dibutuhkan
+                    data: null
+                    error:
+                      code: UNAUTHENTICATED
+                      details: null
+                      request_id: req_routine_relapses_post_401
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                user_not_found:
+                  value:
+                    success: false
+                    message: Pengguna tidak ditemukan
+                    data: null
+                    error:
+                      code: NOT_FOUND
+                      details: null
+                      request_id: req_routine_relapses_post_404
+        "409":
+          description: Relapse for current UTC day already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                relapse_conflict:
+                  value:
+                    success: false
+                    message: Relapse hari ini sudah tercatat
+                    data: null
+                    error:
+                      code: CONFLICT
+                      details: null
+                      request_id: req_routine_relapses_post_409
+        "422":
+          description: Invalid relapse payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalid_payload:
+                  value:
+                    success: false
+                    message: Pemicu relapse wajib diisi
+                    data: null
+                    error:
+                      code: VALIDATION_ERROR
+                      details:
+                        - field: relapse_trigger
+                          message: Isi minimal satu pemicu relapse
+                      request_id: req_routine_relapses_post_422
     get:
       tags:
         - routine
@@ -1028,30 +1241,34 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Relapse history fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 relapse_history_success:
                   value:
                     success: true
                     message: Riwayat relapse berhasil diambil
                     data:
-                      - check_in_id: checkin_98
-                        check_in_date: "2026-05-01"
+                      - id: relapse_98
+                        user_id: user_123
+                        relapse_date: "2026-05-01"
+                        relapse_day_name: Jumat
                         mood: cemas
                         commitment: null
+                        relapse_trigger: [stres kerja, sendiri malam]
+                        check_in_id: checkin_98
                         created_at: "2026-05-01T07:00:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1062,6 +1279,123 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_routine_relapses_401
+  /api/v1/routine/relapses/statistics:
+    get:
+      tags:
+        - routine
+      operationId: getRoutineRelapseStatistics
+      summary: Get complete relapse statistics with UTC hour analysis
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Relapse statistics fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+              examples:
+                relapse_statistics_success:
+                  value:
+                    success: true
+                    message: Statistik relapse berhasil diambil
+                    data:
+                      statistics:
+                        current_streak: 0
+                        longest_streak: 12
+                        total_checkins: 23
+                        total_attempts: 28
+                        success_rate: 0.82
+                        streak_calendar: ["2026-05-08", "2026-05-09"]
+                        relapse_calendar: ["2026-05-06", "2026-05-10"]
+                        relapse_count: 4
+                        relapse_rate: 0.14
+                        recovery_success_rate: 0.82
+                        checkin_consistency_score: 84.5
+                        weekly_progress:
+                          window_days: 7
+                          current_successful_checkins: 5
+                          previous_successful_checkins: 5
+                          delta: 0
+                          delta_rate: 0
+                        monthly_progress:
+                          window_days: 30
+                          current_successful_checkins: 23
+                          previous_successful_checkins: 20
+                          delta: 3
+                          delta_rate: 0.15
+                        mood_trend:
+                          - date: "2026-05-10"
+                            day_name: Sabtu
+                            dominant_mood: tenang
+                            successful_ratio: 0
+                        last_check_in_date: "2026-05-10"
+                        last_check_in_day_name: Sabtu
+                        last_relapse_date: "2026-05-10"
+                        last_relapse_day_name: Sabtu
+                        weekday_summary:
+                          - day_name: Senin
+                            successful_checkins: 3
+                            relapse_count: 1
+                            total_checkins: 4
+                            success_rate: 0.75
+                        streak_goal_comparison:
+                          porn_free_goal: 30
+                          current_streak: 0
+                          longest_streak: 12
+                          goal_reached: false
+                          remaining_days: 30
+                          progress_rate: 0
+                      relapses:
+                        - id: relapse_123
+                          user_id: user_123
+                          relapse_date: "2026-05-10"
+                          relapse_day_name: Sabtu
+                          mood: cemas
+                          commitment: Tetap bangkit
+                          relapse_trigger: [stres kerja, sendiri malam]
+                          check_in_id: checkin_123
+                          created_at: "2026-05-10T21:05:00Z"
+                      hourly_relapse_distribution:
+                        - hour_utc: 21
+                          relapse_count: 3
+                        - hour_utc: 22
+                          relapse_count: 3
+                      relapse_triggers_distribution:
+                        - relapse_trigger: stres kerja
+                          relapse_trigger_count: 4
+                        - relapse_trigger: sendiri malam
+                          relapse_trigger_count: 2
+                      peak_relapse_hours_utc: [21, 22]
+                      peak_relapse_count: 3
+                      ai_summary: Kamu konsisten membaik, jaga ritme malam.
+                      relapse_time_summary:
+                        title: Analisis Waktu Relapse
+                        analysis: Pola relapse paling sering muncul di 21:00-22:00 UTC saat trigger emosional malam meningkat.
+                        summary: Trigger paling sering saat ini adalah stres kerja. Solusi terbaik adalah memutus akses pemicu sebelum jam rawan dan beralih ke rutinitas pemulihan yang sudah ditetapkan.
+                        generated_at: "2026-05-10T21:10:00Z"
+                      relapse_trigger_summary:
+                        title: Langkah Pemulihan Cepat
+                        analysis: Relapse terdeteksi saat trigger utama aktif. Fokus putus rantai pemicu dan stabilkan emosi.
+                        summary: Solusi terbaik saat ini adalah batasi akses pemicu di jam rawan, pindah ke aktivitas aman, lalu jaga akuntabilitas singkat.
+                        generated_at: "2026-05-10T21:08:00Z"
+                    meta: null
+        "401":
+          description: Access token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                unauthenticated:
+                  value:
+                    success: false
+                    message: Autentikasi dibutuhkan
+                    data: null
+                    error:
+                      code: UNAUTHENTICATED
+                      details: null
+                      request_id: req_routine_relapses_statistics_401
   /api/v1/journals:
     get:
       tags:
@@ -1071,12 +1405,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Journal list fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 journals_success:
                   value:
@@ -1088,12 +1422,12 @@ paths:
                         content: Hari ini saya berhasil konsisten.
                         created_at: "2026-05-10T08:00:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1116,14 +1450,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/JournalCreateRequest'
+              $ref: "#/components/schemas/JournalCreateRequest"
       responses:
-        '201':
+        "201":
           description: Journal entry created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 journal_created:
                   value:
@@ -1135,12 +1469,12 @@ paths:
                       content: Catatan baru
                       created_at: "2026-05-10T09:30:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1151,12 +1485,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_journals_post_401
-        '422':
+        "422":
           description: Invalid journal payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_payload:
                   value:
@@ -1182,14 +1516,14 @@ paths:
           name: category
           required: false
           schema:
-            $ref: '#/components/schemas/CommunityCategory'
+            $ref: "#/components/schemas/CommunityCategory"
       responses:
-        '200':
+        "200":
           description: Community post list fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 community_posts_success:
                   value:
@@ -1207,12 +1541,12 @@ paths:
                           nickname: pejuang_pulih
                           current_streak: 5
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1223,12 +1557,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_list_401
-        '422':
+        "422":
           description: Invalid category query
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_category:
                   value:
@@ -1253,14 +1587,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityCreatePostRequest'
+              $ref: "#/components/schemas/CommunityCreatePostRequest"
       responses:
-        '201':
+        "201":
           description: Community post created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 community_post_created:
                   value:
@@ -1278,12 +1612,12 @@ paths:
                         nickname: pejuang_pulih
                         current_streak: 7
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1294,12 +1628,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_create_401
-        '422':
+        "422":
           description: Invalid post payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_post_payload:
                   value:
@@ -1312,12 +1646,12 @@ paths:
                         - field: content
                           message: Konten postingan terlalu pendek
                       request_id: req_community_create_422
-        '429':
+        "429":
           description: Community write request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -1350,12 +1684,12 @@ paths:
             minimum: 1
             maximum: 200
       responses:
-        '200':
+        "200":
           description: Comment thread fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 comment_thread_success:
                   value:
@@ -1383,12 +1717,12 @@ paths:
                               created_at: "2026-05-10T06:35:00Z"
                               replies: []
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1399,12 +1733,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_thread_401
-        '422':
+        "422":
           description: Invalid comment query
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_comment_query:
                   value:
@@ -1435,14 +1769,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityCreateCommentRequest'
+              $ref: "#/components/schemas/CommunityCreateCommentRequest"
       responses:
-        '201':
+        "201":
           description: Comment created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 comment_created:
                   value:
@@ -1458,12 +1792,12 @@ paths:
                       reply_count: 0
                       created_at: "2026-05-10T10:05:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1474,12 +1808,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_comment_401
-        '404':
+        "404":
           description: Post not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 post_not_found:
                   value:
@@ -1490,12 +1824,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_community_comment_404
-        '422':
+        "422":
           description: Invalid comment payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_comment_payload:
                   value:
@@ -1508,12 +1842,12 @@ paths:
                         - field: content
                           message: Komentar wajib diisi
                       request_id: req_community_comment_422
-        '429':
+        "429":
           description: Community write request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -1548,14 +1882,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityCreateCommentRequest'
+              $ref: "#/components/schemas/CommunityCreateCommentRequest"
       responses:
-        '201':
+        "201":
           description: Reply created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 reply_created:
                   value:
@@ -1570,12 +1904,12 @@ paths:
                       depth: 1
                       created_at: "2026-05-10T10:07:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1586,12 +1920,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_reply_401
-        '404':
+        "404":
           description: Post or parent comment not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 parent_not_found:
                   value:
@@ -1602,12 +1936,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_community_reply_404
-        '422':
+        "422":
           description: Invalid reply payload or thread depth
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_reply_payload:
                   value:
@@ -1617,15 +1951,15 @@ paths:
                     error:
                       code: VALIDATION_ERROR
                       details:
-                        - field: depth
-                          message: Balasan komentar melewati batas kedalaman thread
+                        - field: comment_id
+                          message: Kedalaman balasan komentar maksimal 2
                       request_id: req_community_reply_422
-        '429':
+        "429":
           description: Community write request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -1651,12 +1985,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Post like status updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 like_toggled:
                   value:
@@ -1666,12 +2000,12 @@ paths:
                       liked_count: 11
                       is_liked: true
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1682,12 +2016,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_community_like_401
-        '404':
+        "404":
           description: Post not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 post_not_found:
                   value:
@@ -1698,12 +2032,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_community_like_404
-        '429':
+        "429":
           description: Community write request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -1727,14 +2061,14 @@ paths:
           name: category
           required: false
           schema:
-            $ref: '#/components/schemas/AchievementsCategory'
+            $ref: "#/components/schemas/AchievementsCategory"
       responses:
-        '200':
+        "200":
           description: Achievement catalog fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 achievement_catalog_success:
                   value:
@@ -1749,12 +2083,12 @@ paths:
                           category: streak_milestone
                           threshold: 7
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1765,12 +2099,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_achievement_catalog_401
-        '404':
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 user_not_found:
                   value:
@@ -1781,12 +2115,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_achievement_catalog_404
-        '422':
+        "422":
           description: Invalid category filter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_category:
                   value:
@@ -1812,14 +2146,14 @@ paths:
           name: category
           required: false
           schema:
-            $ref: '#/components/schemas/AchievementsCategory'
+            $ref: "#/components/schemas/AchievementsCategory"
       responses:
-        '200':
+        "200":
           description: Achievement progress fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 achievement_progress_success:
                   value:
@@ -1834,12 +2168,12 @@ paths:
                           unlocked: false
                           unlocked_at: null
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1850,12 +2184,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_achievement_progress_401
-        '404':
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 user_not_found:
                   value:
@@ -1866,12 +2200,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_achievement_progress_404
-        '422':
+        "422":
           description: Invalid category filter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_category:
                   value:
@@ -1897,14 +2231,14 @@ paths:
           name: category
           required: false
           schema:
-            $ref: '#/components/schemas/AchievementsCategory'
+            $ref: "#/components/schemas/AchievementsCategory"
       responses:
-        '200':
+        "200":
           description: Unlocked achievement list fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 achievement_unlocked_success:
                   value:
@@ -1920,12 +2254,12 @@ paths:
                           progress_value: 3
                           unlocked_at: "2026-05-08T09:00:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -1936,12 +2270,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_achievement_unlocked_401
-        '404':
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 user_not_found:
                   value:
@@ -1952,12 +2286,12 @@ paths:
                       code: NOT_FOUND
                       details: null
                       request_id: req_achievement_unlocked_404
-        '422':
+        "422":
           description: Invalid category filter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_category:
                   value:
@@ -1979,12 +2313,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Educational content fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 education_content_success:
                   value:
@@ -1996,15 +2330,16 @@ paths:
                         description: Langkah praktis menjaga konsistensi
                         url: https://example.com/edukasi/kebiasaan
                         thumbnail_url: null
-                        category: recovery
+                        category: kebiasaan
+                        type: artikel
                         published_at: "2026-05-09T00:00:00Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2024,12 +2359,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: Daily content fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 daily_content_success:
                   value:
@@ -2038,14 +2373,19 @@ paths:
                     data:
                       date: "2026-05-10"
                       motivation: Satu langkah kecil hari ini tetap berarti.
-                      challenge: Tulis 3 hal yang kamu syukuri.
+                      challenge:
+                        title: Refleksi Harian
+                        description: Tulis 3 hal yang kamu syukuri.
+                      physical_challenge:
+                        title: Aktivasi Pagi
+                        description: Lakukan peregangan seluruh tubuh selama 10 menit setelah bangun tidur.
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2069,14 +2409,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AIAskCoachRequest'
+              $ref: "#/components/schemas/AIAskCoachRequest"
       responses:
-        '200':
+        "200":
           description: AI Coach response generated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_ask_coach_success:
                   value:
@@ -2086,12 +2426,12 @@ paths:
                       response: Kamu sudah membuat progres bagus. Fokus 1 target kecil hari ini.
                       persona_used: supportive
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2102,12 +2442,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_ask_401
-        '422':
+        "422":
           description: Invalid AI chat payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_ask_payload:
                   value:
@@ -2120,12 +2460,12 @@ paths:
                         - field: message
                           message: Pesan wajib diisi
                       request_id: req_ai_ask_422
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2136,12 +2476,12 @@ paths:
                       code: RATE_LIMITED
                       details: null
                       request_id: req_ai_ask_429
-        '502':
+        "502":
           description: Invalid AI provider response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 ai_downstream_invalid_response:
                   value:
@@ -2152,12 +2492,12 @@ paths:
                       code: DOWNSTREAM_ERROR
                       details: null
                       request_id: req_ai_ask_502
-        '503':
+        "503":
           description: AI provider unavailable or timeout
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 ai_unavailable:
                   value:
@@ -2185,12 +2525,12 @@ paths:
             minimum: 1
             maximum: 200
       responses:
-        '200':
+        "200":
           description: AI chat history fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_chat_history_success:
                   value:
@@ -2206,12 +2546,12 @@ paths:
                         content: Coba pecah target jadi 1 langkah kecil dulu.
                         created_at: "2026-05-10T08:00:05Z"
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2222,12 +2562,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_history_401
-        '422':
+        "422":
           description: Invalid query value
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_limit:
                   value:
@@ -2240,12 +2580,12 @@ paths:
                         - field: limit
                           message: Nilai limit tidak valid
                       request_id: req_ai_history_422
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2265,12 +2605,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: AI summary fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_summary_success:
                   value:
@@ -2279,12 +2619,12 @@ paths:
                     data:
                       summary: Kamu menunjukkan konsistensi yang makin stabil dalam 2 minggu terakhir.
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2295,12 +2635,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_onboarding_401
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2324,14 +2664,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AIOnboardingAnalysisRequest'
+              $ref: "#/components/schemas/AIOnboardingAnalysisRequest"
       responses:
-        '200':
+        "200":
           description: Onboarding analysis generated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_onboarding_analysis_success:
                   value:
@@ -2344,12 +2684,12 @@ paths:
                       pattern_analysis: Jawaban menunjukkan motivasi baik namun ritme belum stabil.
                       encouragement: Pertahankan langkah kecil harian, progres kamu sudah bagus.
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2360,12 +2700,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_persona_get_401
-        '422':
+        "422":
           description: Invalid onboarding-analysis payload
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_onboarding_answers:
                   value:
@@ -2378,12 +2718,12 @@ paths:
                         - field: answers
                           message: Jawaban onboarding wajib diisi
                       request_id: req_ai_onboarding_422
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2394,12 +2734,12 @@ paths:
                       code: RATE_LIMITED
                       details: null
                       request_id: req_ai_persona_get_429
-        '502':
+        "502":
           description: Invalid AI provider analysis response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_ai_analysis_response:
                   value:
@@ -2410,12 +2750,12 @@ paths:
                       code: DOWNSTREAM_ERROR
                       details: null
                       request_id: req_ai_onboarding_502
-        '503':
+        "503":
           description: AI provider unavailable or timeout
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 ai_provider_timeout:
                   value:
@@ -2426,6 +2766,119 @@ paths:
                       code: SERVICE_UNAVAILABLE
                       details: null
                       request_id: req_ai_onboarding_503
+  /api/v1/ai/relapse-solution:
+    post:
+      tags:
+        - ai
+      operationId: postAIRelapseSolution
+      summary: Generate AI relapse recovery solution
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIRelapseSolutionRequest"
+      responses:
+        "200":
+          description: Relapse solution generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessEnvelope"
+              examples:
+                ai_relapse_solution_success:
+                  value:
+                    success: true
+                    message: Solusi relapse berhasil dibuat
+                    data:
+                      title: Pulihkan Fokus Sekarang
+                      analysis: Pemicu utama muncul saat stres dan akses cepat ke konten pemicu.
+                      summary: Solusi terbaik saat ini adalah memutus akses pemicu saat dorongan naik, lakukan stabilisasi emosi cepat, dan lanjutkan aktivitas pengganti yang aman.
+                    meta: null
+        "401":
+          description: Access token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                unauthenticated:
+                  value:
+                    success: false
+                    message: Autentikasi dibutuhkan
+                    data: null
+                    error:
+                      code: UNAUTHENTICATED
+                      details: null
+                      request_id: req_ai_relapse_solution_401
+        "422":
+          description: Invalid relapse-solution payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalid_payload:
+                  value:
+                    success: false
+                    message: Mood wajib diisi
+                    data: null
+                    error:
+                      code: VALIDATION_ERROR
+                      details:
+                        - field: mood
+                          message: Mood wajib diisi
+                      request_id: req_ai_relapse_solution_422
+        "429":
+          description: AI request exceeded limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                rate_limited:
+                  value:
+                    success: false
+                    message: Terlalu banyak permintaan AI, coba lagi sebentar
+                    data: null
+                    error:
+                      code: RATE_LIMITED
+                      details: null
+                      request_id: req_ai_relapse_solution_429
+        "502":
+          description: Invalid AI provider response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalid_ai_response:
+                  value:
+                    success: false
+                    message: Respons solusi relapse tidak valid
+                    data: null
+                    error:
+                      code: DOWNSTREAM_ERROR
+                      details: null
+                      request_id: req_ai_relapse_solution_502
+        "503":
+          description: AI provider unavailable or timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                ai_provider_timeout:
+                  value:
+                    success: false
+                    message: Layanan AI sedang tidak tersedia, coba lagi
+                    data: null
+                    error:
+                      code: SERVICE_UNAVAILABLE
+                      details: null
+                      request_id: req_ai_relapse_solution_503
   /api/v1/ai/persona-preferences:
     get:
       tags:
@@ -2435,12 +2888,12 @@ paths:
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: AI persona preference fetched successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_persona_get_success:
                   value:
@@ -2448,14 +2901,14 @@ paths:
                     message: Preferensi persona AI berhasil diambil
                     data:
                       persona: supportive
-                      fallback_persona: friendly
+                      fallback_persona: supportive
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2466,12 +2919,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_persona_put_401
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2494,14 +2947,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AIPersonaPreferenceRequest'
+              $ref: "#/components/schemas/AIPersonaPreferenceRequest"
       responses:
-        '200':
+        "200":
           description: AI persona preference updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                $ref: "#/components/schemas/SuccessEnvelope"
               examples:
                 ai_persona_put_success:
                   value:
@@ -2511,12 +2964,12 @@ paths:
                       persona: direct
                       fallback_persona: supportive
                     meta: null
-        '401':
+        "401":
           description: Access token is invalid
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 unauthenticated:
                   value:
@@ -2527,12 +2980,12 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_ai_persona_put_401
-        '422':
+        "422":
           description: Invalid persona value
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 invalid_persona:
                   value:
@@ -2545,12 +2998,12 @@ paths:
                         - field: persona
                           message: Nilai persona tidak valid
                       request_id: req_ai_persona_422
-        '429':
+        "429":
           description: AI request exceeded limit
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
               examples:
                 rate_limited:
                   value:
@@ -2586,48 +3039,53 @@ components:
           type: string
         data:
           anyOf:
-            - $ref: '#/components/schemas/HealthLiveData'
-            - $ref: '#/components/schemas/HealthReadyData'
-            - $ref: '#/components/schemas/AuthResponseData'
-            - $ref: '#/components/schemas/UserProfileData'
-            - $ref: '#/components/schemas/LogoutResponseData'
-            - $ref: '#/components/schemas/ResetResponseData'
-            - $ref: '#/components/schemas/RoutineCheckInResponseData'
-            - $ref: '#/components/schemas/RoutineStatisticsData'
-            - $ref: '#/components/schemas/RoutineActivitySummaryData'
+            - $ref: "#/components/schemas/HealthLiveData"
+            - $ref: "#/components/schemas/HealthReadyData"
+            - $ref: "#/components/schemas/AuthResponseData"
+            - $ref: "#/components/schemas/OnboardingCompletionData"
+            - $ref: "#/components/schemas/UserProfileData"
+            - $ref: "#/components/schemas/LogoutResponseData"
+            - $ref: "#/components/schemas/ResetResponseData"
+            - $ref: "#/components/schemas/RoutineCheckInResponseData"
+            - $ref: "#/components/schemas/RoutineRelapseResponseData"
+            - $ref: "#/components/schemas/RoutineRelapseSolutionData"
+            - $ref: "#/components/schemas/RoutineStatisticsData"
+            - $ref: "#/components/schemas/RoutineActivitySummaryData"
+            - $ref: "#/components/schemas/RoutineRelapseStatisticsData"
             - type: array
               items:
-                $ref: '#/components/schemas/RoutineRelapseData'
-            - $ref: '#/components/schemas/JournalData'
+                $ref: "#/components/schemas/RoutineRelapseData"
+            - $ref: "#/components/schemas/JournalData"
             - type: array
               items:
-                $ref: '#/components/schemas/JournalData'
-            - $ref: '#/components/schemas/CommunityPostData'
+                $ref: "#/components/schemas/JournalData"
+            - $ref: "#/components/schemas/CommunityPostData"
             - type: array
               items:
-                $ref: '#/components/schemas/CommunityPostData'
-            - $ref: '#/components/schemas/CommunityCommentData'
-            - $ref: '#/components/schemas/CommunityCommentThreadData'
-            - $ref: '#/components/schemas/CommunityReplyData'
-            - $ref: '#/components/schemas/CommunityLikeData'
-            - $ref: '#/components/schemas/AchievementsCatalogData'
-            - $ref: '#/components/schemas/AchievementsProgressData'
-            - $ref: '#/components/schemas/AchievementsUnlockedData'
+                $ref: "#/components/schemas/CommunityPostData"
+            - $ref: "#/components/schemas/CommunityCommentData"
+            - $ref: "#/components/schemas/CommunityCommentThreadData"
+            - $ref: "#/components/schemas/CommunityReplyData"
+            - $ref: "#/components/schemas/CommunityLikeData"
+            - $ref: "#/components/schemas/AchievementsCatalogData"
+            - $ref: "#/components/schemas/AchievementsProgressData"
+            - $ref: "#/components/schemas/AchievementsUnlockedData"
             - type: array
               items:
-                $ref: '#/components/schemas/EducationContentData'
-            - $ref: '#/components/schemas/DailyContentData'
-            - $ref: '#/components/schemas/AIAskCoachData'
+                $ref: "#/components/schemas/EducationContentData"
+            - $ref: "#/components/schemas/DailyContentData"
+            - $ref: "#/components/schemas/AIAskCoachData"
             - type: array
               items:
-                $ref: '#/components/schemas/AIChatHistoryItemData'
-            - $ref: '#/components/schemas/AISummaryData'
-            - $ref: '#/components/schemas/AIPersonaPreferenceData'
-            - $ref: '#/components/schemas/AIOnboardingAnalysisData'
+                $ref: "#/components/schemas/AIChatHistoryItemData"
+            - $ref: "#/components/schemas/AISummaryData"
+            - $ref: "#/components/schemas/AIPersonaPreferenceData"
+            - $ref: "#/components/schemas/AIOnboardingAnalysisData"
+            - $ref: "#/components/schemas/AIRelapseSolutionData"
         meta:
           oneOf:
-            - $ref: '#/components/schemas/SuccessMeta'
-            - type: 'null'
+            - $ref: "#/components/schemas/SuccessMeta"
+            - type: "null"
     ErrorEnvelope:
       type: object
       required:
@@ -2650,9 +3108,9 @@ components:
         message:
           type: string
         data:
-          type: 'null'
+          type: "null"
         error:
-          $ref: '#/components/schemas/ErrorPayload'
+          $ref: "#/components/schemas/ErrorPayload"
     ErrorPayload:
       type: object
       required:
@@ -2663,11 +3121,11 @@ components:
           type: string
         details:
           oneOf:
-            - $ref: '#/components/schemas/ErrorDetailsObject'
+            - $ref: "#/components/schemas/ErrorDetailsObject"
             - type: array
               items:
-                $ref: '#/components/schemas/ValidationErrorDetail'
-            - type: 'null'
+                $ref: "#/components/schemas/ValidationErrorDetail"
+            - type: "null"
         request_id:
           type: string
     AuthGoogleLoginRequest:
@@ -2694,7 +3152,7 @@ components:
           type: string
           minLength: 3
           maxLength: 50
-          pattern: '^[a-z0-9_]+$'
+          pattern: "^[a-z0-9_]+$"
         password:
           type: string
           minLength: 8
@@ -2732,6 +3190,7 @@ components:
         - nickname
         - recovery_reason
         - daily_checkin_time
+        - porn_free_goal
       properties:
         nickname:
           type: string
@@ -2742,9 +3201,13 @@ components:
           minLength: 3
         daily_checkin_time:
           type: string
-          pattern: '^([01][0-9]|2[0-3]):([0-5][0-9])$'
+          pattern: "^([01][0-9]|2[0-3]):([0-5][0-9])$"
+        porn_free_goal:
+          type: integer
+          minimum: 1
+          maximum: 3650
         answers:
-          $ref: '#/components/schemas/OnboardingAnswers'
+          $ref: "#/components/schemas/OnboardingAnswers"
         dependency_level:
           type: string
     UserSettingsUpdateRequest:
@@ -2760,7 +3223,11 @@ components:
           minLength: 3
         daily_checkin_time:
           type: string
-          pattern: '^([01][0-9]|2[0-3]):([0-5][0-9])$'
+          pattern: "^([01][0-9]|2[0-3]):([0-5][0-9])$"
+        porn_free_goal:
+          type: integer
+          minimum: 1
+          maximum: 3650
     RoutineCheckInRequest:
       type: object
       required:
@@ -2773,6 +3240,29 @@ components:
           maxLength: 50
         is_successful:
           type: boolean
+          enum: [true]
+        commitment:
+          type: string
+          maxLength: 2000
+        content:
+          type: string
+          maxLength: 2000
+    RoutineRelapseRequest:
+      type: object
+      required:
+        - mood
+        - relapse_trigger
+      properties:
+        mood:
+          type: string
+          minLength: 1
+          maxLength: 50
+        relapse_trigger:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            maxLength: 500
         commitment:
           type: string
           maxLength: 2000
@@ -2810,7 +3300,7 @@ components:
           minLength: 10
           maxLength: 5000
         category:
-          $ref: '#/components/schemas/CommunityCategory'
+          $ref: "#/components/schemas/CommunityCategory"
     CommunityCreateCommentRequest:
       type: object
       required:
@@ -2844,12 +3334,29 @@ components:
         - answers
       properties:
         answers:
-          $ref: '#/components/schemas/OnboardingAnswers'
+          $ref: "#/components/schemas/OnboardingAnswers"
+    AIRelapseSolutionRequest:
+      type: object
+      required:
+        - mood
+      properties:
+        mood:
+          type: string
+          minLength: 1
+          maxLength: 50
+        relapse_trigger:
+          type: array
+          items:
+            type: string
+            maxLength: 500
+        commitment:
+          type: string
+          maxLength: 4000
     OnboardingAnswers:
       type: object
       minProperties: 1
       additionalProperties:
-        $ref: '#/components/schemas/OpenAnswerValue'
+        $ref: "#/components/schemas/OpenAnswerValue"
     OpenAnswerValue:
       oneOf:
         - type: string
@@ -2867,7 +3374,7 @@ components:
               - type: string
               - type: number
               - type: boolean
-        - type: 'null'
+        - type: "null"
     SuccessMeta:
       type: object
       properties:
@@ -2896,7 +3403,7 @@ components:
       type: object
       minProperties: 1
       additionalProperties:
-        $ref: '#/components/schemas/OpenAnswerValue'
+        $ref: "#/components/schemas/OpenAnswerValue"
     ValidationErrorDetail:
       type: object
       required:
@@ -2947,7 +3454,7 @@ components:
         - database
       properties:
         database:
-          $ref: '#/components/schemas/HealthReadyCheck'
+          $ref: "#/components/schemas/HealthReadyCheck"
     HealthReadyData:
       type: object
       required:
@@ -2957,7 +3464,7 @@ components:
         status:
           type: string
         checks:
-          $ref: '#/components/schemas/HealthReadyChecks'
+          $ref: "#/components/schemas/HealthReadyChecks"
     AuthSessionData:
       type: object
       required:
@@ -2991,14 +3498,56 @@ components:
         recovery_reason:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
         daily_checkin_time:
           oneOf:
             - type: string
-              pattern: '^([01][0-9]|2[0-3]):([0-5][0-9])$'
-            - type: 'null'
+              pattern: "^([01][0-9]|2[0-3]):([0-5][0-9])$"
+            - type: "null"
+        porn_free_goal:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 3650
+            - type: "null"
         onboarding_completed:
           type: boolean
+    OnboardingCompletionData:
+      type: object
+      required:
+        - id
+        - email
+        - nickname
+        - onboarding_completed
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        nickname:
+          type: string
+        recovery_reason:
+          oneOf:
+            - type: string
+            - type: "null"
+        daily_checkin_time:
+          oneOf:
+            - type: string
+              pattern: "^([01][0-9]|2[0-3]):([0-5][0-9])$"
+            - type: "null"
+        porn_free_goal:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 3650
+            - type: "null"
+        onboarding_completed:
+          type: boolean
+        onboarding_analysis:
+          oneOf:
+            - $ref: "#/components/schemas/AIOnboardingAnalysisData"
+            - type: "null"
     AuthResponseData:
       type: object
       required:
@@ -3006,9 +3555,9 @@ components:
         - session
       properties:
         user:
-          $ref: '#/components/schemas/UserProfileData'
+          $ref: "#/components/schemas/UserProfileData"
         session:
-          $ref: '#/components/schemas/AuthSessionData'
+          $ref: "#/components/schemas/AuthSessionData"
     LogoutResponseData:
       type: object
       required:
@@ -3029,6 +3578,7 @@ components:
         - id
         - user_id
         - check_in_date
+        - check_in_day_name
         - mood
         - is_successful
         - created_at
@@ -3040,6 +3590,8 @@ components:
         check_in_date:
           type: string
           format: date
+        check_in_day_name:
+          type: string
         mood:
           type: string
         is_successful:
@@ -3047,7 +3599,11 @@ components:
         commitment:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
+        relapse_trigger:
+          type: array
+          items:
+            type: string
         created_at:
           type: string
           format: date-time
@@ -3077,15 +3633,68 @@ components:
       type: object
       required:
         - date
+        - day_name
         - dominant_mood
         - successful_ratio
       properties:
         date:
           type: string
           format: date
+        day_name:
+          type: string
         dominant_mood:
           type: string
         successful_ratio:
+          type: number
+    RoutineWeekdaySummaryData:
+      type: object
+      required:
+        - day_name
+        - successful_checkins
+        - relapse_count
+        - total_checkins
+        - success_rate
+      properties:
+        day_name:
+          type: string
+        successful_checkins:
+          type: integer
+          minimum: 0
+        relapse_count:
+          type: integer
+          minimum: 0
+        total_checkins:
+          type: integer
+          minimum: 0
+        success_rate:
+          type: number
+    RoutineStreakGoalComparisonData:
+      type: object
+      required:
+        - current_streak
+        - longest_streak
+        - goal_reached
+        - progress_rate
+      properties:
+        porn_free_goal:
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: "null"
+        current_streak:
+          type: integer
+          minimum: 0
+        longest_streak:
+          type: integer
+          minimum: 0
+        goal_reached:
+          type: boolean
+        remaining_days:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        progress_rate:
           type: number
     RoutineStatisticsData:
       type: object
@@ -3093,7 +3702,10 @@ components:
         - current_streak
         - longest_streak
         - total_checkins
+        - total_attempts
+        - success_rate
         - streak_calendar
+        - relapse_calendar
         - relapse_count
         - relapse_rate
         - recovery_success_rate
@@ -3101,6 +3713,8 @@ components:
         - weekly_progress
         - monthly_progress
         - mood_trend
+        - weekday_summary
+        - streak_goal_comparison
       properties:
         current_streak:
           type: integer
@@ -3111,7 +3725,17 @@ components:
         total_checkins:
           type: integer
           minimum: 0
+        total_attempts:
+          type: integer
+          minimum: 0
+        success_rate:
+          type: number
         streak_calendar:
+          type: array
+          items:
+            type: string
+            format: date
+        relapse_calendar:
           type: array
           items:
             type: string
@@ -3126,38 +3750,101 @@ components:
         checkin_consistency_score:
           type: number
         weekly_progress:
-          $ref: '#/components/schemas/RoutineProgressData'
+          $ref: "#/components/schemas/RoutineProgressData"
         monthly_progress:
-          $ref: '#/components/schemas/RoutineProgressData'
+          $ref: "#/components/schemas/RoutineProgressData"
         mood_trend:
           type: array
           items:
-            $ref: '#/components/schemas/RoutineMoodTrendData'
+            $ref: "#/components/schemas/RoutineMoodTrendData"
+        last_check_in_date:
+          oneOf:
+            - type: string
+              format: date
+            - type: "null"
+        last_check_in_day_name:
+          oneOf:
+            - type: string
+            - type: "null"
+        last_relapse_date:
+          oneOf:
+            - type: string
+              format: date
+            - type: "null"
+        last_relapse_day_name:
+          oneOf:
+            - type: string
+            - type: "null"
+        weekday_summary:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineWeekdaySummaryData"
+        streak_goal_comparison:
+          $ref: "#/components/schemas/RoutineStreakGoalComparisonData"
+    RoutineRelapseSolutionData:
+      type: object
+      required:
+        - title
+        - analysis
+        - summary
+      properties:
+        title:
+          type: string
+        analysis:
+          type: string
+        summary:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
     RoutineCheckInResponseData:
       type: object
       required:
         - check_in
         - statistics
+        - relapse_solution
       properties:
         check_in:
-          $ref: '#/components/schemas/RoutineCheckInData'
+          $ref: "#/components/schemas/RoutineCheckInData"
         statistics:
-          $ref: '#/components/schemas/RoutineStatisticsData'
+          $ref: "#/components/schemas/RoutineStatisticsData"
+        relapse_solution:
+          oneOf:
+            - $ref: "#/components/schemas/RoutineRelapseSolutionData"
+            - type: "null"
+    RoutineRelapseResponseData:
+      type: object
+      required:
+        - relapse
+        - statistics
+        - relapse_solution
+      properties:
+        relapse:
+          $ref: "#/components/schemas/RoutineRelapseData"
+        statistics:
+          $ref: "#/components/schemas/RoutineStatisticsData"
+        relapse_solution:
+          oneOf:
+            - $ref: "#/components/schemas/RoutineRelapseSolutionData"
+            - type: "null"
     RoutineActivityItemData:
       type: object
       required:
         - date
+        - day_name
         - type
       properties:
         date:
           type: string
           format: date
+        day_name:
+          type: string
         type:
           type: string
         mood:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
     RoutineActivitySummaryData:
       type: object
       required:
@@ -3183,26 +3870,125 @@ components:
         recent_activity:
           type: array
           items:
-            $ref: '#/components/schemas/RoutineActivityItemData'
+            $ref: "#/components/schemas/RoutineActivityItemData"
+    RoutineRelapseHourStatData:
+      type: object
+      required:
+        - hour_utc
+        - relapse_count
+      properties:
+        hour_utc:
+          type: integer
+          minimum: 0
+          maximum: 23
+        relapse_count:
+          type: integer
+          minimum: 0
+    RoutineRelapseTriggerStatData:
+      type: object
+      required:
+        - relapse_trigger
+        - relapse_trigger_count
+      properties:
+        relapse_trigger:
+          type: string
+        relapse_trigger_count:
+          type: integer
+          minimum: 0
+    RoutineRelapseTimeSummaryData:
+      type: object
+      required:
+        - title
+        - analysis
+        - summary
+        - generated_at
+      properties:
+        title:
+          type: string
+        analysis:
+          type: string
+        summary:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+    RoutineRelapseStatisticsData:
+      type: object
+      required:
+        - statistics
+        - relapses
+        - hourly_relapse_distribution
+        - relapse_triggers_distribution
+        - peak_relapse_hours_utc
+        - peak_relapse_count
+        - ai_summary
+        - relapse_time_summary
+        - relapse_trigger_summary
+      properties:
+        statistics:
+          $ref: "#/components/schemas/RoutineStatisticsData"
+        relapses:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseData"
+        hourly_relapse_distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseHourStatData"
+        relapse_triggers_distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseTriggerStatData"
+        peak_relapse_hours_utc:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 23
+        peak_relapse_count:
+          type: integer
+          minimum: 0
+        ai_summary:
+          type: string
+        relapse_time_summary:
+          $ref: "#/components/schemas/RoutineRelapseTimeSummaryData"
+        relapse_trigger_summary:
+          oneOf:
+            - $ref: "#/components/schemas/RoutineRelapseSolutionData"
+            - type: "null"
     RoutineRelapseData:
       type: object
       required:
-        - check_in_id
-        - check_in_date
+        - id
+        - user_id
+        - relapse_date
+        - relapse_day_name
         - mood
         - created_at
       properties:
-        check_in_id:
+        id:
           type: string
-        check_in_date:
+        user_id:
+          type: string
+        relapse_date:
           type: string
           format: date
+        relapse_day_name:
+          type: string
+        check_in_id:
+          oneOf:
+            - type: string
+            - type: "null"
         mood:
           type: string
         commitment:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
+        relapse_trigger:
+          type: array
+          items:
+            type: string
         created_at:
           type: string
           format: date-time
@@ -3250,11 +4036,11 @@ components:
         title:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
         content:
           type: string
         category:
-          $ref: '#/components/schemas/CommunityCategory'
+          $ref: "#/components/schemas/CommunityCategory"
         comment_count:
           type: integer
           minimum: 0
@@ -3265,7 +4051,7 @@ components:
           type: string
           format: date-time
         author:
-          $ref: '#/components/schemas/CommunityAuthorData'
+          $ref: "#/components/schemas/CommunityAuthorData"
     CommunityCommentData:
       type: object
       required:
@@ -3286,7 +4072,7 @@ components:
         parent_comment_id:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
         content:
           type: string
         depth:
@@ -3301,7 +4087,7 @@ components:
           format: date-time
     CommunityCommentNodeData:
       allOf:
-        - $ref: '#/components/schemas/CommunityCommentData'
+        - $ref: "#/components/schemas/CommunityCommentData"
         - type: object
           required:
             - replies
@@ -3309,7 +4095,7 @@ components:
             replies:
               type: array
               items:
-                $ref: '#/components/schemas/CommunityCommentNodeData'
+                $ref: "#/components/schemas/CommunityCommentNodeData"
     CommunityCommentThreadData:
       type: object
       required:
@@ -3321,7 +4107,7 @@ components:
         comments:
           type: array
           items:
-            $ref: '#/components/schemas/CommunityCommentNodeData'
+            $ref: "#/components/schemas/CommunityCommentNodeData"
     CommunityReplyData:
       type: object
       required:
@@ -3369,7 +4155,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/AchievementsCatalogItemData'
+            $ref: "#/components/schemas/AchievementsCatalogItemData"
     AchievementsCatalogItemData:
       type: object
       required:
@@ -3389,7 +4175,7 @@ components:
         description:
           type: string
         category:
-          $ref: '#/components/schemas/AchievementsCategory'
+          $ref: "#/components/schemas/AchievementsCategory"
         threshold:
           type: number
     AchievementsProgressData:
@@ -3400,7 +4186,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/AchievementsProgressItemData'
+            $ref: "#/components/schemas/AchievementsProgressItemData"
     AchievementsProgressItemData:
       type: object
       required:
@@ -3413,7 +4199,7 @@ components:
         achievement_code:
           type: string
         category:
-          $ref: '#/components/schemas/AchievementsCategory'
+          $ref: "#/components/schemas/AchievementsCategory"
         threshold:
           type: number
         progress_value:
@@ -3424,7 +4210,7 @@ components:
           oneOf:
             - type: string
               format: date-time
-            - type: 'null'
+            - type: "null"
     AchievementsUnlockedData:
       type: object
       required:
@@ -3433,7 +4219,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/AchievementsUnlockedItemData'
+            $ref: "#/components/schemas/AchievementsUnlockedItemData"
     AchievementsUnlockedItemData:
       type: object
       required:
@@ -3452,7 +4238,7 @@ components:
         description:
           type: string
         category:
-          $ref: '#/components/schemas/AchievementsCategory'
+          $ref: "#/components/schemas/AchievementsCategory"
         threshold:
           type: number
         progress_value:
@@ -3467,6 +4253,7 @@ components:
         - title
         - url
         - category
+        - type
       properties:
         id:
           type: string
@@ -3475,7 +4262,7 @@ components:
         description:
           oneOf:
             - type: string
-            - type: 'null'
+            - type: "null"
         url:
           type: string
           format: uri
@@ -3483,20 +4270,24 @@ components:
           oneOf:
             - type: string
               format: uri
-            - type: 'null'
+            - type: "null"
         category:
           type: string
+        type:
+          type: string
+          enum: [artikel, video]
         published_at:
           oneOf:
             - type: string
               format: date-time
-            - type: 'null'
+            - type: "null"
     DailyContentData:
       type: object
       required:
         - date
         - motivation
         - challenge
+        - physical_challenge
       properties:
         date:
           type: string
@@ -3504,6 +4295,18 @@ components:
         motivation:
           type: string
         challenge:
+          $ref: "#/components/schemas/DailyChallengeContentData"
+        physical_challenge:
+          $ref: "#/components/schemas/DailyChallengeContentData"
+    DailyChallengeContentData:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+        description:
           type: string
     AIAskCoachData:
       type: object
@@ -3572,5 +4375,18 @@ components:
         pattern_analysis:
           type: string
         encouragement:
+          type: string
+    AIRelapseSolutionData:
+      type: object
+      required:
+        - title
+        - analysis
+        - summary
+      properties:
+        title:
+          type: string
+        analysis:
+          type: string
+        summary:
           type: string
 security: []

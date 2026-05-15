@@ -128,3 +128,23 @@ func (h *Handler) UpdatePersonaPreference(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(response.Success("Preferensi persona AI berhasil diperbarui", payload, nil))
 }
+
+// RelapseSolution handles relapse-solution endpoint.
+func (h *Handler) RelapseSolution(c fiber.Ctx) error {
+	principal, ok := authmodule.PrincipalFromContext(c)
+	if !ok || strings.TrimSpace(principal.UserID) == "" {
+		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
+	}
+
+	var req RelapseSolutionRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return err
+	}
+
+	payload, err := h.service.GenerateRelapseSolution(c.Context(), principal.UserID, req)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response.Success("Solusi relapse berhasil dibuat", payload, nil))
+}

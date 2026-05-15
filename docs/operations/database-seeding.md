@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/database-seeding.md
-last_reviewed: 2026-05-10
+last_reviewed: 2026-05-15
 ---
 
 # Database Seeding
@@ -30,7 +30,8 @@ Contoh:
 
 - konten edukasi default,
 - daily motivations,
-- daily challenges.
+- daily challenges,
+- daily physical challenges.
 - achievement catalog.
 
 Aturan:
@@ -64,6 +65,7 @@ Aturan:
 
 - seeding harus aman dijalankan ulang,
 - gunakan natural key atau unique key untuk mencegah duplikasi,
+- seed wajib mengikuti constraint schema terbaru (contoh `daily_challenges` harus isi `title`, `description`, dan `content`),
 - operasi update harus bersifat targeted, bukan truncate massal tanpa kontrol.
 
 ## Execution Order
@@ -91,6 +93,27 @@ Aturan runner:
 - menjalankan `psql` dengan `ON_ERROR_STOP=1`,
 - script seed wajib idempotent (`ON CONFLICT DO NOTHING` untuk data referensi).
 
+Aturan label user-facing:
+
+- gunakan format natural + Title Case untuk kategori konten edukasi,
+- contoh canonical: `Dampak Pornografi` (bukan `dampak pornografi` atau `dampak_pornografi`).
+
+## Baseline User Fixture (Manual Auth)
+
+Baseline seeder (`migrations/seeds/000001_baseline_seed.sql`) memakai akun manual berbasis email/password.
+
+Kredensial fixture development:
+
+- email: sesuai seed `users.email` (contoh: `andre.wijaya@gmail.com`),
+- username: sesuai seed `users.username` (contoh: `andre_wijaya`),
+- password default: `Recova123!` (disimpan sebagai bcrypt hash pada `users.password_hash`).
+
+Aturan:
+
+- hanya untuk development/test, bukan production/staging publik,
+- password plaintext fixture hanya boleh muncul di dokumentasi internal, bukan di SQL,
+- update fixture user wajib menjaga idempotency key `ON CONFLICT (email)` agar rerun aman.
+
 ## Security and Privacy Rules
 
 - dilarang menaruh secret/token/API key di seed file,
@@ -110,7 +133,7 @@ Aturan runner:
 Runner `scripts/staging-deploy.sh` menjalankan verifikasi seeding otomatis:
 
 1. jalankan seed pass pertama,
-2. simpan row count `education_contents`, `daily_motivations`, `daily_challenges`, `achievements`,
+2. simpan row count `education_contents`, `daily_motivations`, `daily_challenges`, `daily_physical_challenges`, `achievements`,
 3. jalankan seed pass kedua,
 4. pastikan row count tidak berubah (idempotent),
 5. pastikan tidak ada duplicate content pada tabel reference harian dan tidak ada duplicate `achievements.code`.
@@ -122,6 +145,7 @@ Untuk baseline reference data non-production, jumlah minimum saat verifikasi see
 - `education_contents >= 8`,
 - `daily_motivations >= 10`,
 - `daily_challenges >= 10`,
+- `daily_physical_challenges >= 10`,
 - `achievements >= 10`.
 
 ## Related Documents

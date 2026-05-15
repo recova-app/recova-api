@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/api-reference.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-15
 ---
 
 # Recova Backend API Reference
@@ -48,55 +48,73 @@ API saat ini dikonsumsi oleh aplikasi mobile Flutter, sehingga kontrak endpoint 
 
 ## Endpoint Inventory
 
-| Domain    | Method   | Path                           | Summary                                       | Auth requirement  | Contract status |
-| --------- | -------- | ------------------------------ | --------------------------------------------- | ----------------- | --------------- |
-| auth      | `POST`   | `/auth/google`                 | login/registrasi via Google token             | public            | implemented     |
-| auth      | `POST`   | `/auth/onboarding`             | simpan onboarding awal pengguna               | bearer            | implemented     |
-| auth      | `POST`   | `/auth/refresh`                | rotasi refresh token dan perbarui sesi akses  | cookie            | implemented     |
-| auth      | `POST`   | `/auth/logout`                 | akhiri sesi aktif pengguna                    | bearer            | implemented     |
-| users     | `GET`    | `/users/me`                    | ambil profil pengguna                         | bearer            | implemented     |
-| users     | `PUT`    | `/users/settings`              | update pengaturan profil                      | bearer            | implemented     |
-| users     | `DELETE` | `/users/me/reset-data`         | reset data pengguna untuk development/testing | bearer + dev-only | implemented     |
-| ai        | `POST`   | `/ai/ask-coach`                | kirim pesan ke AI Coach                       | bearer            | implemented     |
-| ai        | `GET`    | `/ai/chat-history`             | ambil riwayat chat AI Coach                   | bearer            | implemented     |
-| ai        | `GET`    | `/ai/summary`                  | ambil ringkasan check-in                      | bearer            | implemented     |
-| ai        | `POST`   | `/ai/onboarding-analysis`      | analisis data onboarding                      | bearer            | implemented     |
-| ai        | `GET`    | `/ai/persona-preferences`      | ambil preferensi persona AI                   | bearer            | implemented     |
-| ai        | `PUT`    | `/ai/persona-preferences`      | perbarui preferensi persona AI                | bearer            | implemented     |
-| routine   | `POST`   | `/routine/checkin`             | check-in harian                               | bearer            | implemented     |
-| routine   | `GET`    | `/routine/statistics`          | ambil statistik pengguna                      | bearer            | implemented     |
-| routine   | `GET`    | `/routine/relapses`            | ambil riwayat relapse                         | bearer            | implemented     |
-| journals  | `GET`    | `/journals`                    | ambil daftar jurnal pribadi                   | bearer            | implemented     |
-| journals  | `POST`   | `/journals`                    | buat entri jurnal                             | bearer            | implemented     |
-| community | `GET`    | `/community`                   | ambil daftar postingan komunitas              | bearer            | implemented     |
-| community | `POST`   | `/community`                   | buat postingan komunitas                      | bearer            | implemented     |
-| community | `POST`   | `/community/:post_id/comments` | tambah komentar pada postingan                | bearer            | implemented     |
-| community | `POST`   | `/community/:post_id/like`     | toggle suka postingan                         | bearer            | implemented     |
-| education | `GET`    | `/education`                   | ambil daftar konten edukasi                   | bearer            | implemented     |
-| content   | `GET`    | `/content/daily`               | ambil konten harian                           | bearer            | implemented     |
+| Domain       | Method   | Path                                                 | Summary                                                    | Auth requirement  | Contract status |
+| ------------ | -------- | ---------------------------------------------------- | ---------------------------------------------------------- | ----------------- | --------------- |
+| platform     | `GET`    | `/health/live`                                       | cek status liveness service                                | public/internal   | implemented     |
+| platform     | `GET`    | `/health/ready`                                      | cek status readiness dependency                            | public/internal   | implemented     |
+| platform     | `GET`    | `/metrics`                                           | expose metrik prometheus                                   | public/internal   | implemented     |
+| platform     | `GET`    | `/openapi.yaml`                                      | ambil OpenAPI YAML runtime                                 | public            | implemented     |
+| platform     | `GET`    | `/docs/api`                                          | tampilkan API reference interaktif                         | public            | implemented     |
+| auth         | `POST`   | `/auth/google`                                       | login/registrasi via Google token                          | public            | implemented     |
+| auth         | `POST`   | `/auth/register`                                     | registrasi akun manual                                     | public            | implemented     |
+| auth         | `POST`   | `/auth/login`                                        | login akun manual                                          | public            | implemented     |
+| auth         | `POST`   | `/auth/onboarding`                                   | simpan onboarding awal + analisis AI response              | bearer            | implemented     |
+| auth         | `POST`   | `/auth/refresh`                                      | rotasi refresh token dan perbarui sesi akses               | cookie            | implemented     |
+| auth         | `POST`   | `/auth/logout`                                       | akhiri sesi aktif pengguna                                 | bearer            | implemented     |
+| users        | `GET`    | `/users/me`                                          | ambil profil pengguna                                      | bearer            | implemented     |
+| users        | `PUT`    | `/users/settings`                                    | update pengaturan profil                                   | bearer            | implemented     |
+| users        | `DELETE` | `/users/me/reset-data`                               | reset data pengguna untuk development/testing              | bearer + dev-only | implemented     |
+| ai           | `POST`   | `/ai/ask-coach`                                      | kirim pesan ke AI Coach                                    | bearer            | implemented     |
+| ai           | `POST`   | `/ai/relapse-solution`                               | analisis trigger relapse + solusi terbaik                  | bearer            | implemented     |
+| ai           | `GET`    | `/ai/chat-history`                                   | ambil riwayat chat AI Coach                                | bearer            | implemented     |
+| ai           | `GET`    | `/ai/summary`                                        | ambil ringkasan check-in                                   | bearer            | implemented     |
+| ai           | `POST`   | `/ai/onboarding-analysis`                            | analisis data onboarding                                   | bearer            | implemented     |
+| ai           | `GET`    | `/ai/persona-preferences`                            | ambil preferensi persona AI                                | bearer            | implemented     |
+| ai           | `PUT`    | `/ai/persona-preferences`                            | perbarui preferensi persona AI                             | bearer            | implemented     |
+| routine      | `POST`   | `/routine/checkin`                                   | check-in harian                                            | bearer            | implemented     |
+| routine      | `POST`   | `/routine/relapses`                                  | catat relapse harian                                       | bearer            | implemented     |
+| routine      | `GET`    | `/routine/statistics`                                | ambil statistik pengguna                                   | bearer            | implemented     |
+| routine      | `GET`    | `/routine/statistics/activity-summary`               | ambil ringkasan aktivitas periodik                         | bearer            | implemented     |
+| routine      | `GET`    | `/routine/relapses`                                  | ambil riwayat relapse                                      | bearer            | implemented     |
+| routine      | `GET`    | `/routine/relapses/statistics`                       | ambil statistik relapse lengkap                            | bearer            | implemented     |
+| achievements | `GET`    | `/achievements/catalog`                              | ambil katalog achievement aktif                            | bearer            | implemented     |
+| achievements | `GET`    | `/achievements/progress`                             | ambil progres achievement user                             | bearer            | implemented     |
+| achievements | `GET`    | `/achievements/unlocked`                             | ambil daftar achievement yang sudah terbuka                | bearer            | implemented     |
+| journals     | `GET`    | `/journals`                                          | ambil daftar jurnal pribadi                                | bearer            | implemented     |
+| journals     | `POST`   | `/journals`                                          | buat entri jurnal                                          | bearer            | implemented     |
+| community    | `GET`    | `/community`                                         | ambil daftar postingan komunitas                           | bearer            | implemented     |
+| community    | `POST`   | `/community`                                         | buat postingan komunitas                                   | bearer            | implemented     |
+| community    | `GET`    | `/community/{post_id}/comments`                      | ambil thread komentar                                      | bearer            | implemented     |
+| community    | `POST`   | `/community/{post_id}/comments`                      | tambah komentar pada postingan                             | bearer            | implemented     |
+| community    | `POST`   | `/community/{post_id}/comments/{comment_id}/replies` | tambah balasan komentar                                    | bearer            | implemented     |
+| community    | `POST`   | `/community/{post_id}/like`                          | toggle suka postingan                                      | bearer            | implemented     |
+| education    | `GET`    | `/education`                                         | ambil daftar konten edukasi                                | bearer            | implemented     |
+| content      | `GET`    | `/content/daily`                                     | ambil konten harian (motivasi, challenge, challenge fisik) | bearer            | implemented     |
 
 ## Contract Fields Coverage
 
-| Contract field          | Status  | Notes                                   |
-| ----------------------- | ------- | --------------------------------------- |
-| Method                  | covered | tersedia di sumber                      |
-| Path                    | covered | tersedia di sumber                      |
-| Summary                 | covered | tersedia di sumber                      |
-| Auth requirement        | gap     | belum ada source eksplisit per endpoint |
-| Request body schema     | gap     | belum ada source schema                 |
-| Query schema            | gap     | belum ada source schema                 |
-| Success response schema | gap     | belum ada source schema                 |
-| Error response schema   | gap     | belum ada source schema                 |
+| Contract field          | Status  | Notes                                                                       |
+| ----------------------- | ------- | --------------------------------------------------------------------------- |
+| Method                  | covered | tersedia di sumber                                                          |
+| Path                    | covered | tersedia di sumber                                                          |
+| Summary                 | covered | tersedia di sumber                                                          |
+| Auth requirement        | covered | terspesifikasi di `docs/generated/openapi.yaml`                             |
+| Request body schema     | covered | terspesifikasi per endpoint di OpenAPI                                      |
+| Query schema            | covered | terspesifikasi per endpoint di OpenAPI                                      |
+| Success response schema | covered | tervalidasi contract test + OpenAPI                                         |
+| Error response schema   | covered | tervalidasi contract test + OpenAPI                                         |
+| Platform routes         | covered | `/health/*`, `/metrics`, `/openapi.yaml`, `/docs/api` sudah diinventarisasi |
+
+## Education Response Notes
+
+- response `GET /api/v1/education` mengandung field `type` pada setiap item konten,
+- nilai `type` dibatasi ke `artikel` atau `video`,
+- label kategori user-facing pada payload menggunakan format natural (spasi), bukan snake_case.
 
 ## Gap Register
 
-Detail berikut masih perlu source tambahan:
-
-- daftar status code per endpoint,
-- struktur request body/query per endpoint,
-- struktur response sukses per endpoint,
-- struktur error per endpoint,
-- auth/authorization rule per endpoint.
+Tidak ada gap terbuka untuk kontrak endpoint utama per audit 2026-05-15.
+Detail query/response dan status code kanonik berada di `docs/generated/openapi.yaml` dan tervalidasi oleh `test/contract/openapi_contract_test.go`.
 
 ## Related Documents
 
@@ -104,6 +122,7 @@ Detail berikut masih perlu source tambahan:
 - [API Versioning Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/api-versioning.md)
 - [API Response Standard](/Users/macbookpro/Development/recova-backend-v2/docs/api-response-standard.md)
 - [API Docs Generation](/Users/macbookpro/Development/recova-backend-v2/docs/operations/api-docs-generation.md)
+- [Flow and Endpoint Audit (2026-05-14)](/Users/macbookpro/Development/recova-backend-v2/docs/operations/flow-and-endpoint-audit-2026-05-14.md)
 
 ## Source Reference
 

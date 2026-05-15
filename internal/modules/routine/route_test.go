@@ -43,6 +43,23 @@ func TestRegisterRoutes_CheckInValidationError(t *testing.T) {
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
 }
 
+func TestRegisterRoutes_CreateRelapseValidationError(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	service := NewService(&fakeRoutineRepo{})
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/routine/relapses", map[string]any{
+		"mood":            "cemas",
+		"relapse_trigger": []string{""},
+	}, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "VALIDATION_ERROR")
+}
+
 func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 	authService := buildRoutineAuthService(t, "user-1")
 	service := NewService(&fakeRoutineRepo{
@@ -70,7 +87,10 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		"current_streak",
 		"longest_streak",
 		"total_checkins",
+		"total_attempts",
+		"success_rate",
 		"streak_calendar",
+		"relapse_calendar",
 		"relapse_count",
 		"relapse_rate",
 		"recovery_success_rate",
@@ -78,9 +98,64 @@ func TestRegisterRoutes_GetStatisticsSuccess(t *testing.T) {
 		"weekly_progress",
 		"monthly_progress",
 		"mood_trend",
+		"last_check_in_date",
+		"last_check_in_day_name",
+		"last_relapse_date",
+		"last_relapse_day_name",
+		"weekday_summary",
+		"streak_goal_comparison",
 	} {
 		if _, exists := data[key]; !exists {
 			t.Fatalf("expected statistics field %s", key)
+		}
+	}
+}
+
+func TestRegisterRoutes_GetRelapseStatisticsSuccess(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	aiSummary := "Ringkasan AI user"
+	service := NewService(&fakeRoutineRepo{
+		user:    models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		profile: models.Profile{ID: "profile-1", UserID: "user-1", AISummary: &aiSummary},
+		relapseRows: []models.Relapse{
+			{
+				ID:             "relapse-1",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+				Mood:           "cemas",
+				RelapseTrigger: []string{"stres"},
+				CreatedAt:      time.Date(2026, 5, 8, 21, 0, 0, 0, time.UTC),
+			},
+		},
+	})
+	service.now = func() time.Time { return time.Date(2026, 5, 8, 22, 0, 0, 0, time.UTC) }
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/relapses/statistics", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data, ok := resp.JSON["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data object, got %T", resp.JSON["data"])
+	}
+	for _, key := range []string{
+		"statistics",
+		"relapses",
+		"hourly_relapse_distribution",
+		"relapse_triggers_distribution",
+		"peak_relapse_hours_utc",
+		"peak_relapse_count",
+		"ai_summary",
+		"relapse_time_summary",
+		"relapse_trigger_summary",
+	} {
+		if _, exists := data[key]; !exists {
+			t.Fatalf("expected relapse statistics field %s", key)
 		}
 	}
 }

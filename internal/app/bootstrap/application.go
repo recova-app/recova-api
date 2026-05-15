@@ -46,12 +46,6 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 		&authmodule.GoogleIDTokenVerifier{},
 		authmodule.NewTokenManager(cfg),
 	)
-	usersService := usersmodule.NewService(
-		usersmodule.NewRepository(dbClient.Gorm()),
-		cfg.Application.AppEnv,
-		cfg.Application.NodeEnv,
-	)
-	routineService := routinemodule.NewService(routinemodule.NewRepository(dbClient.Gorm()))
 	journalsService := journalsmodule.NewService(journalsmodule.NewRepository(dbClient.Gorm()))
 	communityService := communitymodule.NewService(communitymodule.NewRepository(dbClient.Gorm()))
 	achievementsService := achievementsmodule.NewService(achievementsmodule.NewRepository(dbClient.Gorm()))
@@ -65,6 +59,13 @@ func NewApplication(cfg config.Config, logger *slog.Logger) (*Application, error
 	aiClient = observability.WrapAIClient(aiClient, obsRecorder)
 	aiService := aimodule.NewService(aimodule.NewRepository(dbClient.Gorm()), aiClient)
 	aiService.SetTelemetry(observability.NewAIPersonaTelemetry(obsRecorder))
+	routineService := routinemodule.NewService(routinemodule.NewRepository(dbClient.Gorm()), aiService)
+	usersService := usersmodule.NewService(
+		usersmodule.NewRepository(dbClient.Gorm()),
+		cfg.Application.AppEnv,
+		cfg.Application.NodeEnv,
+		aiService,
+	)
 
 	server, err := apphttp.NewServer(cfg, logger, apphttp.WithReadinessChecks([]apphttp.ReadinessCheck{
 		{

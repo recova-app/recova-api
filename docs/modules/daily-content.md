@@ -1,6 +1,6 @@
 ---
 title: Daily Content Module
-description: Kontrak modul daily content untuk motivasi dan tantangan harian dengan aturan lifecycle konten, boundary tanggal, dan konsistensi konsumsi.
+description: Kontrak modul daily content untuk motivasi, tantangan harian, dan tantangan fisik harian dengan aturan lifecycle konten, boundary tanggal, dan konsistensi konsumsi.
 owner: backend-owner
 reviewers:
   - engineering-lead
@@ -8,14 +8,14 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/daily-content.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-15
 ---
 
 # Daily Content Module
 
 ## Responsibility
 
-- menyediakan motivasi dan tantangan harian,
+- menyediakan motivasi, tantangan harian, dan tantangan fisik harian,
 - memastikan konten harian konsisten per tanggal,
 - mengelola lifecycle konten aktif/nonaktif,
 - menjaga keterpisahan data konten vs data interaksi user.
@@ -38,6 +38,7 @@ Entitas utama:
 
 - `daily_motivations`,
 - `daily_challenges`,
+- `daily_physical_challenges`,
 - mapping tanggal konten harian.
 
 Constraint minimum:
@@ -60,7 +61,8 @@ Constraint minimum:
 
 ## Validation Rules
 
-- field motivasi/challenge wajib valid dan non-empty,
+- field `motivation` wajib valid dan non-empty,
+- field `challenge.title`, `challenge.description`, `physical_challenge.title`, dan `physical_challenge.description` wajib valid dan non-empty,
 - `status` wajib nilai yang diizinkan,
 - format tanggal konten harus konsisten,
 - payload invalid ditolak.

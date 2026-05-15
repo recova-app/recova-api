@@ -273,7 +273,7 @@ case "$*" in
   *"achievements GROUP BY code HAVING COUNT(*) > 1"*)
     printf '0\n'
     ;;
-  *"users GROUP BY google_id HAVING COUNT(*) > 1"*)
+  *"users WHERE google_id IS NOT NULL GROUP BY google_id HAVING COUNT(*) > 1"*)
     printf '0\n'
     ;;
   *"users GROUP BY email HAVING COUNT(*) > 1"*)

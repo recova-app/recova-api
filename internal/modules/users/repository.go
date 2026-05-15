@@ -67,7 +67,7 @@ func (r *Repository) CreateProfile(ctx context.Context, profile models.Profile) 
 }
 
 // CompleteOnboarding creates profile and updates user in one transaction.
-func (r *Repository) CompleteOnboarding(ctx context.Context, userID string, input OnboardingInput) (models.User, models.Profile, error) {
+func (r *Repository) CompleteOnboarding(ctx context.Context, userID string, input OnboardingInput, aiSummary *string) (models.User, models.Profile, error) {
 	var user models.User
 	var profile models.Profile
 
@@ -81,9 +81,10 @@ func (r *Repository) CompleteOnboarding(ctx context.Context, userID string, inpu
 		user = currentUser
 
 		if err := txRepo.UpdateUserFields(ctx, userID, map[string]any{
-			"nickname":      input.Nickname,
-			"user_why":      input.RecoveryReason,
-			"check_in_time": input.DailyCheckInRaw,
+			"nickname":       input.Nickname,
+			"user_why":       input.RecoveryReason,
+			"check_in_time":  input.DailyCheckInRaw,
+			"porn_free_goal": input.PornFreeGoal,
 		}); err != nil {
 			return err
 		}
@@ -97,6 +98,7 @@ func (r *Repository) CompleteOnboarding(ctx context.Context, userID string, inpu
 			UserID:          strings.TrimSpace(userID),
 			Answers:         answersJSON,
 			DependencyLevel: input.DependencyLevel,
+			AISummary:       aiSummary,
 		}
 		if err := txRepo.CreateProfile(ctx, newProfile); err != nil {
 			return err
@@ -171,8 +173,9 @@ func (r *Repository) ResetUserDataForTesting(ctx context.Context, userID string)
 			return err
 		}
 		if err := txRepo.UpdateUserFields(ctx, trimmedUserID, map[string]any{
-			"user_why":      nil,
-			"check_in_time": nil,
+			"user_why":       nil,
+			"check_in_time":  nil,
+			"porn_free_goal": nil,
 		}); err != nil {
 			return err
 		}

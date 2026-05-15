@@ -52,3 +52,16 @@ func (r *Repository) ListActiveChallenges(ctx context.Context) ([]models.DailyCh
 	}
 	return rows, nil
 }
+
+// ListActivePhysicalChallenges returns active daily physical challenges sorted by stable order.
+func (r *Repository) ListActivePhysicalChallenges(ctx context.Context) ([]models.DailyPhysicalChallenge, error) {
+	var rows []models.DailyPhysicalChallenge
+	if err := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Order("created_at asc").
+		Order("id asc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}

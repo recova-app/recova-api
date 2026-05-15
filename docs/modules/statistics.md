@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/statistics.md
-last_reviewed: 2026-05-09
+last_reviewed: 2026-05-14
 ---
 
 # Statistics Module
@@ -25,6 +25,10 @@ GET /api/v1/routine/statistics
 GET /api/v1/routine/statistics/activity-summary
 ```
 
+```text
+GET /api/v1/routine/relapses/statistics
+```
+
 ## Response Contract
 
 Field minimum `GET /api/v1/routine/statistics`:
@@ -32,14 +36,23 @@ Field minimum `GET /api/v1/routine/statistics`:
 - `current_streak`,
 - `longest_streak`,
 - `total_checkins`,
+- `total_attempts`,
+- `success_rate`,
 - `streak_calendar`,
+- `relapse_calendar`,
 - `relapse_count`,
 - `relapse_rate`,
 - `recovery_success_rate`,
 - `checkin_consistency_score`,
 - `weekly_progress`,
 - `monthly_progress`,
-- `mood_trend`.
+- `mood_trend`,
+- `last_check_in_date`,
+- `last_check_in_day_name`,
+- `last_relapse_date`,
+- `last_relapse_day_name`,
+- `weekday_summary`,
+- `streak_goal_comparison`.
 
 Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 
@@ -47,23 +60,42 @@ Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 - `window_days`,
 - `successful_checkins`,
 - `relapses`,
-- `active_days`.
+- `hourly_relapse_distribution`,
+- `relapse_triggers_distribution`,
+- `peak_relapse_hours_utc`,
+- `peak_relapse_count`,
+- `relapse_time_summary`,
+- `relapse_trigger_summary`.
+- `active_days`,
+- `recent_activity[].day_name`.
 
 Contoh struktur `mood_trend`:
 
-- `[]` berisi `{date, dominantMood, successfulRatio}`.
+- `[]` berisi `{date, day_name, dominantMood, successfulRatio}`.
 
 Contoh struktur `weekly_progress`/`monthly_progress`:
 
 - `{window_days, current_successful_checkins, previous_successful_checkins, delta, delta_rate}`.
 
+Contoh struktur `weekday_summary`:
+
+- `[]` berisi `{day_name, successful_checkins, relapse_count, total_checkins, success_rate}` dengan hari berbahasa Indonesia (`Senin`..`Minggu`).
+
+Contoh struktur `streak_goal_comparison`:
+
+- `{porn_free_goal, current_streak, longest_streak, goal_reached, remaining_days, progress_rate}`.
+
 ## Computation Rules
 
 - statistik dibaca dari sumber data check-in dan streak yang konsisten,
-- `total_checkins` menghitung check-in sukses valid non-duplicate,
-- `relapse_count` menghitung check-in gagal valid non-duplicate,
+- `total_checkins` menghitung check-in sukses valid non-duplicate pada tanggal yang tidak memiliki relapse UTC di hari yang sama,
+- `relapse_count` menghitung event relapse valid (termasuk relapse tanpa check-in pada hari yang sama),
 - `relapse_rate` = `relapse_count / (successful_checkins + relapse_count)`,
 - `recovery_success_rate` = `successful_checkins / (successful_checkins + relapse_count)`,
+- `streak_calendar` hanya berisi tanggal sukses yang bebas relapse pada tanggal UTC yang sama,
+- `relapse_calendar` berisi tanggal relapse unik berbasis UTC (gabungan sumber relapse valid tanpa duplikasi hari),
+- `current_streak` harus `0` bila ada relapse pada tanggal UTC hari ini,
+- data relapse legacy dari `check_ins.is_successful=false` dan data `relapses` tidak boleh dihitung ganda pada tanggal UTC yang sama,
 - `checkin_consistency_score` memakai rasio hari aktif pada rolling 30 hari,
 - `weekly_progress` dan `monthly_progress` dihitung dari baseline window sebelumnya (week-over-week dan month-over-month),
 - semua angka statistik harus non-negatif,
@@ -76,6 +108,7 @@ Contoh struktur `weekly_progress`/`monthly_progress`:
 
 - statistik harus mencerminkan state terbaru setelah check-in sukses,
 - perubahan relapse wajib tercermin pada metrik statistik dalam SLA freshness yang sama,
+- check-in dan relapse diproses pada entitas terpisah agar tidak terjadi overwrite data harian,
 - jika pipeline asynchronous digunakan, kontrak eventual consistency harus disebutkan eksplisit di API response metadata.
 
 ## Ownership Rules
@@ -92,6 +125,7 @@ Contoh struktur `weekly_progress`/`monthly_progress`:
 ## Compatibility Rules
 
 - field statistik existing (`current_streak`, `longest_streak`, `total_checkins`, `streak_calendar`) tetap dipertahankan untuk kompatibilitas klien,
+- perbandingan streak terhadap `porn_free_goal` wajib tersedia pada field `streak_goal_comparison`,
 - field baru bersifat additive dan optional-safe pada klien lama,
 - penghapusan atau rename field statistik existing harus dianggap breaking change.
 

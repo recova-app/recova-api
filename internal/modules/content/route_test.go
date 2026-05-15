@@ -52,7 +52,18 @@ func (r *contentRouteRepo) ListActiveMotivations(_ context.Context) ([]models.Da
 }
 
 func (r *contentRouteRepo) ListActiveChallenges(_ context.Context) ([]models.DailyChallenge, error) {
-	return []models.DailyChallenge{{Content: "challenge-a"}}, nil
+	return []models.DailyChallenge{{
+		Title:       "challenge-title-a",
+		Description: "challenge-description-a",
+		Content:     "challenge-content-a",
+	}}, nil
+}
+
+func (r *contentRouteRepo) ListActivePhysicalChallenges(_ context.Context) ([]models.DailyPhysicalChallenge, error) {
+	return []models.DailyPhysicalChallenge{{
+		Title:       "physical-title-a",
+		Description: "physical-description-a",
+	}}, nil
 }
 
 func buildContentAuthService(t testing.TB, userID string) *authmodule.Service {

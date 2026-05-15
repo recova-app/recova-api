@@ -18,6 +18,8 @@ const (
 	minRecoveryReasonLen = 3
 	minPasswordLength    = 8
 	maxPasswordBytes     = 72
+	minPornFreeGoalDays  = 1
+	maxPornFreeGoalDays  = 3650
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_]+$`)
@@ -132,6 +134,19 @@ func NormalizeAndValidateOnboardingRequest(req OnboardingRequest) (OnboardingInp
 		}, fmt.Errorf("parse daily check-in time: %w", err))
 	}
 
+	if req.PornFreeGoal == nil {
+		return OnboardingInput{}, errs.New(errs.CodeValidationError, "Target bebas pornografi wajib diisi", []map[string]string{
+			{"field": "porn_free_goal", "message": "Target bebas pornografi wajib diisi"},
+		}, nil)
+	}
+
+	pornFreeGoal := *req.PornFreeGoal
+	if pornFreeGoal < minPornFreeGoalDays || pornFreeGoal > maxPornFreeGoalDays {
+		return OnboardingInput{}, errs.New(errs.CodeValidationError, "Target bebas pornografi tidak valid", []map[string]string{
+			{"field": "porn_free_goal", "message": "Target bebas pornografi harus 1-3650 hari"},
+		}, nil)
+	}
+
 	answers := req.Answers
 	if answers == nil {
 		answers = map[string]any{}
@@ -144,6 +159,7 @@ func NormalizeAndValidateOnboardingRequest(req OnboardingRequest) (OnboardingInp
 		RecoveryReason:  recovery_reason,
 		DailyCheckInRaw: checkInRaw,
 		DailyCheckIn:    checkInTime,
+		PornFreeGoal:    pornFreeGoal,
 		Answers:         answers,
 	}
 	if dependencyLevel != "" {

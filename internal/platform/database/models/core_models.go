@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // User stores core account identity and onboarding pointers.
@@ -14,6 +16,7 @@ type User struct {
 	Nickname     string    `gorm:"not null"`
 	UserWhy      *string   `gorm:"column:user_why"`
 	CheckInTime  *string   `gorm:"column:check_in_time;type:time"`
+	PornFreeGoal *int      `gorm:"column:porn_free_goal"`
 	CreatedAt    time.Time `gorm:"not null;default:now()"`
 	UpdatedAt    time.Time `gorm:"not null;default:now()"`
 }
@@ -31,12 +34,13 @@ type Profile struct {
 
 // CheckIn stores one daily check-in row per user and date.
 type CheckIn struct {
-	ID           string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	UserID       string    `gorm:"type:uuid;column:user_id;not null;index"`
-	CheckInDate  time.Time `gorm:"column:check_in_date;type:date;not null"`
-	Mood         string    `gorm:"not null"`
-	IsSuccessful bool      `gorm:"column:is_successful;not null"`
-	CreatedAt    time.Time `gorm:"not null;default:now()"`
+	ID             string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID         string         `gorm:"type:uuid;column:user_id;not null;index"`
+	CheckInDate    time.Time      `gorm:"column:check_in_date;type:date;not null"`
+	Mood           string         `gorm:"not null"`
+	IsSuccessful   bool           `gorm:"column:is_successful;not null"`
+	RelapseTrigger pq.StringArray `gorm:"column:relapse_trigger;type:text[]"`
+	CreatedAt      time.Time      `gorm:"not null;default:now()"`
 }
 
 // Streak stores active and historical streak windows for one user.
@@ -57,6 +61,18 @@ type Journal struct {
 	CheckInID *string   `gorm:"type:uuid;column:check_in_id;uniqueIndex"`
 	Content   string    `gorm:"not null"`
 	CreatedAt time.Time `gorm:"not null;default:now()"`
+}
+
+// Relapse stores one relapse row per user and UTC date.
+type Relapse struct {
+	ID             string         `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID         string         `gorm:"type:uuid;column:user_id;not null;index"`
+	CheckInID      *string        `gorm:"type:uuid;column:check_in_id;index"`
+	RelapseDate    time.Time      `gorm:"column:relapse_date;type:date;not null"`
+	Mood           string         `gorm:"not null"`
+	Commitment     *string        `gorm:"column:commitment"`
+	RelapseTrigger pq.StringArray `gorm:"column:relapse_trigger;type:text[];not null"`
+	CreatedAt      time.Time      `gorm:"not null;default:now()"`
 }
 
 // CommunityPost stores a public community post created by one user.
@@ -129,6 +145,7 @@ type EducationContent struct {
 	URL          string     `gorm:"not null"`
 	ThumbnailURL *string    `gorm:"column:thumbnail_url"`
 	Category     string     `gorm:"not null"`
+	Type         string     `gorm:"column:type;not null;default:artikel"`
 	IsActive     bool       `gorm:"column:is_active;not null;default:true"`
 	PublishedAt  *time.Time `gorm:"column:published_at"`
 }
@@ -143,10 +160,21 @@ type DailyMotivation struct {
 
 // DailyChallenge stores one daily challenge catalog item.
 type DailyChallenge struct {
-	ID        string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Content   string    `gorm:"not null;uniqueIndex"`
-	IsActive  bool      `gorm:"column:is_active;not null;default:true"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Title       string    `gorm:"not null"`
+	Description string    `gorm:"not null"`
+	Content     string    `gorm:"not null;uniqueIndex"`
+	IsActive    bool      `gorm:"column:is_active;not null;default:true"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
+}
+
+// DailyPhysicalChallenge stores one daily physical challenge catalog item.
+type DailyPhysicalChallenge struct {
+	ID          string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Title       string    `gorm:"not null"`
+	Description string    `gorm:"not null"`
+	IsActive    bool      `gorm:"column:is_active;not null;default:true"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
 }
 
 // AIChat stores one AI conversation message for one user.

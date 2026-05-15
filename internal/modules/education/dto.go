@@ -10,6 +10,7 @@ type ContentPayload struct {
 	URL          string  `json:"url"`
 	ThumbnailURL *string `json:"thumbnail_url"`
 	Category     string  `json:"category"`
+	Type         string  `json:"type"`
 	PublishedAt  *string `json:"published_at"`
 }
 

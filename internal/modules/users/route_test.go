@@ -47,9 +47,17 @@ func TestRegisterOnboardingRoute_ValidationError(t *testing.T) {
 func TestRegisterUserRoutes_GetMeSuccess(t *testing.T) {
 	reason := "Fokus"
 	check_in := "09:00"
+	pornGoal := 30
 	authService := buildUsersAuthService(t, "user-1")
 	usersService := NewService(&usersRouteRepo{
-		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester", UserWhy: &reason, CheckInTime: &check_in},
+		user: models.User{
+			ID:           "user-1",
+			Email:        "user@example.test",
+			Nickname:     "tester",
+			UserWhy:      &reason,
+			CheckInTime:  &check_in,
+			PornFreeGoal: &pornGoal,
+		},
 	}, "local", "development")
 
 	app := newUsersTestApp()
@@ -60,6 +68,19 @@ func TestRegisterUserRoutes_GetMeSuccess(t *testing.T) {
 	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data, ok := resp.JSON["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected response data object, got %#v", resp.JSON["data"])
+	}
+
+	if _, exists := data["porn_free_goal"]; !exists {
+		t.Fatalf("expected porn_free_goal in response data: %#v", data)
+	}
+
+	if goal, ok := data["porn_free_goal"].(float64); !ok || int(goal) != 30 {
+		t.Fatalf("unexpected porn_free_goal value: %#v", data["porn_free_goal"])
+	}
 }
 
 func buildUsersAuthService(t testing.TB, userID string) *authmodule.Service {
@@ -93,7 +114,7 @@ func (r *usersRouteRepo) UpdateUserFields(_ context.Context, _ string, _ map[str
 	return nil
 }
 
-func (r *usersRouteRepo) CompleteOnboarding(_ context.Context, _ string, _ OnboardingInput) (models.User, models.Profile, error) {
+func (r *usersRouteRepo) CompleteOnboarding(_ context.Context, _ string, _ OnboardingInput, _ *string) (models.User, models.Profile, error) {
 	return r.user, models.Profile{ID: "profile-1", UserID: r.user.ID}, nil
 }
 

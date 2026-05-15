@@ -13,11 +13,13 @@ func TestNormalizeSettingsUpdate_Success(t *testing.T) {
 	nickname := "tester"
 	recovery_reason := "fokus pulih"
 	check_in := "08:15"
+	pornFreeGoal := 90
 
 	updates, err := NormalizeSettingsUpdate(SettingsUpdateRequest{
 		Nickname:         &nickname,
 		RecoveryReason:   &recovery_reason,
 		DailyCheckInTime: &check_in,
+		PornFreeGoal:     &pornFreeGoal,
 	})
 	if err != nil {
 		t.Fatalf("normalize settings: %v", err)
@@ -31,6 +33,20 @@ func TestNormalizeSettingsUpdate_Success(t *testing.T) {
 	if _, ok := updates["check_in_time"]; !ok {
 		t.Fatal("expected check_in_time update key")
 	}
+	if updates["porn_free_goal"] != 90 {
+		t.Fatalf("unexpected porn_free_goal update: %#v", updates["porn_free_goal"])
+	}
+}
+
+func TestNormalizeSettingsUpdate_PornFreeGoalOutOfRange(t *testing.T) {
+	pornFreeGoal := 0
+
+	_, err := NormalizeSettingsUpdate(SettingsUpdateRequest{
+		PornFreeGoal: &pornFreeGoal,
+	})
+	if err == nil {
+		t.Fatal("expected validation error for porn_free_goal")
+	}
 }
 
 func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
@@ -38,6 +54,7 @@ func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 		Nickname:         "tester",
 		RecoveryReason:   "konsisten",
 		DailyCheckInTime: "06:45",
+		PornFreeGoal:     intPointer(7),
 		DependencyLevel:  "low",
 		Answers:          map[string]any{"q1": "a1"},
 	})
@@ -52,5 +69,8 @@ func TestNormalizeOnboardingRequest_UsesSnakeCaseFields(t *testing.T) {
 	}
 	if input.DependencyLevel == nil || *input.DependencyLevel != "low" {
 		t.Fatalf("unexpected dependency level: %#v", input.DependencyLevel)
+	}
+	if input.PornFreeGoal != 7 {
+		t.Fatalf("unexpected porn free goal: %d", input.PornFreeGoal)
 	}
 }
