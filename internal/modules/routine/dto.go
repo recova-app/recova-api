@@ -163,20 +163,27 @@ type RelapseResponseData struct {
 
 // RelapseStatisticsResponseData is complete relapse statistics payload.
 type RelapseStatisticsResponseData struct {
-	Statistics                StatisticsPayload         `json:"statistics"`
-	Relapses                  []RelapsePayload          `json:"relapses"`
-	HourlyRelapseDistribution []RelapseHourStatPayload  `json:"hourly_relapse_distribution"`
-	PeakRelapseHoursUTC       []int                     `json:"peak_relapse_hours_utc"`
-	PeakRelapseCount          int                       `json:"peak_relapse_count"`
-	AISummary                 string                    `json:"ai_summary"`
-	RelapseTimeSummary        RelapseTimeSummaryPayload `json:"relapse_time_summary"`
-	LatestRelapseSolution     *RelapseSolutionPayload   `json:"latest_relapse_solution"`
+	Statistics                  StatisticsPayload           `json:"statistics"`
+	Relapses                    []RelapsePayload            `json:"relapses"`
+	HourlyRelapseDistribution   []RelapseHourStatPayload    `json:"hourly_relapse_distribution"`
+	RelapseTriggersDistribution []RelapseTriggerStatPayload `json:"relapse_triggers_distribution"`
+	PeakRelapseHoursUTC         []int                       `json:"peak_relapse_hours_utc"`
+	PeakRelapseCount            int                         `json:"peak_relapse_count"`
+	AISummary                   string                      `json:"ai_summary"`
+	RelapseTimeSummary          RelapseTimeSummaryPayload   `json:"relapse_time_summary"`
+	RelapseTriggerSummary       *RelapseSolutionPayload     `json:"relapse_trigger_summary"`
 }
 
 // RelapseHourStatPayload is relapse distribution grouped by UTC hour.
 type RelapseHourStatPayload struct {
 	HourUTC      int `json:"hour_utc"`
 	RelapseCount int `json:"relapse_count"`
+}
+
+// RelapseTriggerStatPayload is relapse distribution grouped by trigger text.
+type RelapseTriggerStatPayload struct {
+	RelapseTrigger      string `json:"relapse_trigger"`
+	RelapseTriggerCount int    `json:"relapse_trigger_count"`
 }
 
 // RelapseTimeSummaryPayload is AI suggestion summary for peak relapse time.

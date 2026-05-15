@@ -147,11 +147,12 @@ func TestRegisterRoutes_GetRelapseStatisticsSuccess(t *testing.T) {
 		"statistics",
 		"relapses",
 		"hourly_relapse_distribution",
+		"relapse_triggers_distribution",
 		"peak_relapse_hours_utc",
 		"peak_relapse_count",
 		"ai_summary",
 		"relapse_time_summary",
-		"latest_relapse_solution",
+		"relapse_trigger_summary",
 	} {
 		if _, exists := data[key]; !exists {
 			t.Fatalf("expected relapse statistics field %s", key)

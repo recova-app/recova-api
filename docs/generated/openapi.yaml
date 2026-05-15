@@ -1361,6 +1361,11 @@ paths:
                           relapse_count: 3
                         - hour_utc: 22
                           relapse_count: 3
+                      relapse_triggers_distribution:
+                        - relapse_trigger: stres kerja
+                          relapse_trigger_count: 4
+                        - relapse_trigger: sendiri malam
+                          relapse_trigger_count: 2
                       peak_relapse_hours_utc: [21, 22]
                       peak_relapse_count: 3
                       ai_summary: Kamu konsisten membaik, jaga ritme malam.
@@ -1369,7 +1374,7 @@ paths:
                         analysis: Pola relapse paling sering muncul di 21:00-22:00 UTC saat trigger emosional malam meningkat.
                         summary: Trigger paling sering saat ini adalah stres kerja. Solusi terbaik adalah memutus akses pemicu sebelum jam rawan dan beralih ke rutinitas pemulihan yang sudah ditetapkan.
                         generated_at: "2026-05-10T21:10:00Z"
-                      latest_relapse_solution:
+                      relapse_trigger_summary:
                         title: Langkah Pemulihan Cepat
                         analysis: Relapse terdeteksi saat trigger utama aktif. Fokus putus rantai pemicu dan stabilkan emosi.
                         summary: Solusi terbaik saat ini adalah batasi akses pemicu di jam rawan, pindah ke aktivitas aman, lalu jaga akuntabilitas singkat.
@@ -3874,6 +3879,17 @@ components:
         relapse_count:
           type: integer
           minimum: 0
+    RoutineRelapseTriggerStatData:
+      type: object
+      required:
+        - relapse_trigger
+        - relapse_trigger_count
+      properties:
+        relapse_trigger:
+          type: string
+        relapse_trigger_count:
+          type: integer
+          minimum: 0
     RoutineRelapseTimeSummaryData:
       type: object
       required:
@@ -3897,11 +3913,12 @@ components:
         - statistics
         - relapses
         - hourly_relapse_distribution
+        - relapse_triggers_distribution
         - peak_relapse_hours_utc
         - peak_relapse_count
         - ai_summary
         - relapse_time_summary
-        - latest_relapse_solution
+        - relapse_trigger_summary
       properties:
         statistics:
           $ref: "#/components/schemas/RoutineStatisticsData"
@@ -3913,6 +3930,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RoutineRelapseHourStatData"
+        relapse_triggers_distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoutineRelapseTriggerStatData"
         peak_relapse_hours_utc:
           type: array
           items:
@@ -3926,7 +3947,7 @@ components:
           type: string
         relapse_time_summary:
           $ref: "#/components/schemas/RoutineRelapseTimeSummaryData"
-        latest_relapse_solution:
+        relapse_trigger_summary:
           oneOf:
             - $ref: "#/components/schemas/RoutineRelapseSolutionData"
             - type: "null"

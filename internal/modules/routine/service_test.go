@@ -347,6 +347,12 @@ func TestService_GetRelapseStatistics_BuildsHourlyPatternAndAISummary(t *testing
 	if payload.HourlyRelapseDistribution[1].HourUTC != 22 || payload.HourlyRelapseDistribution[1].RelapseCount != 1 {
 		t.Fatalf("expected hour 22 count 1, got %+v", payload.HourlyRelapseDistribution[1])
 	}
+	if len(payload.RelapseTriggersDistribution) != 3 {
+		t.Fatalf("expected 3 trigger buckets, got %d", len(payload.RelapseTriggersDistribution))
+	}
+	if payload.RelapseTriggersDistribution[0].RelapseTrigger != "bosan" || payload.RelapseTriggersDistribution[0].RelapseTriggerCount != 1 {
+		t.Fatalf("expected sorted trigger distribution, got %+v", payload.RelapseTriggersDistribution[0])
+	}
 	if payload.RelapseTimeSummary.Title == "" || payload.RelapseTimeSummary.Analysis == "" || payload.RelapseTimeSummary.Summary == "" {
 		t.Fatalf("expected relapse time summary with analysis+summary, got %+v", payload.RelapseTimeSummary)
 	}
@@ -356,11 +362,11 @@ func TestService_GetRelapseStatistics_BuildsHourlyPatternAndAISummary(t *testing
 	if !strings.HasPrefix(payload.RelapseTimeSummary.Summary, "Trigger paling sering saat ini:") {
 		t.Fatalf("expected summary mention top trigger, got %+v", payload.RelapseTimeSummary.Summary)
 	}
-	if payload.LatestRelapseSolution == nil {
-		t.Fatal("expected latest relapse solution present")
+	if payload.RelapseTriggerSummary == nil {
+		t.Fatal("expected relapse trigger summary present")
 	}
-	if payload.LatestRelapseSolution.Summary == "" {
-		t.Fatalf("expected latest relapse solution summary, got %+v", payload.LatestRelapseSolution)
+	if payload.RelapseTriggerSummary.Summary == "" {
+		t.Fatalf("expected relapse trigger summary summary, got %+v", payload.RelapseTriggerSummary)
 	}
 }
 
@@ -383,8 +389,8 @@ func TestService_GetRelapseStatistics_EmptyRelapseUsesFallbackSummary(t *testing
 	if payload.PeakRelapseCount != 0 || len(payload.PeakRelapseHoursUTC) != 0 {
 		t.Fatalf("expected no peak hours, got count=%d hours=%+v", payload.PeakRelapseCount, payload.PeakRelapseHoursUTC)
 	}
-	if payload.LatestRelapseSolution != nil {
-		t.Fatalf("expected nil latest relapse solution, got %+v", payload.LatestRelapseSolution)
+	if payload.RelapseTriggerSummary != nil {
+		t.Fatalf("expected nil relapse trigger summary, got %+v", payload.RelapseTriggerSummary)
 	}
 	if payload.RelapseTimeSummary.Title == "" || payload.RelapseTimeSummary.Analysis == "" || payload.RelapseTimeSummary.Summary == "" {
 		t.Fatalf("expected fallback relapse time summary analysis+summary, got %+v", payload.RelapseTimeSummary)

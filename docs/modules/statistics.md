@@ -61,10 +61,11 @@ Field minimum `GET /api/v1/routine/statistics/activity-summary`:
 - `successful_checkins`,
 - `relapses`,
 - `hourly_relapse_distribution`,
+- `relapse_triggers_distribution`,
 - `peak_relapse_hours_utc`,
 - `peak_relapse_count`,
 - `relapse_time_summary`,
-- `latest_relapse_solution`.
+- `relapse_trigger_summary`.
 - `active_days`,
 - `recent_activity[].day_name`.
 
