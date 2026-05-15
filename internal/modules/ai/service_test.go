@@ -84,6 +84,29 @@ func TestService_AskCoach_SuccessStoresConversation(t *testing.T) {
 	}
 }
 
+func TestService_AskCoach_StripsLeakedPersonaMarkerFromReply(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		persona: models.UserAIPersonaPreference{UserID: "user-1", Persona: "direct"},
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Ok.\n\nrecova.persona.direct.v1"}}
+	service := NewService(repo, provider)
+
+	payload, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "hello"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Response != "Ok." {
+		t.Fatalf("expected sanitized reply, got %q", payload.Response)
+	}
+	if len(repo.createdMessages) != 2 {
+		t.Fatalf("expected 2 stored rows, got %d", len(repo.createdMessages))
+	}
+	if repo.createdMessages[1].Content != "Ok." {
+		t.Fatalf("expected sanitized stored assistant message, got %q", repo.createdMessages[1].Content)
+	}
+}
+
 func TestService_GetChatHistory_NormalizesRoleToContract(t *testing.T) {
 	repo := &fakeAIRepo{
 		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
@@ -251,7 +274,7 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
-	if !strings.Contains(provider.lastReq.SystemInstruction, "Friendly Billy") {
+	if !strings.Contains(provider.lastReq.SystemInstruction, "signature_id: recova.persona.friendly.v1") {
 		t.Fatalf("expected friendly signature in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
 }
@@ -262,16 +285,16 @@ func TestPersonaStyleInstruction_HasDistinctSignature(t *testing.T) {
 	direct := personaStyleInstruction("direct")
 	concise := personaStyleInstruction("concise")
 
-	if !strings.Contains(supportive, "Supportive Billy") || !strings.Contains(supportive, "validasi emosi") {
+	if !strings.Contains(supportive, "signature_id: recova.persona.supportive.v1") || !strings.Contains(supportive, "validasi emosi") {
 		t.Fatalf("supportive signature missing: %s", supportive)
 	}
-	if !strings.Contains(friendly, "Friendly Billy") || !strings.Contains(friendly, "sapaan santai") {
+	if !strings.Contains(friendly, "signature_id: recova.persona.friendly.v1") || !strings.Contains(friendly, "sapaan santai") {
 		t.Fatalf("friendly signature missing: %s", friendly)
 	}
-	if !strings.Contains(direct, "Direct Billy") || !strings.Contains(direct, "langkah bernomor") {
+	if !strings.Contains(direct, "signature_id: recova.persona.direct.v1") || !strings.Contains(direct, "langkah bernomor") {
 		t.Fatalf("direct signature missing: %s", direct)
 	}
-	if !strings.Contains(concise, "Concise Billy") || !strings.Contains(concise, "maksimal 3 kalimat") {
+	if !strings.Contains(concise, "signature_id: recova.persona.concise.v1") || !strings.Contains(concise, "maksimal 3 kalimat") {
 		t.Fatalf("concise signature missing: %s", concise)
 	}
 	if supportive == friendly || friendly == direct || direct == concise {

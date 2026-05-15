@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -120,9 +121,10 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		return AskCoachResponseData{}, mapProviderError(err)
 	}
 
+	assistantText := sanitizeCoachReply(strings.TrimSpace(reply.Text))
 	chatRows := []models.AIChat{
 		{UserID: strings.TrimSpace(userID), Role: "user", Content: input.Message},
-		{UserID: strings.TrimSpace(userID), Role: "assistant", Content: strings.TrimSpace(reply.Text)},
+		{UserID: strings.TrimSpace(userID), Role: "assistant", Content: assistantText},
 	}
 	if err := s.repo.CreateChatMessages(ctx, chatRows); err != nil {
 		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
@@ -131,9 +133,78 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 
 	s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, nil)
 	return AskCoachResponseData{
-		Response:    strings.TrimSpace(reply.Text),
+		Response:    assistantText,
 		PersonaUsed: persona,
 	}, nil
+}
+
+func sanitizeCoachReply(text string) string {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return ""
+	}
+
+	lines := strings.Split(trimmed, "\n")
+	filtered := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if isInternalPersonaMarkerLine(strings.TrimSpace(line)) {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	last := strings.TrimSpace(filtered[len(filtered)-1])
+	if cleaned, ok := stripTrailingPersonaMarkerToken(last); ok {
+		filtered[len(filtered)-1] = cleaned
+	}
+
+	out := strings.Join(filtered, "\n")
+	out = internalPersonaMarkerTokenRe.ReplaceAllString(out, "")
+	return strings.TrimSpace(out)
+}
+
+var internalPersonaMarkerTokenRe = regexp.MustCompile(`\brecova\.persona\.[a-z_]+\.(?:v\d+)\b`)
+
+func isInternalPersonaMarkerLine(line string) bool {
+	if line == "" {
+		return false
+	}
+	if strings.HasPrefix(line, "signature_id: recova.persona.") || strings.HasPrefix(line, "- signature_id: recova.persona.") {
+		return true
+	}
+	return isInternalPersonaMarkerToken(line)
+}
+
+func stripTrailingPersonaMarkerToken(line string) (string, bool) {
+	if line == "" {
+		return "", false
+	}
+
+	parts := strings.Fields(line)
+	if len(parts) == 0 {
+		return "", false
+	}
+
+	last := parts[len(parts)-1]
+	if !isInternalPersonaMarkerToken(last) {
+		return line, false
+	}
+
+	without := strings.TrimSpace(strings.TrimSuffix(line, last))
+	return strings.TrimSpace(strings.TrimRight(without, ".,;:")), true
+}
+
+func isInternalPersonaMarkerToken(token string) bool {
+	if !strings.HasPrefix(token, "recova.persona.") {
+		return false
+	}
+	if !strings.Contains(token, ".v") {
+		return false
+	}
+	return true
 }
 
 // GetChatHistory returns authenticated user chat history.
@@ -375,6 +446,7 @@ BATASAN & KEAMANAN
 - Jangan memberi diagnosis medis atau mempermalukan/menyalahkan user.
 - Jika ada indikasi krisis/niat menyakiti diri: arahkan ke bantuan darurat lokal/tenaga profesional dan minta lokasi singkat.
 - Jika topik di luar pemulihan: tolak singkat dan arahkan kembali ke pemulihan.
+- Jangan tulis metadata internal (contoh: signature_id atau recova.persona.*).
 - Jangan campur gaya antar persona. Ikuti signature persona aktif secara konsisten.
 
 Persona aktif:
@@ -547,6 +619,7 @@ func personaStyleInstruction(persona string) string {
 	switch ResolvePersonaOrDefault(persona) {
 	case "friendly":
 		return `
+- signature_id: recova.persona.friendly.v1
 - tujuan: jadi sahabat ngobrol yang bikin user merasa ditemani.
 - pembuka: pakai sapaan santai dan ringan (contoh: "Oke, kita hadapi pelan-pelan.").
 - struktur: 1 jawaban inti + 1 ajakan ringan yang positif (opsional).
@@ -554,6 +627,7 @@ func personaStyleInstruction(persona string) string {
 - larangan: jangan terlalu formal, jangan terdengar kaku seperti manual.`
 	case "concise":
 		return `
+- signature_id: recova.persona.concise.v1
 - tujuan: hemat kata, tetap empatik.
 - pembuka: langsung ke inti tanpa basa-basi.
 - struktur: maksimal 3 kalimat pendek ATAU maksimal 3 bullet.
@@ -561,6 +635,7 @@ func personaStyleInstruction(persona string) string {
 - larangan: jangan jelaskan panjang jika tidak diminta.`
 	case "direct":
 		return `
+- signature_id: recova.persona.direct.v1
 - tujuan: jaga akuntabilitas dengan arahan praktis.
 - pembuka: langsung sebut inti masalah tanpa small talk.
 - struktur: format langkah bernomor (1-3) jika user butuh tindakan.
@@ -568,6 +643,7 @@ func personaStyleInstruction(persona string) string {
 - larangan: jangan melembutkan instruksi sampai jadi ambigu.`
 	default:
 		return `
+- signature_id: recova.persona.supportive.v1
 - tujuan: pendamping empatik saat user merasa down.
 - pembuka: validasi emosi user dulu sebelum saran (contoh: "Wajar kalau ini terasa berat.").
 - struktur: 1 afirmasi empatik + 1 saran kecil yang realistis.
