@@ -1052,7 +1052,7 @@ func buildPeakHourSyntheticTrigger(peakHoursUTC []int, peakCount int, relapseTri
 func emptyRelapseTimeSummary(nowUTC time.Time) RelapseTimeSummaryPayload {
 	return RelapseTimeSummaryPayload{
 		Title:       "Pola Relapse Belum Tersedia",
-		Analysis:    "Belum ada data relapse untuk dianalisis. Gunakan UTC di backend, konversi jam di frontend sesuai zona user.",
+		Analysis:    "Belum ada data relapse untuk dianalisis.",
 		Summary:     "Solusi terbaik saat ini: mulai catat trigger konsisten agar analisis pola dan strategi pencegahan bisa dipersonalisasi.",
 		GeneratedAt: nowUTC.UTC().Format(time.RFC3339),
 	}
