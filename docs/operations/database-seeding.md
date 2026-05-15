@@ -65,6 +65,7 @@ Aturan:
 
 - seeding harus aman dijalankan ulang,
 - gunakan natural key atau unique key untuk mencegah duplikasi,
+- seed wajib mengikuti constraint schema terbaru (contoh `daily_challenges` harus isi `title`, `description`, dan `content`),
 - operasi update harus bersifat targeted, bukan truncate massal tanpa kontrol.
 
 ## Execution Order
@@ -91,6 +92,11 @@ Aturan runner:
 - membutuhkan `DATABASE_URL`,
 - menjalankan `psql` dengan `ON_ERROR_STOP=1`,
 - script seed wajib idempotent (`ON CONFLICT DO NOTHING` untuk data referensi).
+
+Aturan label user-facing:
+
+- gunakan format natural + Title Case untuk kategori konten edukasi,
+- contoh canonical: `Dampak Pornografi` (bukan `dampak pornografi` atau `dampak_pornografi`).
 
 ## Baseline User Fixture (Manual Auth)
 

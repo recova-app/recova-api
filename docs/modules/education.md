@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/modules/education.md
-last_reviewed: 2026-05-14
+last_reviewed: 2026-05-15
 ---
 
 # Education Module
@@ -57,6 +57,7 @@ Constraint minimum:
 - konten tidak aktif tidak boleh muncul di payload,
 - payload item wajib selalu memuat `type` dengan nilai `artikel` atau `video`,
 - label kategori user-facing harus natural (spasi), bukan snake_case,
+- label kategori user-facing mengikuti Title Case konsisten (contoh: `Dampak Pornografi`),
 - fallback data harus aman jika stok konten terbatas.
 
 ## Validation Rules

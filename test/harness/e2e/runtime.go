@@ -180,10 +180,10 @@ VALUES
   ('33333333-3333-3333-3333-333333333333','Satu langkah kecil hari ini tetap berarti untuk masa depanmu.',true,now()),
   ('44444444-4444-4444-4444-444444444444','Konsisten tidak harus sempurna, yang penting terus bergerak.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
-		`INSERT INTO daily_challenges (id, content, is_active, created_at)
+		`INSERT INTO daily_challenges (id, title, description, content, is_active, created_at)
 VALUES
-  ('55555555-5555-5555-5555-555555555555','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.',true,now()),
-  ('66666666-6666-6666-6666-666666666666','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.',true,now())
+  ('55555555-5555-5555-5555-555555555555','Tantangan Harian','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.','Catat satu pemicu utama hari ini dan respon sehat yang kamu pilih.',true,now()),
+  ('66666666-6666-6666-6666-666666666666','Tantangan Harian','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.','Lakukan jeda 60 detik sebelum merespons dorongan yang muncul.',true,now())
 ON CONFLICT (content) DO NOTHING;`,
 	}
 
