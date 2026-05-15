@@ -251,6 +251,32 @@ func TestService_AskCoach_UsesStoredPersonaInProviderRequest(t *testing.T) {
 	if !strings.Contains(provider.lastReq.SystemInstruction, "nama persona: friendly") {
 		t.Fatalf("expected persona marker in system instruction, got: %s", provider.lastReq.SystemInstruction)
 	}
+	if !strings.Contains(provider.lastReq.SystemInstruction, "Friendly Billy") {
+		t.Fatalf("expected friendly signature in system instruction, got: %s", provider.lastReq.SystemInstruction)
+	}
+}
+
+func TestPersonaStyleInstruction_HasDistinctSignature(t *testing.T) {
+	supportive := personaStyleInstruction("supportive")
+	friendly := personaStyleInstruction("friendly")
+	direct := personaStyleInstruction("direct")
+	concise := personaStyleInstruction("concise")
+
+	if !strings.Contains(supportive, "Supportive Billy") || !strings.Contains(supportive, "validasi emosi") {
+		t.Fatalf("supportive signature missing: %s", supportive)
+	}
+	if !strings.Contains(friendly, "Friendly Billy") || !strings.Contains(friendly, "sapaan santai") {
+		t.Fatalf("friendly signature missing: %s", friendly)
+	}
+	if !strings.Contains(direct, "Direct Billy") || !strings.Contains(direct, "langkah bernomor") {
+		t.Fatalf("direct signature missing: %s", direct)
+	}
+	if !strings.Contains(concise, "Concise Billy") || !strings.Contains(concise, "maksimal 3 kalimat") {
+		t.Fatalf("concise signature missing: %s", concise)
+	}
+	if supportive == friendly || friendly == direct || direct == concise {
+		t.Fatal("persona signature must be distinct across personas")
+	}
 }
 
 func ptrString(v string) *string {
