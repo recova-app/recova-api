@@ -147,6 +147,8 @@ Secret/variable contract:
 | `DOKPLOY_URL`                    | GitHub Variable/Secret | base URL panel Dokploy untuk API deploy                                                    |
 | `DOKPLOY_API_TOKEN`              | GitHub Secret          | token API Dokploy                                                                          |
 | `DOKPLOY_APPLICATION_ID`         | GitHub Variable/Secret | target application ID bila memakai API deploy                                              |
+| `CF_ACCESS_CLIENT_ID`            | GitHub Secret          | opsional; Cloudflare Access service token client ID untuk panel Dokploy protected          |
+| `CF_ACCESS_CLIENT_SECRET`        | GitHub Secret          | opsional; Cloudflare Access service token client secret untuk panel Dokploy protected      |
 | `PRODUCTION_DOMAIN`              | GitHub Variable        | domain publik API tanpa skema                                                              |
 | `BACKUP_EVIDENCE_URL`            | GitHub Variable        | opsional untuk migration non-destructive; direkomendasikan sebagai bukti backup production |
 | `APPROVE_DESTRUCTIVE_MIGRATIONS` | GitHub Variable        | wajib `true` hanya jika gate mendeteksi migration destructive                              |
@@ -364,12 +366,13 @@ Opsi workflow manual GitHub:
 1. setup GitHub Environment `production`,
 2. aktifkan **Required reviewers**,
 3. isi `DOKPLOY_WEBHOOK_URL` atau pasangan API `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, `DOKPLOY_APPLICATION_ID`,
-4. isi `PRODUCTION_DOMAIN=api.example.com`,
-5. isi `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
-6. buka GitHub → **Actions** → **Deploy Production Dokploy**,
-7. jalankan **Run workflow** dengan `trigger_dokploy=true` hanya setelah `IMAGE_TAG` Dokploy sesuai tag target,
-8. approve environment `production`,
-9. tunggu smoke test workflow selesai.
+4. jika panel Dokploy dilindungi Cloudflare Zero Trust Access, isi `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET`,
+5. isi `PRODUCTION_DOMAIN=api.example.com`,
+6. isi `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
+7. buka GitHub → **Actions** → **Deploy Production Dokploy**,
+8. jalankan **Run workflow** dengan `trigger_dokploy=true` hanya setelah `IMAGE_TAG` Dokploy sesuai tag target,
+9. approve environment `production`,
+10. tunggu smoke test workflow selesai.
 
 Checklist setup pertama:
 
@@ -408,16 +411,17 @@ DOKPLOY_WEBHOOK_URL=https://panel.example.com/api/deploy/<redacted-token>
 
 4. jangan simpan webhook sebagai variable karena token URL bersifat secret,
 5. jika memakai webhook, tidak perlu mengisi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, atau `DOKPLOY_APPLICATION_ID`,
-6. tambahkan **Repository Variables**:
+6. jika webhook berada di balik Cloudflare Zero Trust Access, tambahkan **Environment Secret** `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` dari Access service token,
+7. tambahkan **Repository Variables**:
 
 ```text
 PRODUCTION_DOMAIN=api.example.com
 APPROVE_DESTRUCTIVE_MIGRATIONS=false
 ```
 
-7. `BACKUP_EVIDENCE_URL` opsional untuk migration non-destructive dan bisa diisi saat backup evidence tersedia.
+8. `BACKUP_EVIDENCE_URL` opsional untuk migration non-destructive dan bisa diisi saat backup evidence tersedia.
 
-Dengan webhook mode, GitHub Actions hanya memanggil webhook setelah image berhasil dipush dan approval production diberikan. Dokploy akan redeploy memakai `IMAGE_TAG` yang sedang terset di Environment Dokploy.
+Dengan webhook mode, GitHub Actions hanya memanggil webhook setelah image berhasil dipush dan approval production diberikan. Dokploy akan redeploy memakai `IMAGE_TAG` yang sedang terset di Environment Dokploy. Jika `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` terisi, workflow mengirim header `CF-Access-Client-Id` dan `CF-Access-Client-Secret` pada request webhook/API agar Cloudflare Access mengizinkan request CI tanpa login email interaktif.
 
 Manual Dokploy setup:
 
@@ -443,9 +447,10 @@ Setup sekali:
 2. aktifkan **Required reviewers** untuk approval manual sebelum deploy job,
 3. tambahkan Environment Secret `DOKPLOY_WEBHOOK_URL` jika Dokploy webhook dipakai,
 4. jika tidak memakai webhook, isi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, dan `DOKPLOY_APPLICATION_ID`,
-5. tambahkan Repository Variable `PRODUCTION_DOMAIN=api.example.com`,
-6. tambahkan Repository Variable `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
-7. opsional tambahkan `BACKUP_EVIDENCE_URL` saat migration non-destructive punya bukti backup.
+5. jika panel Dokploy dilindungi Cloudflare Zero Trust Access, buat policy **Service Auth** untuk service token dan simpan `CF_ACCESS_CLIENT_ID` + `CF_ACCESS_CLIENT_SECRET` sebagai Environment Secret,
+6. tambahkan Repository Variable `PRODUCTION_DOMAIN=api.example.com`,
+7. tambahkan Repository Variable `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
+8. opsional tambahkan `BACKUP_EVIDENCE_URL` saat migration non-destructive punya bukti backup.
 
 Cara menjalankan manual:
 

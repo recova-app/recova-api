@@ -134,6 +134,8 @@ jobs:
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
           DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
           DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           PRODUCTION_DOMAIN: ${{ env.PRODUCTION_DOMAIN }}
         shell: bash
         run: |
@@ -145,6 +147,10 @@ jobs:
                 exit 1
               fi
             done
+          fi
+          if { [ -n "${CF_ACCESS_CLIENT_ID:-}" ] && [ -z "${CF_ACCESS_CLIENT_SECRET:-}" ]; } || { [ -z "${CF_ACCESS_CLIENT_ID:-}" ] && [ -n "${CF_ACCESS_CLIENT_SECRET:-}" ]; }; then
+            echo "::error::CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET must be configured together"
+            exit 1
           fi
           if [ -z "${PRODUCTION_DOMAIN:-}" ]; then
             echo "::error::Missing vars.PRODUCTION_DOMAIN for post-deploy smoke checks"
@@ -159,17 +165,38 @@ jobs:
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
           DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
           DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
+          access_headers=()
+          if [ -n "${CF_ACCESS_CLIENT_ID:-}" ] && [ -n "${CF_ACCESS_CLIENT_SECRET:-}" ]; then
+            access_headers+=(
+              -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}"
+              -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}"
+            )
+          fi
+
           if [ -n "${DOKPLOY_WEBHOOK_URL:-}" ]; then
-            curl -fsSL --retry 3 --retry-delay 5 -X POST "$DOKPLOY_WEBHOOK_URL"
+            curl_args=(curl -fsSL --retry 3 --retry-delay 5 -X POST)
+            if [ ${#access_headers[@]} -gt 0 ]; then
+              curl_args+=("${access_headers[@]}")
+            fi
+            curl_args+=("$DOKPLOY_WEBHOOK_URL")
+            "${curl_args[@]}"
           else
-            curl -fsSL --retry 3 --retry-delay 5 -X POST "${DOKPLOY_URL}/api/application.deploy" \
-              -H "accept: application/json" \
-              -H "content-type: application/json" \
-              -H "x-api-key: ${DOKPLOY_API_TOKEN}" \
-              -d "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}"
+            curl_args=(
+              curl -fsSL --retry 3 --retry-delay 5 -X POST "${DOKPLOY_URL}/api/application.deploy"
+              -H "accept: application/json"
+              -H "content-type: application/json"
+              -H "x-api-key: ${DOKPLOY_API_TOKEN}"
+            )
+            if [ ${#access_headers[@]} -gt 0 ]; then
+              curl_args+=("${access_headers[@]}")
+            fi
+            curl_args+=(-d "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}")
+            "${curl_args[@]}"
           fi
 
       - name: Smoke test production

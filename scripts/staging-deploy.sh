@@ -34,9 +34,14 @@ if [ ! -f "$env_file" ]; then
   exit 1
 fi
 
+case "$env_file" in
+  /*|*/*) env_source="$env_file" ;;
+  *) env_source="./$env_file" ;;
+esac
+
 set -a
 # shellcheck source=/dev/null
-. "$env_file"
+. "$env_source"
 set +a
 
 postgres_user="${POSTGRES_USER:-postgres}"

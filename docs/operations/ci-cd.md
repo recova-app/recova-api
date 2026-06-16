@@ -139,6 +139,7 @@ Workflow `.github/workflows/deploy-production.yml`:
 - deploy job selalu `needs` build image dan migration safety gate,
 - deploy job memakai GitHub Environment `production` agar required reviewer bisa diterapkan,
 - trigger Dokploy lewat `DOKPLOY_WEBHOOK_URL` atau API `DOKPLOY_URL` + `DOKPLOY_API_TOKEN` + `DOKPLOY_APPLICATION_ID`,
+- jika panel Dokploy dilindungi Cloudflare Zero Trust Access, workflow dapat mengirim service token header dari secret `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET`,
 - mode manual memakai input `trigger_dokploy`; jika `false`, workflow hanya build image dan menjalankan migration safety gate tanpa memanggil Dokploy,
 - source Dokploy boleh memakai GitHub App atau provider **Git** langsung; untuk provider Git langsung, auto deploy perlu webhook Git provider atau deploy manual Dokploy UI,
 - smoke test production mengecek `/health/live`, `/health/ready`, `/openapi.yaml`, dan unauthorized protected route.
