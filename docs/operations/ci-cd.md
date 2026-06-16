@@ -69,6 +69,15 @@ Workflow CI aktif pada:
 - `push` ke `main` dan `develop`,
 - `workflow_dispatch` untuk menjalankan gate staging manual.
 
+Workflow manual production deploy:
+
+- `.github/workflows/deploy-production.yml` menggunakan `workflow_dispatch` dengan input:
+  - `image_tag` opsional untuk redeploy image immutable existing seperti `sha-<commit-sha>`,
+  - `trigger_dokploy` wajib eksplisit `true` sebelum workflow memanggil Dokploy.
+- workflow manual tetap menjalankan build/push image, migration safety gate, GitHub Environment `production`, trigger Dokploy, dan smoke checks publik.
+- sebelum menjalankan `trigger_dokploy=true`, operator wajib memastikan `IMAGE_TAG` di Dokploy Environment sudah sama dengan tag yang akan dipromote.
+- jika service Dokploy memakai provider **Git** langsung, workflow manual tidak mengubah source repository Dokploy; gunakan deploy manual Dokploy UI atau webhook Git provider untuk menarik branch terbaru.
+
 Workflow manual cutover wave:
 
 - `.github/workflows/cutover-waves.yml` menggunakan `workflow_dispatch` dengan input wave `64|65|66|67|68|all`.
@@ -130,6 +139,8 @@ Workflow `.github/workflows/deploy-production.yml`:
 - deploy job selalu `needs` build image dan migration safety gate,
 - deploy job memakai GitHub Environment `production` agar required reviewer bisa diterapkan,
 - trigger Dokploy lewat `DOKPLOY_WEBHOOK_URL` atau API `DOKPLOY_URL` + `DOKPLOY_API_TOKEN` + `DOKPLOY_APPLICATION_ID`,
+- mode manual memakai input `trigger_dokploy`; jika `false`, workflow hanya build image dan menjalankan migration safety gate tanpa memanggil Dokploy,
+- source Dokploy boleh memakai GitHub App atau provider **Git** langsung; untuk provider Git langsung, auto deploy perlu webhook Git provider atau deploy manual Dokploy UI,
 - smoke test production mengecek `/health/live`, `/health/ready`, `/openapi.yaml`, dan unauthorized protected route.
 
 Production memakai `IMAGE_TAG=sha-<commit-sha>` di Dokploy Environment sebagai default promote dan rollback anchor. Branch tag `main` hanya pointer dan tidak boleh menjadi satu-satunya rollback reference.

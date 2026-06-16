@@ -152,6 +152,242 @@ Secret/variable contract:
 | `APPROVE_DESTRUCTIVE_MIGRATIONS` | GitHub Variable        | wajib `true` hanya jika gate mendeteksi migration destructive                              |
 | `IMAGE_TAG`                      | Dokploy Environment    | tag image immutable yang akan dijalankan                                                   |
 
+### Dokploy Git Source Setup Langsung
+
+Gunakan source **Git** ketika GitHub App Dokploy bermasalah atau repository cukup ditarik langsung dari Git URL. Jalur ini tidak bergantung pada GitHub provider/account integration Dokploy.
+
+Public repository:
+
+1. buka Dokploy Application/Compose service production,
+2. pilih provider **Git**,
+3. isi repository URL HTTPS:
+
+```text
+https://github.com/<owner>/<repo>.git
+```
+
+4. isi branch production, default `main`,
+5. simpan dan jalankan deploy manual pertama dari Dokploy UI.
+
+Private repository:
+
+1. buka Dokploy **SSH Keys**,
+2. buat SSH key baru dan gunakan **Generate RSA SSH Key**,
+3. copy public key,
+4. buka GitHub repo → **Settings** → **Deploy keys** → **Add deploy key**,
+5. paste public key Dokploy,
+6. jangan aktifkan **Allow write access** karena Dokploy hanya perlu pull,
+7. kembali ke Dokploy Application/Compose service,
+8. pilih provider **Git**,
+9. isi repository URL SSH:
+
+```text
+git@github.com:<owner>/<repo>.git
+```
+
+10. isi branch production, default `main`,
+11. simpan dan jalankan deploy manual pertama dari Dokploy UI.
+
+Watch Paths:
+
+- untuk repository single-app, isi `**` agar semua perubahan bisa memicu deploy,
+- untuk menghindari deploy karena dokumentasi/CI, gunakan pola berikut:
+
+```text
+**
+!README.md
+!docs/**
+!.github/**
+```
+
+- untuk monorepo, batasi ke folder service dan file build terkait, contoh:
+
+```text
+apps/api/**
+package.json
+package-lock.json
+Dockerfile
+docker-compose.dokploy.yml
+```
+
+Auto deploy dengan provider **Git**:
+
+1. aktifkan auto-deploy/webhook pada service Dokploy jika tersedia,
+2. copy webhook URL dari Dokploy,
+3. buka GitHub repo → **Settings** → **Webhooks** → **Add webhook**,
+4. isi **Payload URL** dengan webhook URL Dokploy,
+5. pilih content type `application/json`,
+6. pilih event **Just the push event**,
+7. simpan webhook,
+8. push commit kecil ke branch production dan pastikan Dokploy menerima trigger.
+
+Jika webhook tidak dipakai, deploy tetap bisa dijalankan manual dari Dokploy UI atau melalui workflow manual GitHub `deploy-production` setelah operator memastikan `IMAGE_TAG` Dokploy sudah sesuai.
+
+### First-Time Dokploy Setup dengan Git dan Compose
+
+Deploy manual pertama wajib dilakukan untuk memvalidasi clone repository, compose path, environment, GHCR pull, domain, dan healthcheck sebelum webhook atau workflow manual dijadikan jalur operasional.
+
+#### 1. Pastikan image GHCR tersedia
+
+Jalankan workflow production atau push ke `main` sampai image berikut tersedia:
+
+```text
+ghcr.io/recova-app/backend-v2:sha-<commit-sha>
+```
+
+Catat tag immutable yang akan dipromote:
+
+```text
+IMAGE_TAG=sha-<commit-sha>
+```
+
+#### 2. Buat token GHCR untuk pull image
+
+Buat GitHub Personal Access Token dengan scope minimal:
+
+```text
+read:packages
+```
+
+Jika package private berada di organization, pastikan token memiliki akses ke package `ghcr.io/recova-app/backend-v2`.
+
+#### 3. Tambahkan registry GHCR di Dokploy
+
+Dokploy → **Registry** → add registry:
+
+```text
+Name: ghcr
+Registry URL: ghcr.io
+Username: <github-username>
+Password/Token: <PAT read:packages>
+```
+
+Simpan dan gunakan test pull bila tersedia.
+
+#### 4. Setup Git SSH key Dokploy
+
+1. Dokploy → **SSH Keys**,
+2. buat SSH key baru,
+3. generate RSA SSH key,
+4. copy public key,
+5. GitHub repo → **Settings** → **Deploy keys** → **Add deploy key**,
+6. isi title `dokploy-production`,
+7. paste public key Dokploy,
+8. pastikan **Allow write access** tidak aktif.
+
+#### 5. Buat Docker Compose service di Dokploy
+
+Buat service baru sebagai **Docker Compose** dengan source **Git**.
+
+Isi konfigurasi source:
+
+```text
+Repository URL: git@github.com:<owner>/<repo>.git
+Branch: main
+Docker Compose Path: docker-compose.dokploy.yml
+Watch Paths: **
+```
+
+Jika ingin menghindari redeploy karena perubahan docs atau CI, gunakan Watch Paths:
+
+```text
+**
+!README.md
+!docs/**
+!.github/**
+```
+
+Jangan memakai build type **Dockerfile** untuk jalur ini. File `docker-compose.dokploy.yml` sudah menarik image dari GHCR melalui `IMAGE_TAG`.
+
+#### 6. Isi Environment Dokploy
+
+Minimal environment production:
+
+```text
+IMAGE_TAG=sha-<commit-sha>
+APP_ENV=production
+NODE_ENV=production
+PORT=3001
+```
+
+Tambahkan seluruh environment aplikasi yang wajib sesuai `docs/environment.md`, misalnya koneksi database, JWT secret, provider AI, dan konfigurasi integrasi lain. Secret harus disimpan di Dokploy Environment, bukan di repository.
+
+#### 7. Setup domain
+
+Dokploy service → **Domains**:
+
+```text
+Domain: api.example.com
+Service: api
+Port: 3001
+HTTPS: enabled
+```
+
+Compose production memakai `expose: "3001"`; jangan menambahkan `ports:` host untuk API, database, atau Redis.
+
+#### 8. Jalankan deploy manual pertama
+
+Klik **Deploy** dari Dokploy UI dan cek log berikut:
+
+- Git clone berhasil,
+- `docker-compose.dokploy.yml` ditemukan,
+- image GHCR berhasil di-pull,
+- container `api` running,
+- healthcheck menjadi healthy,
+- domain mengarah ke service `api` port `3001`.
+
+Jika image pull gagal, cek registry GHCR, token `read:packages`, package visibility, dan nilai `IMAGE_TAG`.
+
+#### 9. Jalankan smoke test publik
+
+```bash
+curl https://api.example.com/health/live
+curl https://api.example.com/health/ready
+curl -I https://api.example.com/openapi.yaml
+curl -i https://api.example.com/api/v1/users/me
+```
+
+Route protected tanpa auth harus mengembalikan `401` atau `403`.
+
+#### 10. Pilih jalur operasional setelah deploy pertama
+
+Opsi manual Dokploy:
+
+1. GitHub Actions build image,
+2. catat `sha-<commit-sha>`,
+3. update `IMAGE_TAG` di Dokploy,
+4. klik **Deploy**,
+5. jalankan smoke test.
+
+Opsi workflow manual GitHub:
+
+1. setup GitHub Environment `production`,
+2. aktifkan **Required reviewers**,
+3. isi `DOKPLOY_WEBHOOK_URL` atau pasangan API `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, `DOKPLOY_APPLICATION_ID`,
+4. isi `PRODUCTION_DOMAIN=api.example.com`,
+5. isi `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
+6. buka GitHub → **Actions** → **Deploy Production Dokploy**,
+7. jalankan **Run workflow** dengan `trigger_dokploy=true` hanya setelah `IMAGE_TAG` Dokploy sesuai tag target,
+8. approve environment `production`,
+9. tunggu smoke test workflow selesai.
+
+Checklist setup pertama:
+
+```text
+[ ] GHCR image tersedia
+[ ] Dokploy Registry ghcr.io bisa pull image
+[ ] Git deploy key bisa clone repository
+[ ] Source type Docker Compose
+[ ] Source provider Git
+[ ] Docker Compose Path docker-compose.dokploy.yml
+[ ] IMAGE_TAG berisi sha-<commit-sha>
+[ ] env production lengkap
+[ ] domain api -> service api port 3001
+[ ] deploy manual pertama healthy
+[ ] smoke test publik lulus
+[ ] jalur deploy berikutnya dipilih: manual Dokploy atau workflow GitHub
+```
+
 ### GitHub Environment Setup dengan Dokploy Webhook
 
 Gunakan webhook saat Dokploy sudah menyediakan deploy URL seperti:
@@ -187,10 +423,42 @@ Manual Dokploy setup:
 
 1. tambahkan GHCR registry `ghcr.io` di Dokploy Registry dengan PAT scope minimal untuk pull package,
 2. buat Application/Compose service production dari `docker-compose.dokploy.yml`,
-3. isi Environment Dokploy, termasuk `IMAGE_TAG=sha-<commit-sha>` untuk promote production,
-4. tambahkan Domain dengan service `api` dan container port `3001`,
-5. pastikan tidak ada `ports:` host untuk API, database, atau Redis,
-6. sebelum deploy migration production, review output migration gate; isi `BACKUP_EVIDENCE_URL` bila backup evidence tersedia, dan set `APPROVE_DESTRUCTIVE_MIGRATIONS=true` hanya jika migration destructive sudah direview.
+3. pilih source **Git** jika tidak memakai GitHub App Dokploy,
+4. isi repository URL SSH `git@github.com:<owner>/<repo>.git` untuk private repository atau HTTPS untuk public repository,
+5. isi branch `main`,
+6. isi Watch Paths sesuai scope service; gunakan `**` untuk single-app repository,
+7. isi Environment Dokploy, termasuk `IMAGE_TAG=sha-<commit-sha>` untuk promote production,
+8. tambahkan Domain dengan service `api` dan container port `3001`,
+9. pastikan tidak ada `ports:` host untuk API, database, atau Redis,
+10. jalankan deploy manual pertama dari Dokploy UI untuk memvalidasi clone, env, registry pull, healthcheck, dan domain,
+11. sebelum deploy migration production, review output migration gate; isi `BACKUP_EVIDENCE_URL` bila backup evidence tersedia, dan set `APPROVE_DESTRUCTIVE_MIGRATIONS=true` hanya jika migration destructive sudah direview.
+
+### Manual Production Workflow Setup
+
+Workflow `.github/workflows/deploy-production.yml` bisa dijalankan manual melalui GitHub Actions untuk build/push image, menjalankan migration safety gate, approval production, trigger Dokploy, dan smoke test publik.
+
+Setup sekali:
+
+1. GitHub repo → **Settings** → **Environments** → buat `production`,
+2. aktifkan **Required reviewers** untuk approval manual sebelum deploy job,
+3. tambahkan Environment Secret `DOKPLOY_WEBHOOK_URL` jika Dokploy webhook dipakai,
+4. jika tidak memakai webhook, isi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, dan `DOKPLOY_APPLICATION_ID`,
+5. tambahkan Repository Variable `PRODUCTION_DOMAIN=api.example.com`,
+6. tambahkan Repository Variable `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
+7. opsional tambahkan `BACKUP_EVIDENCE_URL` saat migration non-destructive punya bukti backup.
+
+Cara menjalankan manual:
+
+1. buka GitHub → **Actions** → **Deploy Production Dokploy**,
+2. klik **Run workflow**,
+3. pilih branch/tag sumber,
+4. kosongkan `image_tag` untuk build dan promote commit saat ini sebagai `sha-<commit-sha>`,
+5. isi `image_tag=sha-<commit-sha>` hanya jika ingin redeploy image immutable existing,
+6. set `trigger_dokploy=true` hanya jika Environment Dokploy `IMAGE_TAG` sudah sama dengan tag yang akan dipromote,
+7. approve environment `production` saat GitHub meminta approval,
+8. tunggu smoke test `/health/live`, `/health/ready`, `/openapi.yaml`, dan protected route selesai.
+
+Jika menggunakan provider **Git** langsung di Dokploy dan bukan image GHCR, workflow manual GitHub tidak mengubah source Dokploy. Gunakan workflow hanya untuk gate/smoke terkontrol, atau deploy manual dari Dokploy UI setelah push branch production.
 
 ## Cutover Wave Runner
 
