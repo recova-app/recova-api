@@ -130,30 +130,26 @@ jobs:
     steps:
       - name: Validate production deployment contract
         env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
           DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
-          DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID || secrets.DOKPLOY_COMPOSE_ID }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           PRODUCTION_DOMAIN: ${{ env.PRODUCTION_DOMAIN }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${DOKPLOY_WEBHOOK_URL:-}" ]; then
-            for key in DOKPLOY_URL DOKPLOY_API_TOKEN DOKPLOY_APPLICATION_ID; do
-              if [ -z "${!key:-}" ]; then
-                echo "::error::Missing ${key}; configure Dokploy API values or DOKPLOY_WEBHOOK_URL"
-                exit 1
-              fi
-            done
-          fi
+          for key in DOKPLOY_URL DOKPLOY_API_TOKEN DOKPLOY_COMPOSE_ID; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing ${key}; configure Dokploy API deploy values"
+              exit 1
+            fi
+          done
           if { [ -n "${CF_ACCESS_CLIENT_ID:-}" ] && [ -z "${CF_ACCESS_CLIENT_SECRET:-}" ]; } || { [ -z "${CF_ACCESS_CLIENT_ID:-}" ] && [ -n "${CF_ACCESS_CLIENT_SECRET:-}" ]; }; then
             echo "::error::CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET must be configured together"
             exit 1
           fi
-          dokploy_target="${DOKPLOY_WEBHOOK_URL:-${DOKPLOY_URL:-}}"
-          dokploy_host="$(TARGET_URL="$dokploy_target" node -e 'const target = process.env.TARGET_URL || ""; try { console.log(target ? new URL(target).host : "") } catch { console.log("") }')"
+          dokploy_host="$(TARGET_URL="${DOKPLOY_URL}" node -e 'const target = process.env.TARGET_URL || ""; try { console.log(target ? new URL(target).host : "") } catch { console.log("") }')"
           if [ "$dokploy_host" = "panel.salmanabdurrahman.my.id" ] && { [ -z "${CF_ACCESS_CLIENT_ID:-}" ] || [ -z "${CF_ACCESS_CLIENT_SECRET:-}" ]; }; then
             echo "::error::Missing Cloudflare Access service token secrets for protected Dokploy panel"
             exit 1
@@ -172,10 +168,9 @@ jobs:
 
       - name: Trigger Dokploy
         env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
           DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
-          DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID || secrets.DOKPLOY_COMPOSE_ID }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         shell: bash
@@ -189,26 +184,22 @@ jobs:
             )
           fi
 
-          if [ -n "${DOKPLOY_WEBHOOK_URL:-}" ]; then
-            curl_args=(curl -fsSL --retry 3 --retry-delay 5 -X POST)
-            if [ ${#access_headers[@]} -gt 0 ]; then
-              curl_args+=("${access_headers[@]}")
-            fi
-            curl_args+=("$DOKPLOY_WEBHOOK_URL")
-            "${curl_args[@]}"
-          else
-            curl_args=(
-              curl -fsSL --retry 3 --retry-delay 5 -X POST "${DOKPLOY_URL}/api/application.deploy"
-              -H "accept: application/json"
-              -H "content-type: application/json"
-              -H "x-api-key: ${DOKPLOY_API_TOKEN}"
-            )
-            if [ ${#access_headers[@]} -gt 0 ]; then
-              curl_args+=("${access_headers[@]}")
-            fi
-            curl_args+=(-d "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}")
-            "${curl_args[@]}"
+          dokploy_url="${DOKPLOY_URL%/}"
+          deploy_title="GitHub Actions production deploy ${GITHUB_SHA}"
+          deploy_description="Run ${GITHUB_RUN_ID}; image ${{ needs.build-and-push.outputs.image_ref }}"
+          deploy_body="$(COMPOSE_ID="${DOKPLOY_COMPOSE_ID}" DEPLOY_TITLE="${deploy_title}" DEPLOY_DESCRIPTION="${deploy_description}" node -e 'process.stdout.write(JSON.stringify({ composeId: process.env.COMPOSE_ID, title: process.env.DEPLOY_TITLE, description: process.env.DEPLOY_DESCRIPTION }))')"
+
+          curl_args=(
+            curl --fail-with-body -sSL --retry 3 --retry-delay 5 -X POST "${dokploy_url}/api/compose.deploy"
+            -H "accept: application/json"
+            -H "content-type: application/json"
+            -H "x-api-key: ${DOKPLOY_API_TOKEN}"
+          )
+          if [ ${#access_headers[@]} -gt 0 ]; then
+            curl_args+=("${access_headers[@]}")
           fi
+          curl_args+=(-d "${deploy_body}")
+          "${curl_args[@]}"
 
       - name: Smoke test production
         env:

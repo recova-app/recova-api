@@ -76,7 +76,7 @@ Workflow manual production deploy:
   - `trigger_dokploy` wajib eksplisit `true` sebelum workflow memanggil Dokploy.
 - workflow manual tetap menjalankan build/push image, migration safety gate, GitHub Environment `production`, trigger Dokploy, dan smoke checks publik.
 - sebelum menjalankan `trigger_dokploy=true`, operator wajib memastikan `IMAGE_TAG` di Dokploy Environment sudah sama dengan tag yang akan dipromote.
-- jika service Dokploy memakai provider **Git** langsung, workflow manual tidak mengubah source repository Dokploy; gunakan deploy manual Dokploy UI atau webhook Git provider untuk menarik branch terbaru.
+- repo webhook GitHub → Dokploy tidak diperlukan untuk production workflow ini; hapus/nonaktifkan webhook `/api/deploy/...` agar tidak bypass migration gate, environment approval, atau memicu double deploy.
 
 Workflow manual cutover wave:
 
@@ -138,10 +138,10 @@ Workflow `.github/workflows/deploy-production.yml`:
 - menjalankan `scripts/deploy/production-migration-gate.sh` sebelum deploy; non-destructive migration tanpa backup evidence hanya memberi warning, destructive migration tetap memblok deploy sampai approval eksplisit,
 - deploy job selalu `needs` build image dan migration safety gate,
 - deploy job memakai GitHub Environment `production` agar required reviewer bisa diterapkan,
-- trigger Dokploy lewat `DOKPLOY_WEBHOOK_URL` atau API `DOKPLOY_URL` + `DOKPLOY_API_TOKEN` + `DOKPLOY_APPLICATION_ID`,
+- trigger Dokploy lewat API resmi `POST /api/compose.deploy` memakai `DOKPLOY_URL` + `DOKPLOY_API_TOKEN` + `DOKPLOY_COMPOSE_ID`; webhook `DOKPLOY_WEBHOOK_URL` tidak dipakai karena endpoint webhook branch-sensitive dan butuh payload provider Git,
 - jika panel Dokploy dilindungi Cloudflare Zero Trust Access, workflow dapat mengirim service token header dari secret `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET`,
 - mode manual memakai input `trigger_dokploy`; jika `false`, workflow hanya build image dan menjalankan migration safety gate tanpa memanggil Dokploy,
-- source Dokploy boleh memakai GitHub App atau provider **Git** langsung; untuk provider Git langsung, auto deploy perlu webhook Git provider atau deploy manual Dokploy UI,
+- source Dokploy boleh memakai GitHub App atau provider **Git** langsung; production trigger utama tetap GitHub Actions → Dokploy Compose API deploy, bukan repo webhook,
 - smoke test production mengecek `/health/live`, `/health/ready`, `/openapi.yaml`, dan unauthorized protected route.
 
 Production memakai `IMAGE_TAG=sha-<commit-sha>` di Dokploy Environment sebagai default promote dan rollback anchor. Branch tag `main` hanya pointer dan tidak boleh menjadi satu-satunya rollback reference.

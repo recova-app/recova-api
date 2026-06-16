@@ -143,16 +143,70 @@ Secret/variable contract:
 
 | Name                             | Location               | Purpose                                                                                    |
 | -------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------ |
-| `DOKPLOY_WEBHOOK_URL`            | GitHub Secret          | opsi trigger redeploy via webhook                                                          |
-| `DOKPLOY_URL`                    | GitHub Variable/Secret | base URL panel Dokploy untuk API deploy                                                    |
-| `DOKPLOY_API_TOKEN`              | GitHub Secret          | token API Dokploy                                                                          |
-| `DOKPLOY_APPLICATION_ID`         | GitHub Variable/Secret | target application ID bila memakai API deploy                                              |
+| `DOKPLOY_URL`                    | GitHub Variable/Secret | base URL panel Dokploy untuk API deploy, contoh `https://panel.example.com`                |
+| `DOKPLOY_API_TOKEN`              | GitHub Secret          | API token Dokploy dari profile user/admin                                                  |
+| `DOKPLOY_COMPOSE_ID`             | GitHub Variable/Secret | target compose ID untuk endpoint `POST /api/compose.deploy`                                |
 | `CF_ACCESS_CLIENT_ID`            | GitHub Secret          | opsional; Cloudflare Access service token client ID untuk panel Dokploy protected          |
 | `CF_ACCESS_CLIENT_SECRET`        | GitHub Secret          | opsional; Cloudflare Access service token client secret untuk panel Dokploy protected      |
 | `PRODUCTION_DOMAIN`              | GitHub Variable        | domain publik API tanpa skema                                                              |
 | `BACKUP_EVIDENCE_URL`            | GitHub Variable        | opsional untuk migration non-destructive; direkomendasikan sebagai bukti backup production |
 | `APPROVE_DESTRUCTIVE_MIGRATIONS` | GitHub Variable        | wajib `true` hanya jika gate mendeteksi migration destructive                              |
 | `IMAGE_TAG`                      | Dokploy Environment    | tag image immutable yang akan dijalankan                                                   |
+
+### Dokploy API Deploy dari GitHub Actions
+
+Production workflow memakai Dokploy Compose API, bukan webhook `/api/deploy/...`. Webhook Dokploy biasanya branch-sensitive dan expect payload provider Git; jika dipanggil dengan `curl` kosong dari GitHub Actions bisa gagal `Branch Not Match` atau `403` setelah redirect. Compose API deploy lebih cocok untuk workflow karena endpoint menerima `composeId` eksplisit.
+
+Referensi resmi Dokploy:
+
+- API base URL: Dokploy menyatakan OpenAPI base URL default adalah `/api` di instance Dokploy.
+- Auth: request API memakai header `x-api-key: <token>` dari Profile → API/CLI.
+- Deploy compose: `POST /api/compose.deploy` dengan JSON body minimal `{ "composeId": "..." }`; field opsional `title` dan `description` tersedia.
+- Compose detail: `GET /api/compose.one?composeId=...` bisa dipakai untuk validasi ID.
+
+Setup GitHub Actions:
+
+1. Buka Dokploy → user profile/settings → API/CLI → generate API token.
+2. Simpan token ke GitHub repo → Settings → Secrets and variables → Actions → Secrets:
+   - `DOKPLOY_API_TOKEN=<token>`
+3. Ambil `composeId` dari Dokploy Compose target. Cara aman:
+   - buka Compose production di Dokploy,
+   - cek URL/detail compose atau Swagger/API `compose.one` bila tersedia,
+   - simpan nilainya sebagai GitHub Actions Variable atau Secret `DOKPLOY_COMPOSE_ID`.
+4. Simpan base URL panel sebagai GitHub Actions Variable atau Secret:
+   - `DOKPLOY_URL=https://panel.salmanabdurrahman.my.id`
+   - jangan pakai path `/api/...`; workflow menambahkan `/api/compose.deploy` sendiri.
+5. Jika panel dilindungi Cloudflare Access, buat Service Token di Cloudflare Zero Trust dan simpan sebagai GitHub Secrets:
+   - `CF_ACCESS_CLIENT_ID`
+   - `CF_ACCESS_CLIENT_SECRET`
+6. Hapus/kosongkan secret lama `DOKPLOY_WEBHOOK_URL` agar operator tidak mengira workflow memakai webhook.
+7. Pastikan Dokploy Environment production berisi:
+   - `IMAGE_TAG=sha-<commit-sha>` sesuai image yang sudah dipush workflow,
+   - env runtime lain yang dibutuhkan aplikasi.
+8. Jalankan workflow `Deploy Production Dokploy` dari GitHub Actions:
+   - untuk push `main`, workflow build image lalu trigger API deploy,
+   - untuk manual `workflow_dispatch`, set `trigger_dokploy=true` hanya setelah `IMAGE_TAG` di Dokploy sudah sesuai.
+
+Request yang dikirim workflow:
+
+```bash
+curl --fail-with-body -sSL --retry 3 --retry-delay 5 \
+  -X POST "${DOKPLOY_URL%/}/api/compose.deploy" \
+  -H "accept: application/json" \
+  -H "content-type: application/json" \
+  -H "x-api-key: ${DOKPLOY_API_TOKEN}" \
+  -H "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" \
+  -H "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}" \
+  -d '{"composeId":"<dokploy-compose-id>","title":"GitHub Actions production deploy <sha>","description":"Run <run-id>; image <image-ref>"}'
+```
+
+Troubleshooting:
+
+- `401 Unauthorized`: `DOKPLOY_API_TOKEN` kosong/salah, atau header `x-api-key` tidak sampai.
+- `403 Forbidden`: token tidak punya akses ke compose, atau Cloudflare Access menolak request. Validasi `CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET` jika panel protected.
+- `404 Not found`: `DOKPLOY_URL` salah, path API beda, atau compose tidak ditemukan.
+- `400 Invalid input data`: `DOKPLOY_COMPOSE_ID` kosong/salah format.
+- `Branch Not Match`: masih memakai webhook `/api/deploy/...`; pindahkan ke API deploy di atas.
 
 ### Dokploy Git Source Setup Langsung
 
@@ -214,20 +268,37 @@ docker-compose.dokploy.yml
 
 Auto deploy dengan provider **Git**:
 
+Untuk production repo ini, jangan pasang GitHub repo webhook ke Dokploy sebagai jalur utama. Production deploy dikontrol GitHub Actions lewat API `POST /api/compose.deploy` setelah image GHCR selesai dibuild, migration gate lulus, dan approval environment `production` diberikan.
+
+Repo webhook ke Dokploy hanya boleh dipakai sebagai jalur alternatif di luar workflow jika operator sengaja ingin Dokploy auto-deploy langsung dari event push. Risiko mode webhook:
+
+- bisa deploy sebelum image `sha-<commit-sha>` tersedia di GHCR,
+- bisa bypass migration safety gate dan GitHub Environment approval,
+- bisa gagal `Branch Not Match` jika branch/payload provider Git tidak cocok,
+- bisa menyebabkan double deploy bila workflow API deploy juga aktif.
+
+Rekomendasi setup production:
+
+1. nonaktifkan/hapus webhook GitHub repo yang mengarah ke URL Dokploy `/api/deploy/...`,
+2. biarkan Dokploy source provider tetap menunjuk branch production (`main`) dan compose path yang benar,
+3. jalankan deploy lewat workflow GitHub `Deploy Production Dokploy`,
+4. pastikan `IMAGE_TAG` Dokploy Environment sudah sesuai tag immutable target sebelum `trigger_dokploy=true` pada manual deploy.
+
+Jika tetap ingin memakai webhook alternatif, setup manual:
+
 1. aktifkan auto-deploy/webhook pada service Dokploy jika tersedia,
 2. copy webhook URL dari Dokploy,
 3. buka GitHub repo → **Settings** → **Webhooks** → **Add webhook**,
 4. isi **Payload URL** dengan webhook URL Dokploy,
 5. pilih content type `application/json`,
 6. pilih event **Just the push event**,
-7. simpan webhook,
-8. push commit kecil ke branch production dan pastikan Dokploy menerima trigger.
-
-Jika webhook tidak dipakai, deploy tetap bisa dijalankan manual dari Dokploy UI atau melalui workflow manual GitHub `deploy-production` setelah operator memastikan `IMAGE_TAG` Dokploy sudah sesuai.
+7. pastikan branch Dokploy sama dengan branch production (`main`),
+8. simpan webhook,
+9. push commit kecil ke branch production dan pastikan Dokploy menerima trigger.
 
 ### First-Time Dokploy Setup dengan Git dan Compose
 
-Deploy manual pertama wajib dilakukan untuk memvalidasi clone repository, compose path, environment, GHCR pull, domain, dan healthcheck sebelum webhook atau workflow manual dijadikan jalur operasional.
+Deploy manual pertama wajib dilakukan untuk memvalidasi clone repository, compose path, environment, GHCR pull, domain, dan healthcheck sebelum workflow manual dijadikan jalur operasional.
 
 #### 1. Pastikan image GHCR tersedia
 
@@ -365,7 +436,7 @@ Opsi workflow manual GitHub:
 
 1. setup GitHub Environment `production`,
 2. aktifkan **Required reviewers**,
-3. isi `DOKPLOY_WEBHOOK_URL` atau pasangan API `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, `DOKPLOY_APPLICATION_ID`,
+3. isi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, dan `DOKPLOY_COMPOSE_ID` untuk Dokploy API deploy,
 4. jika panel Dokploy dilindungi Cloudflare Zero Trust Access, isi `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET`,
 5. isi `PRODUCTION_DOMAIN=api.example.com`,
 6. isi `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
@@ -391,13 +462,9 @@ Checklist setup pertama:
 [ ] jalur deploy berikutnya dipilih: manual Dokploy atau workflow GitHub
 ```
 
-### GitHub Environment Setup dengan Dokploy Webhook
+### GitHub Environment Setup dengan Dokploy API
 
-Gunakan webhook saat Dokploy sudah menyediakan deploy URL seperti:
-
-```text
-https://panel.example.com/api/deploy/<redacted-token>
-```
+Gunakan API deploy untuk trigger dari GitHub Actions. Jangan pakai webhook `/api/deploy/...` untuk workflow ini karena webhook perlu payload provider Git dan validasi branch.
 
 Setup GitHub:
 
@@ -406,22 +473,28 @@ Setup GitHub:
 3. tambah **Environment Secret**:
 
 ```text
-DOKPLOY_WEBHOOK_URL=https://panel.example.com/api/deploy/<redacted-token>
+DOKPLOY_API_TOKEN=<token-dari-dokploy-profile-api-cli>
 ```
 
-4. jangan simpan webhook sebagai variable karena token URL bersifat secret,
-5. jika memakai webhook, tidak perlu mengisi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, atau `DOKPLOY_APPLICATION_ID`,
-6. jika webhook berada di balik Cloudflare Zero Trust Access, tambahkan **Environment Secret** `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` dari Access service token,
-7. tambahkan **Repository Variables**:
+4. tambah **Environment Variable** atau **Environment Secret**:
+
+```text
+DOKPLOY_URL=https://panel.example.com
+DOKPLOY_COMPOSE_ID=<compose-id>
+```
+
+5. jika panel berada di balik Cloudflare Zero Trust Access, tambahkan **Environment Secret** `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` dari Access service token,
+6. tambahkan **Repository Variables**:
 
 ```text
 PRODUCTION_DOMAIN=api.example.com
 APPROVE_DESTRUCTIVE_MIGRATIONS=false
 ```
 
-8. `BACKUP_EVIDENCE_URL` opsional untuk migration non-destructive dan bisa diisi saat backup evidence tersedia.
+7. `BACKUP_EVIDENCE_URL` opsional untuk migration non-destructive dan bisa diisi saat backup evidence tersedia,
+8. hapus/kosongkan `DOKPLOY_WEBHOOK_URL` lama bila pernah dibuat.
 
-Dengan webhook mode, GitHub Actions hanya memanggil webhook setelah image berhasil dipush dan approval production diberikan. Dokploy akan redeploy memakai `IMAGE_TAG` yang sedang terset di Environment Dokploy. Jika `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` terisi, workflow mengirim header `CF-Access-Client-Id` dan `CF-Access-Client-Secret` pada request webhook/API agar Cloudflare Access mengizinkan request CI tanpa login email interaktif.
+Dengan API mode, GitHub Actions memanggil `POST /api/compose.deploy` setelah image berhasil dipush dan approval production diberikan. Dokploy akan redeploy compose memakai `IMAGE_TAG` yang sedang terset di Environment Dokploy. Jika `CF_ACCESS_CLIENT_ID` dan `CF_ACCESS_CLIENT_SECRET` terisi, workflow mengirim header `CF-Access-Client-Id` dan `CF-Access-Client-Secret` pada request API agar Cloudflare Access mengizinkan request CI tanpa login email interaktif.
 
 Manual Dokploy setup:
 
@@ -445,8 +518,8 @@ Setup sekali:
 
 1. GitHub repo → **Settings** → **Environments** → buat `production`,
 2. aktifkan **Required reviewers** untuk approval manual sebelum deploy job,
-3. tambahkan Environment Secret `DOKPLOY_WEBHOOK_URL` jika Dokploy webhook dipakai,
-4. jika tidak memakai webhook, isi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, dan `DOKPLOY_APPLICATION_ID`,
+3. tambahkan Environment Secret `DOKPLOY_API_TOKEN`,
+4. isi `DOKPLOY_URL` dan `DOKPLOY_COMPOSE_ID` sebagai Environment Variable atau Secret,
 5. jika panel Dokploy dilindungi Cloudflare Zero Trust Access, buat policy **Service Auth** untuk service token dan simpan `CF_ACCESS_CLIENT_ID` + `CF_ACCESS_CLIENT_SECRET` sebagai Environment Secret,
 6. tambahkan Repository Variable `PRODUCTION_DOMAIN=api.example.com`,
 7. tambahkan Repository Variable `APPROVE_DESTRUCTIVE_MIGRATIONS=false`,
