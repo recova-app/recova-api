@@ -116,6 +116,24 @@ Workflow `.github/workflows/deploy-staging.yml`:
 - validasi secret wajib sebelum SSH ke host staging,
 - menjalankan `scripts/deploy/remote-deploy.sh` untuk pull image, migrate, start, smoke, diagnostics saat gagal.
 
+## Dokploy Production Workflow
+
+Workflow `.github/workflows/deploy-production.yml`:
+
+- trigger pada `push` branch `main`, tag `v*.*.*`, dan `workflow_dispatch`,
+- build + push image GHCR `ghcr.io/recova-app/backend-v2` dengan tag:
+  - immutable `sha-<commit-sha>`,
+  - pointer `main` atau tag release `v*.*.*`,
+- memakai `permissions.contents: read` dan `permissions.packages: write`,
+- memakai Docker Buildx dan GHCR login sebelum `docker/build-push-action`,
+- menjalankan `scripts/deploy/production-migration-gate.sh` sebelum deploy; non-destructive migration tanpa backup evidence hanya memberi warning, destructive migration tetap memblok deploy sampai approval eksplisit,
+- deploy job selalu `needs` build image dan migration safety gate,
+- deploy job memakai GitHub Environment `production` agar required reviewer bisa diterapkan,
+- trigger Dokploy lewat `DOKPLOY_WEBHOOK_URL` atau API `DOKPLOY_URL` + `DOKPLOY_API_TOKEN` + `DOKPLOY_APPLICATION_ID`,
+- smoke test production mengecek `/health/live`, `/health/ready`, `/openapi.yaml`, dan unauthorized protected route.
+
+Production memakai `IMAGE_TAG=sha-<commit-sha>` di Dokploy Environment sebagai default promote dan rollback anchor. Branch tag `main` hanya pointer dan tidak boleh menjadi satu-satunya rollback reference.
+
 ## Gate Coverage Implementasi
 
 `quality-gates`:

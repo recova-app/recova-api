@@ -47,6 +47,10 @@ Wajib lulus:
 - gate environment staging melewati approval/protection yang ditetapkan,
 - dry-run deploy staging lulus (`scripts/staging-deploy.sh`) termasuk migration dry-run, seed idempotency, integrity checks, dan readiness checks,
 - remote deploy staging (`.github/workflows/deploy-staging.yml`) sukses dari branch `develop` dengan image immutable `sha-<commit-sha>`,
+- Dokploy production compose valid dengan `IMAGE_TAG=sha-<commit-sha>` dan tanpa public `ports:` API,
+- GitHub Environment `production` punya required reviewer sebelum `.github/workflows/deploy-production.yml` boleh redeploy,
+- migration safety gate lulus; migration non-destructive boleh lanjut tanpa backup evidence dengan warning, sedangkan migration destructive wajib approval eksplisit,
+- last-good image SHA dan rollback command/path tercatat,
 - release sign-off engineering + platform.
 
 ## Gate D - Post-Deploy

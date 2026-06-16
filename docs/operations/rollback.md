@@ -57,6 +57,27 @@ Aturan:
 - rollback aplikasi tidak boleh menulis skema baru,
 - jika ada cache berisi format baru yang inkompatibel, purge terkontrol sebelum trafik penuh.
 - untuk jalur staging berbasis image registry, rollback utama dilakukan dengan mengembalikan `APP_IMAGE` ke tag immutable sebelumnya lalu `docker compose up -d --wait`.
+- untuk jalur Dokploy production, rollback utama dilakukan dengan mengubah Dokploy Environment `IMAGE_TAG` ke last-good `sha-<commit-sha>`, redeploy service, lalu menjalankan smoke checks production.
+
+## Dokploy Production Rollback
+
+Evidence yang wajib tersedia sebelum rollback:
+
+- last-good image tag `sha-<commit-sha>`,
+- migration version sebelum deploy gagal,
+- hasil smoke deploy gagal,
+- status backup terbaru,
+- PIC yang menyetujui rollback.
+
+Langkah rollback Dokploy:
+
+1. buka Dokploy service production,
+2. ubah Environment `IMAGE_TAG` ke last-good `sha-<commit-sha>`,
+3. redeploy service atau trigger workflow production dengan tag tersebut setelah approval,
+4. verifikasi `/health/live`, `/health/ready`, `/openapi.yaml`, dan protected route unauthorized,
+5. catat image SHA, migration version, smoke result, dan keputusan akhir.
+
+Jika migration destruktif sudah diterapkan, jangan rollback schema otomatis. Gunakan forward-fix atau restore backup sesuai keputusan owner database.
 
 ## Database Rollback Constraints
 

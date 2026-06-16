@@ -1,0 +1,189 @@
+name: Deploy Production Dokploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional existing immutable image tag to deploy, for example sha-<commit>"
+        required: false
+        type: string
+      trigger_dokploy:
+        description: "Trigger Dokploy redeploy after approval. IMAGE_TAG must already match promoted tag in Dokploy env."
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CONTAINER_REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/recova-app/backend-v2
+  PRODUCTION_DOMAIN: ${{ vars.PRODUCTION_DOMAIN }}
+
+jobs:
+  build-and-push:
+    name: Build and Push GHCR Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      image_name: ${{ steps.meta.outputs.image_name }}
+      image_tag_sha: ${{ steps.meta.outputs.image_tag_sha }}
+      image_tag_pointer: ${{ steps.meta.outputs.image_tag_pointer }}
+      image_tag_deploy: ${{ steps.meta.outputs.image_tag_deploy }}
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="${GITHUB_SHA}"
+          sha_tag="sha-${source_sha}"
+          pointer_tag="main"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            pointer_tag="${GITHUB_REF_NAME}"
+          fi
+          deploy_tag="${{ inputs.image_tag }}"
+          if [ -z "$deploy_tag" ]; then
+            deploy_tag="$sha_tag"
+          fi
+          {
+            echo "image_name=${IMAGE_NAME}"
+            echo "image_tag_sha=${sha_tag}"
+            echo "image_tag_pointer=${pointer_tag}"
+            echo "image_tag_deploy=${deploy_tag}"
+            echo "image_ref=${IMAGE_NAME}:${deploy_tag}"
+            echo "source_sha=${source_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_sha }}
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.image_tag_pointer }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.image_tag_sha }}
+            VCS_REF=${{ steps.meta.outputs.source_sha }}
+            BUILD_DATE=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  migration-safety-gate:
+    name: Production Migration Safety Gate
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run migration gate
+        env:
+          MIGRATION_BASE_REF: ${{ github.event.before || 'origin/main' }}
+          BACKUP_EVIDENCE_URL: ${{ vars.BACKUP_EVIDENCE_URL }}
+          APPROVE_DESTRUCTIVE_MIGRATIONS: ${{ vars.APPROVE_DESTRUCTIVE_MIGRATIONS }}
+        run: ./scripts/deploy/production-migration-gate.sh
+
+  deploy:
+    name: Trigger Dokploy Production Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-push
+      - migration-safety-gate
+    timeout-minutes: 15
+    environment:
+      name: production
+    if: github.event_name != 'workflow_dispatch' || inputs.trigger_dokploy == true
+    steps:
+      - name: Validate production deployment contract
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
+          DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
+          DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+          PRODUCTION_DOMAIN: ${{ env.PRODUCTION_DOMAIN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DOKPLOY_WEBHOOK_URL:-}" ]; then
+            for key in DOKPLOY_URL DOKPLOY_API_TOKEN DOKPLOY_APPLICATION_ID; do
+              if [ -z "${!key:-}" ]; then
+                echo "::error::Missing ${key}; configure Dokploy API values or DOKPLOY_WEBHOOK_URL"
+                exit 1
+              fi
+            done
+          fi
+          if [ -z "${PRODUCTION_DOMAIN:-}" ]; then
+            echo "::error::Missing vars.PRODUCTION_DOMAIN for post-deploy smoke checks"
+            exit 1
+          fi
+          echo "Deploy image candidate: ${{ needs.build-and-push.outputs.image_ref }}"
+          echo "Dokploy production env IMAGE_TAG must be: ${{ needs.build-and-push.outputs.image_tag_deploy }}"
+
+      - name: Trigger Dokploy
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL || secrets.DOKPLOY_URL }}
+          DOKPLOY_API_TOKEN: ${{ secrets.DOKPLOY_API_TOKEN }}
+          DOKPLOY_APPLICATION_ID: ${{ vars.DOKPLOY_APPLICATION_ID || secrets.DOKPLOY_APPLICATION_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${DOKPLOY_WEBHOOK_URL:-}" ]; then
+            curl -fsSL --retry 3 --retry-delay 5 -X POST "$DOKPLOY_WEBHOOK_URL"
+          else
+            curl -fsSL --retry 3 --retry-delay 5 -X POST "${DOKPLOY_URL}/api/application.deploy" \
+              -H "accept: application/json" \
+              -H "content-type: application/json" \
+              -H "x-api-key: ${DOKPLOY_API_TOKEN}" \
+              -d "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}"
+          fi
+
+      - name: Smoke test production
+        env:
+          PRODUCTION_DOMAIN: ${{ env.PRODUCTION_DOMAIN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="https://${PRODUCTION_DOMAIN}"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/live"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/ready"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/openapi.yaml" >/dev/null
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "${base_url}/api/v1/users/me")"
+          case "$status" in
+            401|403) echo "protected route rejects unauthorized request: ${status}" ;;
+            *) echo "::error::expected unauthorized protected route status, got ${status}"; exit 1 ;;
+          esac

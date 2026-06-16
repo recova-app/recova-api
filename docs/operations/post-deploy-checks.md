@@ -64,6 +64,15 @@ Untuk jalur cutover domain bertahap, verifikasi per-wave dieksekusi lewat `scrip
 
 Untuk window stabilisasi pasca-cutover, jalankan `make stabilization-gate` dan simpan evidence di `artifacts/stabilization/`.
 
+Untuk jalur Dokploy production, workflow production menjalankan smoke publik berikut setelah redeploy:
+
+- `GET /health/live`,
+- `GET /health/ready`,
+- `GET /openapi.yaml`,
+- `GET /api/v1/users/me` tanpa token harus menghasilkan `401` atau `403`.
+
+Jika domain belum tersedia, operator wajib menjalankan check yang sama dari Dokploy/VPS dengan base URL internal atau domain sementara sebelum promote.
+
 ## Observability Checks
 
 Verifikasi sinyal minimum:

@@ -117,6 +117,81 @@ Catatan database URL:
 
 Catatan: `docker-compose.local.yml` tidak digunakan sebagai target runtime deploy staging/production.
 
+## Dokploy Production Deployment
+
+Jalur production target memakai Dokploy + GHCR dan dipisahkan dari jalur staging SSH Compose existing.
+
+Alur production:
+
+1. push ke `main`, tag `v*.*.*`, atau `workflow_dispatch` pada `.github/workflows/deploy-production.yml`,
+2. GitHub Actions build image dan push ke `ghcr.io/recova-app/backend-v2`,
+3. image selalu punya tag immutable `sha-<commit-sha>` dan pointer tag `main` atau `v*.*.*`,
+4. GitHub Environment `production` memberi approval sebelum deploy,
+5. Dokploy menarik image memakai manifest `docker-compose.dokploy.yml`,
+6. smoke checks publik memverifikasi `/health/live`, `/health/ready`, `/openapi.yaml`, dan route protected menolak request tanpa auth.
+
+Kontrak Dokploy:
+
+- compose production: `docker-compose.dokploy.yml`,
+- image: `ghcr.io/recova-app/backend-v2:${IMAGE_TAG}`,
+- default deploy/rollback anchor: `IMAGE_TAG=sha-<commit-sha>`,
+- env runtime disuplai melalui Dokploy Environment dan dibaca container lewat `env_file: .env`,
+- API hanya memakai `expose: "3001"`; domain publik dikonfigurasi melalui Dokploy Domains UI,
+- healthcheck container memakai `wget` ke `/health/live`, sesuai binary yang tersedia di image.
+
+Secret/variable contract:
+
+| Name                             | Location               | Purpose                                                                                    |
+| -------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------ |
+| `DOKPLOY_WEBHOOK_URL`            | GitHub Secret          | opsi trigger redeploy via webhook                                                          |
+| `DOKPLOY_URL`                    | GitHub Variable/Secret | base URL panel Dokploy untuk API deploy                                                    |
+| `DOKPLOY_API_TOKEN`              | GitHub Secret          | token API Dokploy                                                                          |
+| `DOKPLOY_APPLICATION_ID`         | GitHub Variable/Secret | target application ID bila memakai API deploy                                              |
+| `PRODUCTION_DOMAIN`              | GitHub Variable        | domain publik API tanpa skema                                                              |
+| `BACKUP_EVIDENCE_URL`            | GitHub Variable        | opsional untuk migration non-destructive; direkomendasikan sebagai bukti backup production |
+| `APPROVE_DESTRUCTIVE_MIGRATIONS` | GitHub Variable        | wajib `true` hanya jika gate mendeteksi migration destructive                              |
+| `IMAGE_TAG`                      | Dokploy Environment    | tag image immutable yang akan dijalankan                                                   |
+
+### GitHub Environment Setup dengan Dokploy Webhook
+
+Gunakan webhook saat Dokploy sudah menyediakan deploy URL seperti:
+
+```text
+https://panel.example.com/api/deploy/<redacted-token>
+```
+
+Setup GitHub:
+
+1. buka GitHub repo → **Settings** → **Environments** → buat atau pilih `production`,
+2. aktifkan **Required reviewers** untuk gate approval production,
+3. tambah **Environment Secret**:
+
+```text
+DOKPLOY_WEBHOOK_URL=https://panel.example.com/api/deploy/<redacted-token>
+```
+
+4. jangan simpan webhook sebagai variable karena token URL bersifat secret,
+5. jika memakai webhook, tidak perlu mengisi `DOKPLOY_URL`, `DOKPLOY_API_TOKEN`, atau `DOKPLOY_APPLICATION_ID`,
+6. tambahkan **Repository Variables**:
+
+```text
+PRODUCTION_DOMAIN=api.example.com
+APPROVE_DESTRUCTIVE_MIGRATIONS=false
+```
+
+7. `BACKUP_EVIDENCE_URL` opsional untuk migration non-destructive dan bisa diisi saat backup evidence tersedia.
+
+Dengan webhook mode, GitHub Actions hanya memanggil webhook setelah image berhasil dipush dan approval production diberikan. Dokploy akan redeploy memakai `IMAGE_TAG` yang sedang terset di Environment Dokploy.
+
+Manual Dokploy setup:
+
+1. tambahkan GHCR registry `ghcr.io` di Dokploy Registry dengan PAT scope minimal untuk pull package,
+2. buat Application/Compose service production dari `docker-compose.dokploy.yml`,
+3. isi Environment Dokploy, termasuk `IMAGE_TAG=sha-<commit-sha>` untuk promote production,
+4. tambahkan Domain dengan service `api` dan container port `3001`,
+5. pastikan tidak ada `ports:` host untuk API, database, atau Redis,
+6. sebelum deploy migration production, review output migration gate; isi `BACKUP_EVIDENCE_URL` bila backup evidence tersedia, dan set `APPROVE_DESTRUCTIVE_MIGRATIONS=true` hanya jika migration destructive sudah direview.
+
 ## Cutover Wave Runner
 
 Untuk eksekusi cutover domain secara berurutan gunakan:
@@ -137,7 +212,9 @@ Aturan urutan migrasi:
 1. apply migration sebelum trafik penuh ke versi aplikasi baru,
 2. gunakan pola expand-then-contract untuk perubahan yang memengaruhi kontrak aktif,
 3. perubahan destruktif hanya setelah masa kompatibilitas selesai,
-4. migration failure harus menghentikan rollout.
+4. migration failure harus menghentikan rollout,
+5. migration non-destructive boleh lanjut tanpa `BACKUP_EVIDENCE_URL` pada tahap awal, tetapi gate akan memberi warning,
+6. migration destructive wajib berhenti sampai `APPROVE_DESTRUCTIVE_MIGRATIONS=true` diset setelah review.
 
 Jika migration gagal:
 
