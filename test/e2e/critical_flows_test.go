@@ -369,8 +369,11 @@ func TestE2E_CriticalFlows(t *testing.T) {
 		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "motivation")) == "" {
 			return fmt.Errorf("motivation is empty")
 		}
-		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "challenge")) == "" {
-			return fmt.Errorf("challenge is empty")
+		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "challenge", "title")) == "" {
+			return fmt.Errorf("challenge title is empty")
+		}
+		if strings.TrimSpace(readNestedString(contentResp.JSON, "data", "challenge", "description")) == "" {
+			return fmt.Errorf("challenge description is empty")
 		}
 		return nil
 	})
