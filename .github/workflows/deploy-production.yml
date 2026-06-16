@@ -207,7 +207,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base_url="https://${PRODUCTION_DOMAIN}"
+          production_domain="${PRODUCTION_DOMAIN#http://}"
+          production_domain="${production_domain#https://}"
+          production_domain="${production_domain%/}"
+          base_url="https://${production_domain}"
           curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/live"
           curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/ready"
           curl -fsS --retry 6 --retry-delay 10 "${base_url}/openapi.yaml" >/dev/null
