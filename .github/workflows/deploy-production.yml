@@ -152,6 +152,17 @@ jobs:
             echo "::error::CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET must be configured together"
             exit 1
           fi
+          dokploy_target="${DOKPLOY_WEBHOOK_URL:-${DOKPLOY_URL:-}}"
+          dokploy_host="$(TARGET_URL="$dokploy_target" node -e 'const target = process.env.TARGET_URL || ""; try { console.log(target ? new URL(target).host : "") } catch { console.log("") }')"
+          if [ "$dokploy_host" = "panel.salmanabdurrahman.my.id" ] && { [ -z "${CF_ACCESS_CLIENT_ID:-}" ] || [ -z "${CF_ACCESS_CLIENT_SECRET:-}" ]; }; then
+            echo "::error::Missing Cloudflare Access service token secrets for protected Dokploy panel"
+            exit 1
+          fi
+          if [ -n "${CF_ACCESS_CLIENT_ID:-}" ]; then
+            echo "Cloudflare Access service token headers: enabled"
+          else
+            echo "Cloudflare Access service token headers: disabled"
+          fi
           if [ -z "${PRODUCTION_DOMAIN:-}" ]; then
             echo "::error::Missing vars.PRODUCTION_DOMAIN for post-deploy smoke checks"
             exit 1
