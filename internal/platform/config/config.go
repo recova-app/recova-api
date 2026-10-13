@@ -83,6 +83,7 @@ type AIConfig struct {
 	FallbackProvider string
 	FallbackModel    string
 	AppEnv           string
+	AllowedHosts     []string
 }
 
 // SecurityConfig stores security and traffic guard settings.
@@ -153,6 +154,7 @@ func Load() (Config, error) {
 			TimeoutMs:        v.requiredInt("AI_TIMEOUT_MS", 1, 60000),
 			FallbackProvider: v.optionalEnum("AI_FALLBACK_PROVIDER", allowedFallbackMode),
 			FallbackModel:    v.optionalString("AI_FALLBACK_MODEL"),
+			AllowedHosts:     v.optionalCSVStrings("AI_ALLOWED_HOSTS"),
 		},
 		Security: SecurityConfig{
 			CORSOrigins:      v.requiredCSVAbsoluteURLs("CORS_ORIGINS"),
@@ -193,7 +195,7 @@ func Load() (Config, error) {
 		validateDatabaseURLSSLMode(v, "DIRECT_DATABASE_URL", cfg.Database.DirectURL, cfg.Database.SSLMode, cfg.Application.AppEnv)
 	}
 
-	validateAIBaseURL(v, "AI_BASE_URL", cfg.AI.BaseURL, cfg.AI.Provider, cfg.Application.AppEnv)
+	validateAIBaseURL(v, "AI_BASE_URL", cfg.AI.BaseURL, cfg.AI.Provider, cfg.Application.AppEnv, cfg.AI.AllowedHosts)
 
 	if cfg.AI.FallbackProvider == "" && cfg.AI.FallbackModel != "" {
 		v.addIssue("AI_FALLBACK_PROVIDER", "is required when AI_FALLBACK_MODEL is set")
@@ -529,7 +531,7 @@ func isDatabaseURL(raw string) bool {
 
 var allowedAIHostsByProvider = map[string][]string{
 	"gemini":            {"generativelanguage.googleapis.com"},
-	"openai-compatible": {"api.openai.com"},
+	"openai-compatible": {"api.openai.com", "openrouter.ai", "api.deepseek.com", "api.groq.com"},
 }
 
 func validateDatabaseURLSSLMode(v *validator, key string, rawURL string, configuredSSLMode string, appEnv string) {
@@ -555,7 +557,7 @@ func validateDatabaseURLSSLMode(v *validator, key string, rawURL string, configu
 	}
 }
 
-func validateAIBaseURL(v *validator, key string, rawURL string, provider string, appEnv string) {
+func validateAIBaseURL(v *validator, key string, rawURL string, provider string, appEnv string, customAllowedHosts []string) {
 	if rawURL == "" {
 		return
 	}
@@ -571,8 +573,28 @@ func validateAIBaseURL(v *validator, key string, rawURL string, provider string,
 
 		hostname := strings.ToLower(parsed.Hostname())
 		allowedHosts, ok := allowedAIHostsByProvider[strings.ToLower(provider)]
-		if !ok || !slices.Contains(allowedHosts, hostname) {
+		isAllowed := ok && slices.Contains(allowedHosts, hostname)
+		if !isAllowed && slices.Contains(customAllowedHosts, hostname) {
+			isAllowed = true
+		}
+		if !isAllowed {
 			v.addIssue(key, fmt.Sprintf("host '%s' is not an allowed host for provider '%s' in staging and production", hostname, provider))
 		}
 	}
+}
+
+func (v *validator) optionalCSVStrings(key string) []string {
+	value := v.optionalString(key)
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	results := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.ToLower(strings.TrimSpace(part))
+		if trimmed != "" {
+			results = append(results, trimmed)
+		}
+	}
+	return results
 }

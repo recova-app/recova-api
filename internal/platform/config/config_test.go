@@ -285,6 +285,26 @@ func TestLoad_ProductionAIBaseURLTrustedHost_ReturnsConfig(t *testing.T) {
 	}
 }
 
+// TestLoad_ProductionAIBaseURLCustomAllowedHost_ReturnsConfig ensures custom hosts in AI_ALLOWED_HOSTS are permitted.
+func TestLoad_ProductionAIBaseURLCustomAllowedHost_ReturnsConfig(t *testing.T) {
+	setValidEnv(t)
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_SSL_MODE", "require")
+	t.Setenv("DATABASE_URL", "postgresql://postgres:postgres@db.production:5432/recova_db?sslmode=require")
+	t.Setenv("DIRECT_DATABASE_URL", "postgresql://postgres:postgres@db.production:5432/recova_db?sslmode=require")
+	t.Setenv("AI_PROVIDER", "openai-compatible")
+	t.Setenv("AI_BASE_URL", "https://custom-router.example.com/v1")
+	t.Setenv("AI_ALLOWED_HOSTS", "custom-router.example.com,another-host.com")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected valid config with custom allowed host, got: %v", err)
+	}
+	if cfg.AI.BaseURL != "https://custom-router.example.com/v1" {
+		t.Fatalf("unexpected ai base url: %s", cfg.AI.BaseURL)
+	}
+}
+
 // TestLoad_StagingAIBaseURLNonHTTPS_ReturnsError ensures staging rejects non-https AI endpoints.
 func TestLoad_StagingAIBaseURLNonHTTPS_ReturnsError(t *testing.T) {
 	setValidEnv(t)

@@ -64,6 +64,7 @@ The application recognizes runtime profiles determined by `APP_ENV`:
 | `AI_MODEL`             | Yes      | string | `gemini-2.0-flash`                          | Language model identifier                    |
 | `AI_API_KEY`           | Yes      | string | `ai-provider-api-key`                       | API key credential for AI provider           |
 | `AI_BASE_URL`          | No       | string | `https://generativelanguage.googleapis.com` | Custom endpoint base URL (optional)          |
+| `AI_ALLOWED_HOSTS`     | No       | string | `openrouter.ai,api.deepseek.com`            | Comma-separated extra allowed hosts (prod/staging) |
 | `AI_TIMEOUT_MS`        | Yes      | int    | `10000`                                     | Maximum inference timeout in milliseconds    |
 | `AI_FALLBACK_PROVIDER` | No       | string | `openai-compatible`                         | Optional secondary provider if primary fails |
 | `AI_FALLBACK_MODEL`    | No       | string | `gpt-4.1-mini`                              | Model identifier for fallback provider       |

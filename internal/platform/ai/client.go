@@ -121,12 +121,13 @@ func (e *ProviderError) Unwrap() error {
 // NewClient constructs runtime AI client from validated configuration.
 func NewClient(cfg config.AIConfig) (Client, error) {
 	primary, err := buildProviderClient(providerRuntimeConfig{
-		Provider: Provider(strings.TrimSpace(cfg.Provider)),
-		Model:    strings.TrimSpace(cfg.Model),
-		APIKey:   strings.TrimSpace(cfg.APIKey),
-		BaseURL:  strings.TrimSpace(cfg.BaseURL),
-		Timeout:  time.Duration(cfg.TimeoutMs) * time.Millisecond,
-		AppEnv:   strings.TrimSpace(cfg.AppEnv),
+		Provider:     Provider(strings.TrimSpace(cfg.Provider)),
+		Model:        strings.TrimSpace(cfg.Model),
+		APIKey:       strings.TrimSpace(cfg.APIKey),
+		BaseURL:      strings.TrimSpace(cfg.BaseURL),
+		Timeout:      time.Duration(cfg.TimeoutMs) * time.Millisecond,
+		AppEnv:       strings.TrimSpace(cfg.AppEnv),
+		AllowedHosts: cfg.AllowedHosts,
 	})
 	if err != nil {
 		return nil, err
@@ -146,12 +147,13 @@ func NewClient(cfg config.AIConfig) (Client, error) {
 	}
 
 	fallback, err := buildProviderClient(providerRuntimeConfig{
-		Provider: Provider(fallbackProvider),
-		Model:    fallbackModel,
-		APIKey:   strings.TrimSpace(cfg.APIKey),
-		BaseURL:  fallbackBaseURL,
-		Timeout:  time.Duration(cfg.TimeoutMs) * time.Millisecond,
-		AppEnv:   strings.TrimSpace(cfg.AppEnv),
+		Provider:     Provider(fallbackProvider),
+		Model:        fallbackModel,
+		APIKey:       strings.TrimSpace(cfg.APIKey),
+		BaseURL:      fallbackBaseURL,
+		Timeout:      time.Duration(cfg.TimeoutMs) * time.Millisecond,
+		AppEnv:       strings.TrimSpace(cfg.AppEnv),
+		AllowedHosts: cfg.AllowedHosts,
 	})
 	if err != nil {
 		return nil, err
@@ -190,13 +192,14 @@ type providerClient interface {
 }
 
 type providerRuntimeConfig struct {
-	Provider   Provider
-	Model      string
-	APIKey     string
-	BaseURL    string
-	Timeout    time.Duration
-	AppEnv     string
-	HTTPClient *http.Client
+	Provider     Provider
+	Model        string
+	APIKey       string
+	BaseURL      string
+	Timeout      time.Duration
+	AppEnv       string
+	AllowedHosts []string
+	HTTPClient   *http.Client
 }
 
 type compositeClient struct {
@@ -232,10 +235,10 @@ func (c *compositeClient) Generate(ctx context.Context, req GenerateRequest) (Ge
 
 var allowedAIHostsByProvider = map[Provider][]string{
 	ProviderGemini:           {"generativelanguage.googleapis.com"},
-	ProviderOpenAICompatible: {"api.openai.com"},
+	ProviderOpenAICompatible: {"api.openai.com", "openrouter.ai", "api.deepseek.com", "api.groq.com"},
 }
 
-func validateProviderEndpoint(provider Provider, rawURL string, appEnv string) error {
+func validateProviderEndpoint(provider Provider, rawURL string, appEnv string, customAllowedHosts []string) error {
 	trimmed := strings.TrimSpace(rawURL)
 	if trimmed == "" {
 		return nil
@@ -252,7 +255,11 @@ func validateProviderEndpoint(provider Provider, rawURL string, appEnv string) e
 		}
 		hostname := strings.ToLower(parsed.Hostname())
 		allowed, ok := allowedAIHostsByProvider[provider]
-		if !ok || !slices.Contains(allowed, hostname) {
+		isAllowed := ok && slices.Contains(allowed, hostname)
+		if !isAllowed && slices.Contains(customAllowedHosts, hostname) {
+			isAllowed = true
+		}
+		if !isAllowed {
 			return fmt.Errorf("host '%s' is not allowed for provider '%s' in %s", hostname, provider, env)
 		}
 	}
@@ -288,7 +295,7 @@ func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
 		if strings.TrimSpace(base) == "" {
 			base = defaultOpenAIBaseURL
 		}
-		if err := validateProviderEndpoint(provider, base, cfg.AppEnv); err != nil {
+		if err := validateProviderEndpoint(provider, base, cfg.AppEnv, cfg.AllowedHosts); err != nil {
 			return nil, err
 		}
 		parsed, err := normalizeBaseURL(base)
@@ -308,7 +315,7 @@ func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
 		if strings.TrimSpace(base) == "" {
 			base = defaultGeminiBaseURL
 		}
-		if err := validateProviderEndpoint(provider, base, cfg.AppEnv); err != nil {
+		if err := validateProviderEndpoint(provider, base, cfg.AppEnv, cfg.AllowedHosts); err != nil {
 			return nil, err
 		}
 		parsed, err := normalizeBaseURL(base)
