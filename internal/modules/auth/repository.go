@@ -14,6 +14,9 @@ import (
 
 const uniqueViolationCode = "23505"
 
+// ErrRefreshTokenAlreadyRevoked indicates that the refresh token cannot be rotated because it was already revoked or not found.
+var ErrRefreshTokenAlreadyRevoked = errors.New("refresh token not found or already revoked")
+
 // Repository provides persistence operations for auth/session state.
 type Repository struct {
 	db *gorm.DB
@@ -150,14 +153,22 @@ func (r *Repository) RevokeRefreshTokenByHash(ctx context.Context, tokenHash str
 
 // RotateRefreshToken revokes old token and persists new token in one transaction.
 func (r *Repository) RotateRefreshToken(ctx context.Context, oldTokenID string, revokedAt time.Time, newToken models.AuthRefreshToken) error {
+	trimmedOldID := strings.TrimSpace(oldTokenID)
+	if trimmedOldID == "" {
+		return ErrRefreshTokenAlreadyRevoked
+	}
+
 	return database.WithTransaction(ctx, r.db, func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).
+		result := tx.WithContext(ctx).
 			Model(&models.AuthRefreshToken{}).
-			Where("id = ?", strings.TrimSpace(oldTokenID)).
+			Where("id = ?", trimmedOldID).
 			Where("revoked_at IS NULL").
-			Updates(map[string]any{"revoked_at": revokedAt}).
-			Error; err != nil {
-			return err
+			Updates(map[string]any{"revoked_at": revokedAt})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return ErrRefreshTokenAlreadyRevoked
 		}
 
 		if err := tx.WithContext(ctx).Create(&newToken).Error; err != nil {

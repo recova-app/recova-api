@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"errors"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
+	"gorm.io/gorm"
 )
 
 func TestService_LoginWithGoogle_ValidationErrorWhenTokenEmpty(t *testing.T) {
@@ -221,6 +224,307 @@ func TestService_RefreshSession_Expired(t *testing.T) {
 	}
 }
 
+func TestService_RefreshSession_MalformedToken(t *testing.T) {
+	tokens := &fakeTokenProvider{
+		parseRefreshErr: errors.New("malformed jwt"),
+	}
+	svc := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "malformed-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for malformed token")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+}
+
+func TestService_RefreshSession_TokenNotFound(t *testing.T) {
+	repo := &fakeAuthRepo{getActiveRefreshErr: gorm.ErrRecordNotFound}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for missing token")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+}
+
+func TestService_RefreshSession_SubjectMismatch(t *testing.T) {
+	repo := &fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "token-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+	}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("different-user", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for subject mismatch")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+}
+
+func TestService_RefreshSession_JWTClaimsExpired(t *testing.T) {
+	repo := &fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "token-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+	}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(-1*time.Minute))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for expired jwt claims")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+	if repo.revokedTokenID != "token-1" {
+		t.Fatalf("expected token-1 revoked on expiry, got: %s", repo.revokedTokenID)
+	}
+}
+
+func TestService_RefreshSession_DatabaseTokenExpired(t *testing.T) {
+	repo := &fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "token-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(-1 * time.Minute),
+		},
+	}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for expired database token")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+	if repo.revokedTokenID != "token-1" {
+		t.Fatalf("expected token-1 revoked on expiry, got: %s", repo.revokedTokenID)
+	}
+}
+
+func TestService_RefreshSession_RotationAlreadyRevoked(t *testing.T) {
+	repo := &fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "token-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+		rotateErr: ErrRefreshTokenAlreadyRevoked,
+	}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error for already revoked rotation")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+}
+
+func TestService_RefreshSession_RotationUnexpectedError(t *testing.T) {
+	repo := &fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "token-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+		rotateErr: errors.New("database connection down"),
+	}
+	tokens := &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.RefreshSession(context.Background(), "refresh-token")
+	if err == nil {
+		t.Fatal("expected internal error for database failure")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error code, got: %v", err)
+	}
+}
+
+func TestService_RefreshSession_ParallelConcurrentRequests(t *testing.T) {
+	const totalRequests = 20
+	initialToken := models.AuthRefreshToken{
+		ID:        "token-1",
+		UserID:    "user-1",
+		TokenHash: "hash-refresh",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	repo := &concurrentRefreshRepo{
+		token: initialToken,
+	}
+	tokens := &fakeTokenProvider{
+		accessPayload: SessionPayload{AccessToken: "new-access", TokenType: "Bearer", ExpiresIn: 900},
+		parseRefreshClaims: SessionClaims{
+			RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour)),
+		},
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, tokens)
+
+	var wg sync.WaitGroup
+	type callResult struct {
+		result RefreshSessionResult
+		err    error
+	}
+	results := make([]callResult, totalRequests)
+
+	for i := 0; i < totalRequests; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			res, err := svc.RefreshSession(context.Background(), "refresh-token")
+			results[idx] = callResult{result: res, err: err}
+		}(i)
+	}
+
+	wg.Wait()
+
+	successCount := 0
+	unauthCount := 0
+	for _, r := range results {
+		if r.err == nil {
+			successCount++
+			if r.result.UserID != "user-1" {
+				t.Errorf("unexpected user id: %s", r.result.UserID)
+			}
+		} else {
+			var appErr *errs.AppError
+			if errors.As(r.err, &appErr) && appErr.Code() == errs.CodeUnauthenticated {
+				unauthCount++
+			} else {
+				t.Errorf("expected CodeUnauthenticated, got: %v", r.err)
+			}
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("expected exactly 1 successful rotation, got %d", successCount)
+	}
+	if unauthCount != totalRequests-1 {
+		t.Fatalf("expected %d unauthenticated failures, got %d", totalRequests-1, unauthCount)
+	}
+	if repo.rotatedCount != 1 {
+		t.Fatalf("expected repo rotatedCount == 1, got %d", repo.rotatedCount)
+	}
+	if len(repo.created) != 1 {
+		t.Fatalf("expected exactly 1 newly created token, got %d", len(repo.created))
+	}
+}
+
+func TestService_AuthenticateAccessToken_Valid(t *testing.T) {
+	tokens := &fakeTokenProvider{
+		parseAccessClaims: SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-123", "access-jti", time.Now().Add(time.Minute))},
+	}
+	svc := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, tokens)
+
+	principal, err := svc.AuthenticateAccessToken("valid-access-token")
+	if err != nil {
+		t.Fatalf("authenticate access token: %v", err)
+	}
+	if principal.UserID != "user-123" {
+		t.Fatalf("unexpected user id: %s", principal.UserID)
+	}
+}
+
+func TestService_AuthenticateAccessToken_Invalid(t *testing.T) {
+	tokens := &fakeTokenProvider{
+		parseAccessErr: errors.New("invalid signature"),
+	}
+	svc := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, tokens)
+
+	_, err := svc.AuthenticateAccessToken("invalid-token")
+	if err == nil {
+		t.Fatal("expected unauthenticated error")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated error code, got: %v", err)
+	}
+}
+
+func TestService_Logout_EmptyToken(t *testing.T) {
+	repo := &fakeAuthRepo{}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	if err := svc.Logout(context.Background(), ""); err != nil {
+		t.Fatalf("logout with empty token should succeed, got: %v", err)
+	}
+	if err := svc.Logout(context.Background(), "   "); err != nil {
+		t.Fatalf("logout with whitespace token should succeed, got: %v", err)
+	}
+}
+
+func TestService_Logout_ValidToken(t *testing.T) {
+	repo := &fakeAuthRepo{}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	if err := svc.Logout(context.Background(), "valid-token"); err != nil {
+		t.Fatalf("logout with valid token failed: %v", err)
+	}
+	if repo.revokedTokenHash != "hash-refresh" {
+		t.Fatalf("expected revoked token hash %q, got %q", "hash-refresh", repo.revokedTokenHash)
+	}
+}
+
+func TestService_Logout_RepositoryError(t *testing.T) {
+	repo := &fakeAuthRepo{
+		revokeByHashErr: errors.New("db error"),
+	}
+	svc := NewService(repo, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	err := svc.Logout(context.Background(), "valid-token")
+	if err == nil {
+		t.Fatal("expected internal error")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error code, got: %v", err)
+	}
+}
+
 func TestService_BuildUserPayload(t *testing.T) {
 	reason := "Recovery focus"
 	checkin := "09:30"
@@ -261,17 +565,21 @@ func (v *fakeGoogleVerifier) Verify(_ context.Context, _, _ string) (GoogleIdent
 }
 
 type fakeTokenProvider struct {
+	mu                 sync.RWMutex
 	accessPayload      SessionPayload
 	refreshClaims      SessionClaims
 	parseAccessClaims  SessionClaims
 	parseRefreshClaims SessionClaims
 	parseAccessErr     error
 	parseRefreshErr    error
+	cookieValue        *string
 }
 
 func (f *fakeTokenProvider) GoogleAudience() string { return "google-client-id" }
 
 func (f *fakeTokenProvider) IssueAccessToken(_ string) (string, SessionPayload, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.accessPayload.AccessToken == "" {
 		f.accessPayload = SessionPayload{AccessToken: "access-token", TokenType: "Bearer", ExpiresIn: 900}
 	}
@@ -279,6 +587,8 @@ func (f *fakeTokenProvider) IssueAccessToken(_ string) (string, SessionPayload, 
 }
 
 func (f *fakeTokenProvider) IssueRefreshToken(_ string) (string, SessionClaims, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if f.refreshClaims.ExpiresAt == nil {
 		f.refreshClaims = SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))}
 	}
@@ -286,21 +596,25 @@ func (f *fakeTokenProvider) IssueRefreshToken(_ string) (string, SessionClaims, 
 }
 
 func (f *fakeTokenProvider) ParseAccessToken(_ string) (SessionClaims, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	if f.parseAccessErr != nil {
 		return SessionClaims{}, f.parseAccessErr
 	}
 	if f.parseAccessClaims.Subject == "" {
-		f.parseAccessClaims = SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "access-jti", time.Now().Add(time.Minute))}
+		return SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "access-jti", time.Now().Add(time.Minute))}, nil
 	}
 	return f.parseAccessClaims, nil
 }
 
 func (f *fakeTokenProvider) ParseRefreshToken(_ string) (SessionClaims, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	if f.parseRefreshErr != nil {
 		return SessionClaims{}, f.parseRefreshErr
 	}
 	if f.parseRefreshClaims.Subject == "" {
-		f.parseRefreshClaims = SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))}
+		return SessionClaims{RegisteredClaims: jwtRegisteredClaims("user-1", "refresh-jti", time.Now().Add(time.Hour))}, nil
 	}
 	return f.parseRefreshClaims, nil
 }
@@ -315,7 +629,18 @@ func (f *fakeTokenProvider) ExpiredRefreshCookie() *fiber.Cookie {
 	return &fiber.Cookie{Name: "recova_refresh", Value: "", MaxAge: -1}
 }
 
-func (f *fakeTokenProvider) RefreshCookieValue(_ fiber.Ctx) string { return "refresh-token" }
+func (f *fakeTokenProvider) RefreshCookieValue(c fiber.Ctx) string {
+	if f.cookieValue != nil {
+		return *f.cookieValue
+	}
+	if c != nil {
+		val := strings.TrimSpace(c.Cookies("recova_refresh"))
+		if val != "" {
+			return val
+		}
+	}
+	return "refresh-token"
+}
 
 type fakeAuthRepo struct {
 	userByGoogle              models.User
@@ -329,6 +654,10 @@ type fakeAuthRepo struct {
 	manualUserByIdentifier    models.User
 	createManualErr           error
 	findManualErr             error
+	rotateErr                 error
+	revokeByHashErr           error
+	getActiveRefreshErr       error
+	revokedTokenHash          string
 	createdManualEmail        string
 	createdManualUsername     string
 	createdManualNickname     string
@@ -359,8 +688,11 @@ func (r *fakeAuthRepo) CreateRefreshToken(_ context.Context, token models.AuthRe
 }
 
 func (r *fakeAuthRepo) GetActiveRefreshTokenByHash(_ context.Context, _ string) (models.AuthRefreshToken, error) {
+	if r.getActiveRefreshErr != nil {
+		return models.AuthRefreshToken{}, r.getActiveRefreshErr
+	}
 	if r.storedRefresh.ID == "" {
-		return models.AuthRefreshToken{}, errors.New("refresh missing")
+		return models.AuthRefreshToken{}, gorm.ErrRecordNotFound
 	}
 	return r.storedRefresh, nil
 }
@@ -370,11 +702,18 @@ func (r *fakeAuthRepo) RevokeRefreshTokenByID(_ context.Context, tokenID string,
 	return nil
 }
 
-func (r *fakeAuthRepo) RevokeRefreshTokenByHash(_ context.Context, _ string, _ time.Time) error {
+func (r *fakeAuthRepo) RevokeRefreshTokenByHash(_ context.Context, tokenHash string, _ time.Time) error {
+	if r.revokeByHashErr != nil {
+		return r.revokeByHashErr
+	}
+	r.revokedTokenHash = tokenHash
 	return nil
 }
 
 func (r *fakeAuthRepo) RotateRefreshToken(_ context.Context, oldTokenID string, _ time.Time, _ models.AuthRefreshToken) error {
+	if r.rotateErr != nil {
+		return r.rotateErr
+	}
 	r.rotatedFromTokenID = oldTokenID
 	return nil
 }
@@ -409,4 +748,73 @@ func jwtRegisteredClaims(subject string, id string, exp time.Time) jwt.Registere
 		ID:        id,
 		ExpiresAt: jwt.NewNumericDate(exp),
 	}
+}
+
+type concurrentRefreshRepo struct {
+	mu           sync.Mutex
+	token        models.AuthRefreshToken
+	revoked      bool
+	rotatedCount int
+	created      []models.AuthRefreshToken
+}
+
+func (c *concurrentRefreshRepo) FindOrCreateUserByGoogleIdentity(_ context.Context, _ GoogleIdentity) (models.User, error) {
+	return models.User{}, errors.New("not implemented")
+}
+
+func (c *concurrentRefreshRepo) FindUserByID(_ context.Context, userID string) (models.User, error) {
+	return models.User{ID: userID, Email: "user@example.test", Nickname: "user"}, nil
+}
+
+func (c *concurrentRefreshRepo) IsOnboardingCompleted(_ context.Context, _ string) (bool, error) {
+	return true, nil
+}
+
+func (c *concurrentRefreshRepo) CreateRefreshToken(_ context.Context, token models.AuthRefreshToken) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.created = append(c.created, token)
+	return nil
+}
+
+func (c *concurrentRefreshRepo) GetActiveRefreshTokenByHash(_ context.Context, hash string) (models.AuthRefreshToken, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.revoked || c.token.TokenHash != hash {
+		return models.AuthRefreshToken{}, gorm.ErrRecordNotFound
+	}
+	return c.token, nil
+}
+
+func (c *concurrentRefreshRepo) RevokeRefreshTokenByID(_ context.Context, tokenID string, revokedAt time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.token.ID == tokenID {
+		c.revoked = true
+		c.token.RevokedAt = &revokedAt
+	}
+	return nil
+}
+
+func (c *concurrentRefreshRepo) RevokeRefreshTokenByHash(_ context.Context, hash string, revokedAt time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.token.TokenHash == hash {
+		c.revoked = true
+		c.token.RevokedAt = &revokedAt
+	}
+	return nil
+}
+
+func (c *concurrentRefreshRepo) RotateRefreshToken(_ context.Context, oldTokenID string, revokedAt time.Time, newToken models.AuthRefreshToken) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.revoked || c.token.ID != oldTokenID {
+		return ErrRefreshTokenAlreadyRevoked
+	}
+	c.revoked = true
+	c.token.RevokedAt = &revokedAt
+	c.rotatedCount++
+	c.created = append(c.created, newToken)
+	return nil
 }

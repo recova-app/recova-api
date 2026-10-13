@@ -337,6 +337,161 @@ func TestRegisterCoreRoutes_LogoutSuccess_ClearsCookie(t *testing.T) {
 	}
 }
 
+func TestRegisterCoreRoutes_RefreshMalformedToken_ReturnsUnauthorized(t *testing.T) {
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{
+		parseRefreshErr: errors.New("malformed jwt"),
+	})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/refresh", nil, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RefreshTokenNotFound_ReturnsUnauthorized(t *testing.T) {
+	service := NewService(&fakeAuthRepo{
+		getActiveRefreshErr: gorm.ErrRecordNotFound,
+	}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/refresh", nil, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RefreshSubjectMismatch_ReturnsUnauthorized(t *testing.T) {
+	service := NewService(&fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "refresh-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+	}, &fakeGoogleVerifier{}, &fakeTokenProvider{
+		parseRefreshClaims: SessionClaims{
+			RegisteredClaims: jwtRegisteredClaims("different-user", "refresh-jti", time.Now().Add(time.Hour)),
+		},
+	})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/refresh", nil, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RefreshRotationAlreadyRevoked_ReturnsUnauthorized(t *testing.T) {
+	service := NewService(&fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "refresh-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+		rotateErr: ErrRefreshTokenAlreadyRevoked,
+	}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/refresh", nil, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RefreshRotationInternalError_ReturnsInternalError(t *testing.T) {
+	service := NewService(&fakeAuthRepo{
+		storedRefresh: models.AuthRefreshToken{
+			ID:        "refresh-1",
+			UserID:    "user-1",
+			TokenHash: "hash-refresh",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
+		rotateErr: errors.New("db failure"),
+	}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/refresh", nil, nil)
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusInternalServerError)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "INTERNAL_ERROR")
+}
+
+func TestRegisterCoreRoutes_LogoutIdempotency_WithoutCookie(t *testing.T) {
+	emptyCookie := ""
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{
+		cookieValue: &emptyCookie,
+	})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/logout", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+	if resp.Header.Get("Set-Cookie") == "" {
+		t.Fatal("expected expired refresh cookie set on logout even without request cookie")
+	}
+}
+
+func TestRegisterCoreRoutes_RequireAuth_InvalidBearerToken(t *testing.T) {
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{
+		parseAccessErr: errors.New("invalid token signature"),
+	})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/logout", nil, map[string]string{
+		"Authorization": "Bearer bad-token",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RequireAuth_MissingBearerToken(t *testing.T) {
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/logout", nil, map[string]string{
+		"Authorization": "   ",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
+func TestRegisterCoreRoutes_RequireAuth_MalformedHeader(t *testing.T) {
+	service := NewService(&fakeAuthRepo{}, &fakeGoogleVerifier{}, &fakeTokenProvider{})
+
+	app := newAuthTestApp()
+	RegisterCoreRoutes(app.Group("/api/v1/auth"), service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodPost, "/api/v1/auth/logout", nil, map[string]string{
+		"Authorization": "Basic dXNlcjpwYXNz",
+	})
+
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusUnauthorized)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "UNAUTHENTICATED")
+}
+
 func newAuthTestApp() *fiber.App {
 	return fiber.New(fiber.Config{
 		ErrorHandler: func(c fiber.Ctx, err error) error {

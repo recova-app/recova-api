@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -211,6 +212,9 @@ func (s *Service) RefreshSession(ctx context.Context, rawRefreshToken string) (R
 		RotatedFromID: &rotatedFromID,
 	}
 	if err := s.repo.RotateRefreshToken(ctx, stored.ID, now, newRecord); err != nil {
+		if errors.Is(err, ErrRefreshTokenAlreadyRevoked) {
+			return RefreshSessionResult{}, errs.New(errs.CodeUnauthenticated, "Sesi login tidak valid", nil, err)
+		}
 		return RefreshSessionResult{}, errs.New(errs.CodeInternalError, "Gagal merotasi sesi refresh", nil, err)
 	}
 

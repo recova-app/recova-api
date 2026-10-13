@@ -3,8 +3,10 @@ package auth
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"gorm.io/gorm"
 )
 
@@ -58,5 +60,13 @@ func TestFallbackNickname(t *testing.T) {
 				t.Fatalf("unexpected fallback nickname: got=%q want=%q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestRotateRefreshToken_EmptyOldTokenID(t *testing.T) {
+	repo := NewRepository(nil)
+	err := repo.RotateRefreshToken(nil, "   ", time.Now(), models.AuthRefreshToken{})
+	if !errors.Is(err, ErrRefreshTokenAlreadyRevoked) {
+		t.Fatalf("expected ErrRefreshTokenAlreadyRevoked, got: %v", err)
 	}
 }

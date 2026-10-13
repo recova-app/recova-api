@@ -72,7 +72,7 @@ Constraint minimum:
 - login manual menerima satu identifier (`identifier` atau fallback `email`/`username`) + `password`,
 - register manual langsung membuat sesi aktif (tanpa OTP/email verification),
 - access token berlaku pendek,
-- refresh token harus dirotasi pada refresh sukses,
+- refresh token harus dirotasi pada refresh sukses dan bersifat atomic terhadap request konkuren (replay atau token ter-revoke mengembalikan UNAUTHENTICATED tanpa token baru),
 - logout bersifat idempotent.
 
 ## Validation Rules

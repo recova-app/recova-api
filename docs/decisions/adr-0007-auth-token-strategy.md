@@ -86,6 +86,7 @@ Konsekuensi negatif:
 - whitelist algoritma JWT secara eksplisit,
 - verifikasi `iss`, `aud`, `exp`, `sub` wajib,
 - refresh token mentah tidak boleh disimpan di DB/log,
+- rotasi refresh token dieksekusi secara atomic dalam transaksi persisten (request paralel atau replay token ter-revoke ditolak tanpa menerbitkan sesi baru),
 - password manual harus di-hash (bcrypt) dan tidak boleh tersimpan/log sebagai plaintext,
 - `AllowCredentials=true` hanya dengan origin allowlist,
 - wildcard origin dilarang saat credentials aktif,
