@@ -252,21 +252,23 @@ Notes:
 
 ## Deployment Overview
 
-### Production Deployment (Dokploy)
+### Production Deployment (Standalone Docker Compose & SSH)
 
-Main CI/CD workflow:
+Main CI/CD workflows:
 
-- `.github/workflows/deploy-production.yml`
-- `docker-compose.dokploy.yml`
+- `.github/workflows/ci-pr.yml` (Pull Request Quality Gate)
+- `.github/workflows/ci-cd.yml` (Production Release & SSH Deploy)
+- `docker-compose.yml` (Production Compose Orchestration)
 
 Automated steps:
 
-1. Build & push immutable container image to GHCR (`ghcr.io/recova-app/backend-v2:<tag>`).
-2. Run database migration safety gate (`scripts/deploy/production-migration-gate.sh`).
-3. Trigger Dokploy compose webhook deployment.
-4. Verify deployment via health check probes (`/health/live`).
+1. Execute comprehensive off-site quality gate & database integration tests with ephemeral PostgreSQL 17.
+2. Build & push immutable container image to GHCR (`ghcr.io/recova-app/backend-v2:<tag>`).
+3. Connect via Tailscale mesh and dispatch remote deployment via SSH.
+4. On VPS: verify Neon database connectivity, execute pre-migration snapshot, apply schema migrations, and recreate container (`docker compose up -d`).
+5. Multi-route post-deployment smoke verification (`/health/live`, `/health/ready`, `/openapi.yaml`, auth boundary) with automated rollback on failure.
 
-Complete reference: `docs/OPERATIONS.md`.
+Complete reference: `docs/DEPLOYMENT.md` and `docs/OPERATIONS.md`.
 
 ## Repository Structure
 
@@ -280,8 +282,9 @@ Complete reference: `docs/OPERATIONS.md`.
 ├── migrations/                # SQL migrations + seeds
 ├── scripts/                   # Dev/ops automation scripts
 ├── test/                      # Integration harness and validation scripts
+├── tools/                     # Deployment and Nginx host configurations
 ├── docker-compose.local.yml   # Local runtime
-├── docker-compose.dokploy.yml # Dokploy production runtime
+├── docker-compose.yml         # Production compose runtime
 ├── Dockerfile                 # Production-style image build
 ├── scalar.config.json         # Scalar docs configuration
 └── Makefile                   # Task runner

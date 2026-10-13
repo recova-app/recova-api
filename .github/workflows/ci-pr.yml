@@ -1,18 +1,13 @@
-name: CI
+name: CI Pull Request Gate
 
 on:
   pull_request:
     branches:
       - main
       - develop
-  push:
-    branches:
-      - main
-      - develop
-  workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:

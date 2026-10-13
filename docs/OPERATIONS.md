@@ -168,7 +168,9 @@ docker build -t recova-backend:latest .
 ### Deployment Profiles
 
 - **Local Development**: `docker-compose.local.yml` (spins up local PostgreSQL).
-- **Dokploy / Production**: `docker-compose.dokploy.yml` (production ingress with healthchecks and restart policies).
+- **Production Compose**: `docker-compose.yml` (production container ingress with healthchecks, restart policies, and host loopback binding).
+
+For production deployment procedures, VPS topology, and runbooks, refer to [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Observability & Health Probes
 

@@ -1,0 +1,342 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional existing immutable image tag to deploy (e.g. sha-a1b2c3d)"
+        required: false
+        type: string
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: recova-app/backend-v2
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Quality & Contract Verification Gate
+  # ----------------------------------------------------------------------------
+  check:
+    name: Repository Quality Gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recova_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d recova_ci_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+      RECOVA_DB_INTEGRATION_URL: postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go runtime
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Preflight verification
+        run: make preflight
+
+      - name: Format check
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "Files not formatted with gofmt:" >&2
+            echo "$unformatted" >&2
+            exit 1
+          fi
+
+      - name: Lint check
+        run: make lint
+
+      - name: Unit and handler tests
+        run: make test
+
+      - name: OpenAPI drift check
+        run: make openapi-check
+
+      - name: Scripted tooling integration checks
+        run: make test-integration
+
+      - name: Security scan
+        run: make security-scan
+
+      - name: Install migrate CLI
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run database migrations
+        run: make migrate-up
+
+      - name: Verify migration health check
+        run: make migrate-check
+
+      - name: Verify migration rollback smoke
+        run: |
+          make migrate-down
+          make migrate-up
+
+      - name: Seed test database fixtures
+        run: make seed
+
+      - name: Run integration and contract tests
+        run: go test -p 1 ./...
+
+      - name: Run E2E critical flows
+        run: make test-e2e
+
+      - name: Run performance smoke tests
+        run: make test-performance
+
+      - name: Run migration safety gate
+        env:
+          MIGRATION_BASE_REF: ${{ github.event.before || 'origin/main' }}
+        run: ./scripts/deploy/production-migration-gate.sh
+
+  # ----------------------------------------------------------------------------
+  # 2. Docker Image Build & GHCR Publication
+  # ----------------------------------------------------------------------------
+  build:
+    name: Build & Push API Image to GHCR
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build_api.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate with GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for API image
+        id: meta_api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=main
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push API Docker image
+        id: build_api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+          build-args: |
+            VERSION=sha-${{ github.sha }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ----------------------------------------------------------------------------
+  # 3. Production VPS Deployment via SSH
+  # ----------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Production VPS
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify current commit remains HEAD of main
+        id: check_head
+        run: |
+          git fetch origin main
+          CURRENT_HEAD=$(git rev-parse origin/main)
+          WORKFLOW_SHA="${{ github.sha }}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          DEPLOY_TAG="${{ inputs.image_tag }}"
+          if [ -z "$DEPLOY_TAG" ]; then
+            DEPLOY_TAG="sha-$SHORT_SHA"
+          fi
+          echo "deploy_tag=$DEPLOY_TAG" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" = "push" ] && [ "$CURRENT_HEAD" != "$WORKFLOW_SHA" ]; then
+            echo "Skipping deployment: Workflow commit ($WORKFLOW_SHA) is no longer HEAD of main ($CURRENT_HEAD)."
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Commit verification passed: $WORKFLOW_SHA is active HEAD of main."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate deployment configuration
+        id: check_config
+        if: ${{ steps.check_head.outputs.should_deploy == 'true' }}
+        env:
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST || secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER || secrets.SSH_USER }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS || secrets.SSH_KNOWN_HOSTS }}
+          HAS_SSH_KEY: ${{ secrets.PROD_SSH_KEY != '' || secrets.SSH_KEY != '' }}
+          HAS_TAILSCALE: ${{ secrets.TAILSCALE_AUTHKEY != '' }}
+        run: |
+          echo "Published deployment artifacts:"
+          echo "- Target Commit: ${{ github.sha }} (tag: ${{ steps.check_head.outputs.deploy_tag }})"
+          echo "- Image Digest: ${{ needs.build.outputs.digest }}"
+
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ "$HAS_SSH_KEY" != "true" ] || [ -z "$SSH_KNOWN_HOSTS" ]; then
+            if [ "${{ vars.REQUIRE_DEPLOYMENT }}" = "false" ]; then
+              echo "::warning title=Deployment Skipped::SSH deployment secrets (PROD_SSH_HOST / PROD_SSH_USER / PROD_SSH_KEY / PROD_SSH_KNOWN_HOSTS) are not configured, but REQUIRE_DEPLOYMENT is set to 'false'. Deployment step skipped without failing workflow."
+              echo "deploy_configured=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error title=Missing Deployment Credentials::PROD_SSH_HOST, PROD_SSH_USER, PROD_SSH_KEY, and PROD_SSH_KNOWN_HOSTS secrets are required in repository secrets. Deployment cannot proceed without pinned host key verification. To allow CI to pass without VPS deployment during pre-infrastructure setup, configure repository variable REQUIRE_DEPLOYMENT=false."
+              exit 1
+            fi
+          else
+            echo "deploy_configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "$HAS_TAILSCALE" = "true" ]; then
+            echo "use_tailscale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "use_tailscale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Connect to Tailscale network (Zero Public SSH Exposure)
+        if: ${{ steps.check_head.outputs.should_deploy == 'true' && steps.check_config.outputs.deploy_configured == 'true' && steps.check_config.outputs.use_tailscale == 'true' }}
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          tags: tag:ci
+
+      - name: Execute remote deployment via SSH
+        if: ${{ steps.check_head.outputs.should_deploy == 'true' && steps.check_config.outputs.deploy_configured == 'true' }}
+        env:
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST || secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER || secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || secrets.SSH_PORT || '22' }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY || secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS || secrets.SSH_KNOWN_HOSTS }}
+          TARGET_TAG: ${{ steps.check_head.outputs.deploy_tag }}
+          TARGET_DIR: /opt/recova
+        run: |
+          echo "Configuring SSH key for deployment..."
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          trap 'rm -f ~/.ssh/deploy_key' EXIT
+
+          echo "Installing pinned host key fingerprint into ~/.ssh/known_hosts..."
+          echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          echo "Ensuring target directory exists on VPS..."
+          ssh -i ~/.ssh/deploy_key \
+            -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=30 \
+            "${SSH_USER}@${SSH_HOST}" \
+            "mkdir -p ${TARGET_DIR}/tools/deploy ${TARGET_DIR}/migrations"
+
+          echo "Synchronizing deployment manifests and utility scripts to VPS..."
+          scp -i ~/.ssh/deploy_key \
+            -P "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=30 \
+            docker-compose.yml \
+            "${SSH_USER}@${SSH_HOST}:${TARGET_DIR}/"
+
+          scp -i ~/.ssh/deploy_key \
+            -P "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=30 \
+            -r \
+            migrations/* \
+            "${SSH_USER}@${SSH_HOST}:${TARGET_DIR}/migrations/"
+
+          scp -i ~/.ssh/deploy_key \
+            -P "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=30 \
+            -r \
+            tools/deploy/* \
+            "${SSH_USER}@${SSH_HOST}:${TARGET_DIR}/tools/deploy/"
+
+          echo "Executing remote deployment on ${SSH_USER}@${SSH_HOST}:${SSH_PORT} for tag ${TARGET_TAG}..."
+          ssh -i ~/.ssh/deploy_key \
+            -p "$SSH_PORT" \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=30 \
+            "${SSH_USER}@${SSH_HOST}" \
+            "cp -f ${TARGET_DIR}/tools/deploy/deploy.sh ${TARGET_DIR}/tools/deploy/backup.sh ${TARGET_DIR}/ 2>/dev/null || true && chmod +x ${TARGET_DIR}/*.sh ${TARGET_DIR}/tools/deploy/*.sh && cd ${TARGET_DIR} && ./deploy.sh ${TARGET_TAG}"
+
+          echo "Production deployment completed successfully."
+
+  # ----------------------------------------------------------------------------
+  # 4. Optional Public Edge Smoke Test
+  # ----------------------------------------------------------------------------
+  verify-edge:
+    name: Verify Public Production Edge
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: vars.REQUIRE_EDGE_VERIFY == 'true' && vars.PRODUCTION_DOMAIN != ''
+    steps:
+      - name: Smoke test public domain
+        env:
+          PRODUCTION_DOMAIN: ${{ vars.PRODUCTION_DOMAIN }}
+        run: |
+          set -euo pipefail
+          domain="${PRODUCTION_DOMAIN#http://}"
+          domain="${domain#https://}"
+          domain="${domain%/}"
+          base_url="https://${domain}"
+          echo "Probing public edge: ${base_url}"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/live"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/health/ready"
+          curl -fsS --retry 6 --retry-delay 10 "${base_url}/openapi.yaml" >/dev/null
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "${base_url}/api/v1/users/me")"
+          case "$status" in
+            401|403) echo "protected route rejects unauthorized request: ${status}" ;;
+            *) echo "::error::expected unauthorized protected route status, got ${status}"; exit 1 ;;
+          esac
+          echo "Public edge verification passed."

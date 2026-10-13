@@ -60,6 +60,7 @@ The documentation set is structured into focused, authoritative guides:
 | [ENVIRONMENT.md](ENVIRONMENT.md)   | Configuration loading, environment variables reference, TLS rules, and security policies |
 | [MODULES.md](MODULES.md)           | Deep dive into each domain module: responsibilities, services, models, and endpoints     |
 | [OPERATIONS.md](OPERATIONS.md)     | Local development, testing suites, containerization, deployment, and health monitoring   |
+| [DEPLOYMENT.md](DEPLOYMENT.md)     | Production topology, SSH/CI-CD pipeline, Neon lifecycle, rollback, and disaster recovery |
 | [ADR.md](ADR.md)                   | Architecture Decision Records documenting foundational technical choices and trade-offs  |
 
 ## Core Engineering Principles
