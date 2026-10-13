@@ -189,14 +189,15 @@ To maintain high software quality and prevent regressions in API contracts, code
 
 Implement strict automated verification gates required on every commit and pull request:
 
-1. `make preflight`: Toolchain and dependency verification.
-2. `make fmt`: Mandatory Go formatting enforcement (`gofmt`).
-3. `make lint`: Static analysis via `go vet ./...`.
-4. `make test`: Full unit and package test execution.
-5. `make test-integration`: Shell script and operational workflow validation.
-6. `make openapi-check`: Verification that OpenAPI schemas and runtime routes have not drifted.
-7. `make scalar-check`: Verification that Scalar UI configuration references valid documentation files.
-8. `make module-consistency-check`: Verification that architectural layer boundaries are respected.
+1. `make hooks-install`: Pre-commit hook gate (`.githooks/pre-commit`) enforcing staged formatting (`gofmt`), OpenAPI synchronization, static analysis (`go vet`), and fast unit tests before commit creation.
+2. `make preflight`: Toolchain and dependency verification.
+3. `make fmt`: Mandatory Go formatting enforcement (`gofmt`).
+4. `make lint`: Static analysis via `go vet ./...`.
+5. `make test`: Full unit and package test execution.
+6. `make test-integration`: Shell script and operational workflow validation.
+7. `make openapi-check`: Verification that OpenAPI schemas and runtime routes have not drifted.
+8. `make scalar-check`: Verification that Scalar UI configuration references valid documentation files.
+9. `make module-consistency-check`: Verification that architectural layer boundaries are respected.
 
 ### Consequences
 

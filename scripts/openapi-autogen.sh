@@ -12,22 +12,7 @@ generate() {
 }
 
 install_hook() {
-  hook_path="$repo_root/.git/hooks/pre-commit"
-  cat >"$hook_path" <<'HOOK'
-#!/usr/bin/env sh
-set -eu
-
-repo_root="$(git rev-parse --show-toplevel)"
-"$repo_root/scripts/openapi.sh" generate
-
-if git diff --quiet -- docs/generated/openapi.yaml docs/generated/routes.md; then
-  exit 0
-fi
-
-git add docs/generated/openapi.yaml docs/generated/routes.md
-HOOK
-  chmod +x "$hook_path"
-  echo "[openapi-autogen] installed git pre-commit hook at .git/hooks/pre-commit"
+  "$repo_root/scripts/install-hooks.sh"
 }
 
 collect_watch_files() {

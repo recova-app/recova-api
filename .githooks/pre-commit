@@ -1,0 +1,63 @@
+#!/usr/bin/env sh
+set -eu
+
+# Bypass mechanism for emergency commits
+if [ "${SKIP_HOOKS:-0}" = "1" ] || [ "${NO_VERIFY:-0}" = "1" ]; then
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+# Get staged files (Added, Copied, Modified)
+staged_files="$(git diff --cached --name-only --diff-filter=ACM)"
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+# Filter staged Go files
+staged_go_files="$(printf '%s\n' "$staged_files" | grep '\.go$' || true)"
+
+# 1. Format Check (gofmt)
+if [ -n "$staged_go_files" ]; then
+  echo "[pre-commit] checking Go formatting"
+  unformatted="$(printf '%s\n' "$staged_go_files" | while IFS= read -r f; do
+    [ -n "$f" ] && gofmt -l "$f"
+  done || true)"
+
+  if [ -n "$unformatted" ]; then
+    echo "[pre-commit] ERROR: unformatted Go files detected:" >&2
+    printf '%s\n' "$unformatted" | sed 's/^/  - /' >&2
+    echo "[pre-commit] run 'make fmt' and re-stage before committing" >&2
+    exit 1
+  fi
+fi
+
+# 2. OpenAPI Artifact Synchronization & Validation
+openapi_triggers="$(printf '%s\n' "$staged_files" | grep -E '^(api/openapi/|internal/app/http/|internal/modules/|internal/platform/openapi/|cmd/tools/openapi/)' || true)"
+if [ -n "$openapi_triggers" ]; then
+  echo "[pre-commit] OpenAPI triggers changed, synchronizing artifacts"
+  "$repo_root/scripts/openapi.sh" generate
+  if ! git diff --quiet -- docs/generated/openapi.yaml docs/generated/routes.md; then
+    echo "[pre-commit] auto-staging updated OpenAPI generated artifacts"
+    git add docs/generated/openapi.yaml docs/generated/routes.md
+  fi
+  "$repo_root/scripts/openapi.sh" check
+fi
+
+# 3. Static Analysis (go vet)
+if [ -n "$staged_go_files" ]; then
+  echo "[pre-commit] running static analysis (go vet)"
+  go vet ./...
+fi
+
+# 4. Fast Smoke Tests (go test -short)
+if [ -n "$staged_go_files" ]; then
+  if [ "${SKIP_TESTS:-0}" != "1" ]; then
+    echo "[pre-commit] running fast unit tests"
+    go test -short ./...
+  fi
+fi
+
+echo "[pre-commit] all pre-commit quality checks passed"
+exit 0

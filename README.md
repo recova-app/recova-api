@@ -155,6 +155,7 @@ All tasks are available in the `Makefile`. Core commands:
 ### Development
 
 - `make preflight` check tools and project structure baseline
+- `make hooks-install` install git pre-commit hooks (`.githooks/pre-commit`)
 - `make fmt` format Go code (`gofmt -w .`)
 - `make lint` static checks (`go vet ./...`)
 - `make build` build binary `./bin/recova-api`

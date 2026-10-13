@@ -12,4 +12,5 @@ This directory stores the OpenAPI source contract used as the public endpoint re
 - `make openapi-generate`: validate source spec and synchronize generated artifact.
 - `make openapi-check`: validate source+generated spec and check runtime route drift.
 - `make openapi-autogen-watch`: watch source/runtime contract files and auto-regenerate artifacts.
-- `make openapi-autogen-install-hook`: install pre-commit hook that auto-regenerates artifacts.
+- `make openapi-autogen-install-hook`: install git pre-commit hook that auto-regenerates OpenAPI artifacts (alias for `make hooks-install`).
+- `make hooks-install`: install repository pre-commit quality gate (`.githooks/pre-commit`).

@@ -48,4 +48,9 @@ if [ ! -d migrations ]; then
   exit 1
 fi
 
+hooks_path="$(git config core.hooksPath 2>/dev/null || true)"
+if [ "$hooks_path" != ".githooks" ]; then
+  echo "[preflight] note: git hooks not active (run 'make hooks-install' to enable)"
+fi
+
 echo "[preflight] environment looks good"

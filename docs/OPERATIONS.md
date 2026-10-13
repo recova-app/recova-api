@@ -13,10 +13,11 @@ Ensure the following tools are installed on your workstation:
 - **Docker & Docker Compose**: For containerized database and testing
 - **PostgreSQL Client / psql**: For direct database inspection (optional)
 
-Run the preflight verification script to confirm all dependencies:
+Run the preflight verification script and install git pre-commit quality hooks:
 
 ```bash
 make preflight
+make hooks-install
 ```
 
 ## Quick Start (Local Development)
@@ -73,6 +74,7 @@ Explore interactive API documentation at `http://localhost:3001/docs/api`.
 | Command                          | Action Description                                                      |
 | -------------------------------- | ----------------------------------------------------------------------- |
 | `make preflight`                 | Verifies local development tools and environment setup                  |
+| `make hooks-install`             | Installs git pre-commit hooks (`.githooks/pre-commit`)                  |
 | `make fmt`                       | Formats all Go source files using `gofmt`                               |
 | `make lint`                      | Runs Go static analysis with `go vet ./...`                             |
 | `make test`                      | Executes all unit and package-level tests                               |
@@ -87,7 +89,7 @@ Explore interactive API documentation at `http://localhost:3001/docs/api`.
 | `make migrate-status`            | Displays current migration version and status                           |
 | `make migrate-check`             | Validates migration state against the target database                   |
 | `make migrate-force VERSION=<v>` | Clears dirty migration flags by forcing a version                       |
-| `make schema-check`              | Runs automated schema drift and fresh migration verification             |
+| `make schema-check`              | Runs automated schema drift and fresh migration verification            |
 | `make seed`                      | Applies initial seed data into PostgreSQL                               |
 | `make openapi-generate`          | Regenerates OpenAPI 3.1 artifact and route inventory                    |
 | `make openapi-check`             | Verifies OpenAPI artifact is fully synchronized with code               |

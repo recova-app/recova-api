@@ -63,6 +63,11 @@ assert_fail env COMPOSE_FILE="$temp_dir/not-found.yml" ./scripts/compose-smoke.s
 ./scripts/module-consistency.sh openapi >/dev/null
 ./scripts/module-consistency.sh full-check >/dev/null
 
+# install-hooks.sh must configure core.hooksPath and pre-commit hook.
+./scripts/install-hooks.sh >/dev/null
+[ -x .githooks/pre-commit ]
+[ "$(git config core.hooksPath)" = ".githooks" ]
+
 # security-scan.sh must call provided govulncheck binary with target argument.
 fake_vuln_log="$temp_dir/fake-govulncheck.log"
 cat > "$temp_dir/govulncheck" <<'SCRIPT'
