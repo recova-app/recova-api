@@ -22,3 +22,17 @@ func TestMigrationsPath_UsesProjectRoot(t *testing.T) {
 		t.Fatalf("unexpected migrations path: %s", path)
 	}
 }
+
+func TestBaselineSeedPath_Exists(t *testing.T) {
+	path := BaselineSeedPath(t)
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("baseline seed file not found: %s (%v)", path, err)
+	}
+}
+
+func TestLatestMigrationVersion_ReturnsNonZero(t *testing.T) {
+	version := LatestMigrationVersion(t)
+	if version == 0 {
+		t.Fatal("expected latest migration version to be non-zero")
+	}
+}

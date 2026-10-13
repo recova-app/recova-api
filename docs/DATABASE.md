@@ -114,7 +114,11 @@ make migrate-force VERSION=20260513101500
 | `education_contents`        | Expert educational recovery articles             | `id` (UUID PK), `title`, `category`, `reading_time_minutes`, `content`, `source_url`                                               |
 | `daily_motivations`         | Rotating daily motivational quotes               | `id` (UUID PK), `content` (UNIQUE), `author`                                                                                       |
 | `daily_challenges`          | Daily behavioral and mental challenges           | `id` (UUID PK), `content` (UNIQUE), `category`                                                                                     |
-| `daily_physical_challenges` | Daily physical movement challenges               | `id` (UUID PK), `title`, `description`, `duration_minutes`, UNIQUE(`title`, `description`)                                         |
+| `daily_physical_challenges` | Daily physical movement challenges               | `id` (UUID PK), `title`, `description`, `is_active`, `created_at`, UNIQUE(`title`, `description`)                                 |
+| `relapses`                  | Specific relapse event logs with triggers        | `id` (UUID PK), `user_id` (FK users), `check_in_id` (FK check_ins, nullable), `relapse_date`, `mood`, `commitment`, `relapse_trigger` (text[]), `created_at` |
+| `achievements`              | Gamification milestone and badge definitions     | `id` (UUID PK), `code` (UNIQUE), `title`, `description`, `category`, `threshold`, `is_active`, `created_at`, `updated_at`        |
+| `user_achievement_progress` | User progress and unlock states for achievements | `id` (UUID PK), `user_id` (FK users), `achievement_id` (FK achievements), `progress_value`, `unlocked_at`, `last_evaluated_at`, `created_at`, `updated_at` |
+| `user_ai_persona_preferences` | User-selected AI Coach persona preferences      | `user_id` (UUID PK, FK users), `persona`, `updated_at`                                                                            |
 | `ai_chats`                  | Conversation history with the AI Coach           | `id` (UUID PK), `user_id` (FK users), `role` (`user` \| `assistant`), `content`, `session_id`                                      |
 | `auth_refresh_tokens`       | Rotating cryptographically hashed refresh tokens | `id` (UUID PK), `user_id` (FK users), `token_hash` (UNIQUE), `expires_at`, `revoked_at`                                            |
 
@@ -150,3 +154,23 @@ make seed
 ```
 
 Seed scripts are located in `migrations/seeds/` (e.g. `000001_baseline_seed.sql`) and are written with `ON CONFLICT DO NOTHING` statements so they can be re-run safely in local and development environments without corrupting existing records.
+
+## Schema Drift & Data Contract Verification
+
+To prevent production failures caused by out-of-sync database schemas and Go domain models:
+
+1. **Migration Source of Truth**:
+   - Sequential SQL migrations in `migrations/` are the sole authority for database schema transitions. GORM `AutoMigrate` is never used at runtime.
+   - Every domain model change must be accompanied by corresponding `.up.sql` and `.down.sql` migration scripts.
+
+2. **Automated Schema Drift Detection**:
+   - `CheckSchemaDrift` inspects PostgreSQL's `information_schema.tables` and `information_schema.columns` against all models registered in `models.RegisteredModels()`.
+   - Drift detection validates:
+     - Table existence for all registered models.
+     - Column presence for all fields defined on model structs.
+     - Basic type compatibility between Go struct fields and PostgreSQL column definitions.
+     - Untracked tables in the `public` database schema.
+
+3. **Fresh Schema and Rollback Testing**:
+   - Integration tests ensure that a fresh, empty database can successfully execute all forward migrations up to the latest timestamp, roll back cleanly, and re-apply without errors.
+   - Baseline seed integrity is validated against the latest schema on each integration run.

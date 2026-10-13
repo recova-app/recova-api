@@ -115,6 +115,9 @@ jobs:
           make migrate-down
           make migrate-up
 
+      - name: Baseline seed validation
+        run: make seed
+
       - name: Integration and contract test gate with DB
         run: go test -p 1 ./...
 

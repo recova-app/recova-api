@@ -1,4 +1,4 @@
-.PHONY: preflight fmt lint test test-integration test-e2e test-performance coverage release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force seed openapi-generate openapi-check openapi-autogen openapi-autogen-watch openapi-autogen-install-hook scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
+.PHONY: preflight fmt lint test test-integration test-e2e test-performance coverage release-validation build run migrate-up migrate-down migrate-status migrate-check migrate-force schema-check seed openapi-generate openapi-check openapi-autogen openapi-autogen-watch openapi-autogen-install-hook scalar-check scalar-preview module-consistency-check module-consistency-full-check security-scan compose-smoke cutover-wave cutover-all stabilization-gate rollback-rehearsal runtime-decommission post-migration-maintenance
 
 preflight:
 	@./scripts/preflight.sh
@@ -56,6 +56,10 @@ migrate-check:
 
 migrate-force:
 	@./scripts/with-env.sh ./scripts/migrate.sh force $(VERSION)
+
+schema-check:
+	@echo "[schema-check] running schema drift and fresh migration verification"
+	@./scripts/with-env.sh go test -v -run 'TestIntegration_FreshSchema|TestIntegration_SchemaDrift|TestIntegration_BaselineSeed' ./internal/platform/database/...
 
 seed:
 	@./scripts/with-env.sh ./scripts/seed.sh

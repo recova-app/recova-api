@@ -100,10 +100,10 @@ func TestService_ListJournals_EmptyAndBounded(t *testing.T) {
 }
 
 type fakeJournalsRepo struct {
-	user      models.User
-	findErr   error
-	createRow models.Journal
-	createErr error
+	user           models.User
+	findErr        error
+	createRow      models.Journal
+	createErr      error
 	listRows       []models.Journal
 	listErr        error
 	recordedLimit  int

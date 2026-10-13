@@ -1,6 +1,62 @@
 package models
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"gorm.io/gorm/schema"
+)
+
+func TestRegisteredModels_ContainsAllModels(t *testing.T) {
+	models := RegisteredModels()
+	if len(models) != 18 {
+		t.Fatalf("expected 18 registered models, got %d", len(models))
+	}
+
+	namer := schema.NamingStrategy{}
+	seen := make(map[string]bool)
+
+	expectedTables := []string{
+		"achievements",
+		"ai_chats",
+		"auth_refresh_tokens",
+		"check_ins",
+		"community_comments",
+		"community_post_likes",
+		"community_posts",
+		"daily_challenges",
+		"daily_motivations",
+		"daily_physical_challenges",
+		"education_contents",
+		"journals",
+		"profiles",
+		"relapses",
+		"streaks",
+		"user_achievement_progress",
+		"user_ai_persona_preferences",
+		"users",
+	}
+
+	for _, m := range models {
+		var tableName string
+		if tabler, ok := m.(interface{ TableName() string }); ok {
+			tableName = tabler.TableName()
+		} else {
+			tableName = namer.TableName(reflect.TypeOf(m).Elem().Name())
+		}
+
+		if seen[tableName] {
+			t.Fatalf("duplicate model registration for table: %s", tableName)
+		}
+		seen[tableName] = true
+	}
+
+	for _, expected := range expectedTables {
+		if !seen[expected] {
+			t.Fatalf("missing registered model for expected table: %s", expected)
+		}
+	}
+}
 
 func TestTableNames_AreStable(t *testing.T) {
 	if (AuthRefreshToken{}).TableName() != "auth_refresh_tokens" {

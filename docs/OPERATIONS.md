@@ -87,6 +87,7 @@ Explore interactive API documentation at `http://localhost:3001/docs/api`.
 | `make migrate-status`            | Displays current migration version and status                           |
 | `make migrate-check`             | Validates migration state against the target database                   |
 | `make migrate-force VERSION=<v>` | Clears dirty migration flags by forcing a version                       |
+| `make schema-check`              | Runs automated schema drift and fresh migration verification             |
 | `make seed`                      | Applies initial seed data into PostgreSQL                               |
 | `make openapi-generate`          | Regenerates OpenAPI 3.1 artifact and route inventory                    |
 | `make openapi-check`             | Verifies OpenAPI artifact is fully synchronized with code               |
