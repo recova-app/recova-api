@@ -146,7 +146,7 @@ Main environment variable groups:
 Notes:
 
 - `make run`, `make migrate-*`, and `make seed` automatically load `.env` via `scripts/with-env.sh`
-- Override the env file using: `ENV_FILE=.env.staging make run`
+- Override the env file using: `ENV_FILE=.env.production make run`
 
 ## Make Commands
 
@@ -194,7 +194,6 @@ All tasks are available in the `Makefile`. Core commands:
 
 ### Deployment Operations
 
-- `make staging-deploy`
 - `make cutover-wave WAVE=<64|65|66|67|68>`
 - `make cutover-all`
 - `make stabilization-gate`
@@ -256,27 +255,19 @@ Notes:
 
 ## Deployment Overview
 
-### Staging Compose Runner (local/runner environment)
-
-```bash
-make staging-deploy
-```
-
-Script: `scripts/staging-deploy.sh`
-Compose target: `docker-compose.staging.yml`
-
-### Remote Staging from `develop` Branch
+### Production Deployment (Dokploy)
 
 Main CI/CD workflow:
 
-- `.github/workflows/deploy-staging.yml`
-- `scripts/deploy/remote-deploy.sh`
+- `.github/workflows/deploy-production.yml`
+- `docker-compose.dokploy.yml`
 
-Deployment smoke checks include:
+Automated steps:
 
-- `/health/live`
-- `/health/ready`
-- `/openapi.yaml`
+1. Build & push immutable container image to GHCR (`ghcr.io/recova-app/backend-v2:<tag>`).
+2. Run database migration safety gate (`scripts/deploy/production-migration-gate.sh`).
+3. Trigger Dokploy compose webhook deployment.
+4. Verify deployment via health check probes (`/health/live`).
 
 Complete reference: `docs/OPERATIONS.md`.
 
@@ -293,7 +284,7 @@ Complete reference: `docs/OPERATIONS.md`.
 ├── scripts/                   # Dev/ops automation scripts
 ├── test/                      # Integration harness and validation scripts
 ├── docker-compose.local.yml   # Local runtime
-├── docker-compose.staging.yml # Staging runtime
+├── docker-compose.dokploy.yml # Dokploy production runtime
 ├── Dockerfile                 # Production-style image build
 ├── scalar.config.json         # Scalar docs configuration
 └── Makefile                   # Task runner

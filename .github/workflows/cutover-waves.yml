@@ -15,11 +15,6 @@ on:
           - "66"
           - "67"
           - "68"
-      run_staging_deploy:
-        description: "Run staging deploy runner on wave 64"
-        required: true
-        default: true
-        type: boolean
       run_rollback_on_failure:
         description: "Run rollback command if a wave fails"
         required: true
@@ -38,8 +33,6 @@ jobs:
   cutover:
     name: Cutover Waves
     runs-on: ubuntu-latest
-    environment:
-      name: staging
     env:
       ENV_FILE: .env.example
       COMPOSE_PROJECT_NAME: recova-cutover-ci
@@ -74,7 +67,6 @@ jobs:
 
       - name: Run cutover wave runner
         env:
-          RUN_STAGING_DEPLOY: ${{ inputs.run_staging_deploy }}
           RUN_ROLLBACK_ON_FAILURE: ${{ inputs.run_rollback_on_failure }}
           CUTOVER_ROLLBACK_COMMAND: ${{ inputs.rollback_command }}
         run: |

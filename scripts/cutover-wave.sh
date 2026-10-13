@@ -7,10 +7,8 @@ execution_id="${CUTOVER_EXECUTION_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 api_base_url="${API_BASE_URL:-http://127.0.0.1:${APP_PORT:-3001}}"
 go_bin="${GO_BIN:-go}"
 curl_bin="${CURL_BIN:-curl}"
-run_staging_deploy="${RUN_STAGING_DEPLOY:-auto}"
 run_rollback_on_failure="${RUN_ROLLBACK_ON_FAILURE:-false}"
 rollback_command="${CUTOVER_ROLLBACK_COMMAND:-}"
-staging_deploy_script="${STAGING_DEPLOY_SCRIPT:-./scripts/staging-deploy.sh}"
 e2e_script="${E2E_SCRIPT:-./scripts/e2e-critical.sh}"
 
 case "$wave_input" in
@@ -23,14 +21,6 @@ case "$wave_input" in
   *)
     echo "[cutover-wave] wave invalid: $wave_input" >&2
     echo "[cutover-wave] use: 64|65|66|67|68|all" >&2
-    exit 1
-    ;;
-esac
-
-case "$run_staging_deploy" in
-  true|false|auto) ;;
-  *)
-    echo "[cutover-wave] RUN_STAGING_DEPLOY invalid: $run_staging_deploy (use true|false|auto)" >&2
     exit 1
     ;;
 esac
@@ -55,11 +45,6 @@ fi
 
 if ! command -v "$curl_bin" >/dev/null 2>&1; then
   echo "[cutover-wave] curl command not found: $curl_bin" >&2
-  exit 1
-fi
-
-if [ ! -f "$staging_deploy_script" ]; then
-  echo "[cutover-wave] staging deploy script not found: $staging_deploy_script" >&2
   exit 1
 fi
 
@@ -99,9 +84,6 @@ run_wave_logic() {
   echo "[cutover-wave] wave $wave start"
   case "$wave" in
     64)
-      if [ "$run_staging_deploy" = "true" ] || [ "$run_staging_deploy" = "auto" ]; then
-        "$staging_deploy_script" || return 1
-      fi
       "$curl_bin" -fsS --retry 6 --retry-delay 2 --retry-connrefused "${api_base_url}/health/live" >/dev/null || return 1
       "$curl_bin" -fsS --retry 6 --retry-delay 2 --retry-connrefused "${api_base_url}/health/ready" >/dev/null || return 1
       "$go_bin" test -count=1 ./test/contract -run '^TestContract_HealthResponses_ValidAgainstOpenAPI$' || return 1

@@ -10,28 +10,27 @@ Recova Backend implements a strict **fail-fast** configuration policy managed vi
 
 ## Environment Profiles
 
-The application recognizes four runtime profiles determined by `APP_ENV`:
+The application recognizes runtime profiles determined by `APP_ENV`:
 
 | Profile      | Target Environment      | Security & Behavior Rules                                                        |
 | ------------ | ----------------------- | -------------------------------------------------------------------------------- |
 | `local`      | Developer workstation   | Allows `DATABASE_SSL_MODE=disable`; debug logs enabled; relaxed CORS             |
 | `test`       | Automated test runners  | Uses isolated test database; in-memory mocks for external OAuth and AI           |
-| `staging`    | Pre-production testing  | Production-parity constraints; requires secure cookies and SSL database          |
 | `production` | Live production cluster | Strict security; `DATABASE_SSL_MODE=disable` strictly prohibited; HTTPS enforced |
 
 ## Complete Environment Variables Reference
 
 ### Application Settings
 
-| Variable     | Required | Type   | Example Value             | Description                                              |
-| ------------ | -------- | ------ | ------------------------- | -------------------------------------------------------- |
-| `APP_NAME`   | Yes      | string | `recova-backend-v2`       | Service name used for logging and telemetry              |
-| `APP_ENV`    | Yes      | string | `local`                   | Active profile: `local`, `test`, `staging`, `production` |
-| `NODE_ENV`   | Yes      | string | `development`             | Compatibility runtime mode                               |
-| `PORT`       | Yes      | int    | `3001`                    | TCP port where Fiber listens for HTTP traffic            |
-| `API_PREFIX` | Yes      | string | `/api/v1`                 | Root path prefix for public application endpoints        |
-| `APP_URL`    | Yes      | string | `http://localhost:3001`   | Canonical public base URL of the service                 |
-| `DOCS_URL`   | No       | string | `https://docs.recova.app` | Public link to published documentation                   |
+| Variable     | Required | Type   | Example Value             | Description                                       |
+| ------------ | -------- | ------ | ------------------------- | ------------------------------------------------- |
+| `APP_NAME`   | Yes      | string | `recova-backend-v2`       | Service name used for logging and telemetry       |
+| `APP_ENV`    | Yes      | string | `local`                   | Active profile: `local`, `test`, `production`     |
+| `NODE_ENV`   | Yes      | string | `development`             | Compatibility runtime mode                        |
+| `PORT`       | Yes      | int    | `3001`                    | TCP port where Fiber listens for HTTP traffic     |
+| `API_PREFIX` | Yes      | string | `/api/v1`                 | Root path prefix for public application endpoints |
+| `APP_URL`    | Yes      | string | `http://localhost:3001`   | Canonical public base URL of the service          |
+| `DOCS_URL`   | No       | string | `https://docs.recova.app` | Public link to published documentation            |
 
 ### Database Settings
 
@@ -92,7 +91,7 @@ The application recognizes four runtime profiles determined by `APP_ENV`:
 
 ### 2. Outbound AI Provider Validation
 
-- In `staging` and `production`, if `AI_BASE_URL` is configured, it must strictly use the `https://` protocol scheme.
+- In `production`, if `AI_BASE_URL` is configured, it must strictly use the `https://` protocol scheme.
 - The host must belong to an approved provider domain (e.g. `generativelanguage.googleapis.com` for Gemini).
 
 ### 3. Secret Masking

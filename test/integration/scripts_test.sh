@@ -194,166 +194,6 @@ SEED_FILE="$seed_file" \
 
 assert_file_contains "$fake_psql_log" "postgres://user:pass@localhost:5432/recova?sslmode=disable -v ON_ERROR_STOP=1 -f $seed_file"
 
-# staging-deploy.sh must orchestrate compose + migrate + seed + readiness checks.
-staging_compose_file="$temp_dir/staging-compose.yml"
-cat > "$staging_compose_file" <<'YAML'
-services:
-  db:
-    image: postgres:17-alpine
-  api:
-    image: recova-backend-v2:test
-YAML
-
-staging_env_file="$temp_dir/staging.env"
-cat > "$staging_env_file" <<'ENVFILE'
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=recova_stage
-DB_PORT=55432
-APP_PORT=33000
-ENVFILE
-
-fake_staging_docker_log="$temp_dir/fake-staging-docker.log"
-cat > "$temp_dir/docker-staging" <<'SCRIPT'
-#!/usr/bin/env sh
-printf '%s\n' "$*" >> "$FAKE_STAGING_DOCKER_LOG"
-
-case "$*" in
-  *"SELECT COUNT(*) FROM users;"*)
-    printf '6\n'
-    ;;
-  *"SELECT COUNT(*) FROM profiles;"*)
-    printf '6\n'
-    ;;
-  *"SELECT COUNT(*) FROM streaks;"*)
-    printf '11\n'
-    ;;
-  *"SELECT COUNT(*) FROM check_ins;"*)
-    printf '84\n'
-    ;;
-  *"SELECT COUNT(*) FROM journals;"*)
-    printf '84\n'
-    ;;
-  *"SELECT COUNT(*) FROM community_posts;"*)
-    printf '12\n'
-    ;;
-  *"SELECT COUNT(*) FROM community_comments;"*)
-    printf '25\n'
-    ;;
-  *"SELECT COUNT(*) FROM community_post_likes;"*)
-    printf '20\n'
-    ;;
-  *"SELECT COUNT(*) FROM education_contents;"*)
-    printf '23\n'
-    ;;
-  *"SELECT COUNT(*) FROM daily_motivations;"*)
-    printf '35\n'
-    ;;
-  *"SELECT COUNT(*) FROM daily_challenges;"*)
-    printf '35\n'
-    ;;
-  *"SELECT COUNT(*) FROM achievements;"*)
-    printf '15\n'
-    ;;
-  *"SELECT COUNT(*) FROM user_achievement_progress;"*)
-    printf '24\n'
-    ;;
-  *"SELECT COUNT(*) FROM user_ai_persona_preferences;"*)
-    printf '6\n'
-    ;;
-  *"SELECT COUNT(*) FROM ai_chats;"*)
-    printf '18\n'
-    ;;
-  *"daily_motivations GROUP BY content HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"daily_challenges GROUP BY content HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"achievements GROUP BY code HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"users WHERE google_id IS NOT NULL GROUP BY google_id HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"users GROUP BY email HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"profiles GROUP BY user_id HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"check_ins GROUP BY user_id, check_in_date HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"check_in_id FROM journals WHERE check_in_id IS NOT NULL GROUP BY check_in_id HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-  *"user_achievement_progress GROUP BY user_id, achievement_id HAVING COUNT(*) > 1"*)
-    printf '0\n'
-    ;;
-esac
-
-exit 0
-SCRIPT
-chmod +x "$temp_dir/docker-staging"
-
-fake_staging_migrate_log="$temp_dir/fake-staging-migrate.log"
-cat > "$temp_dir/migrate-staging" <<'SCRIPT'
-#!/usr/bin/env sh
-printf '%s\n' "$*" >> "$FAKE_STAGING_MIGRATE_LOG"
-if [ "${1:-}" = "-path" ] && [ "${4:-}" = "version" ]; then
-  printf '43\n'
-fi
-SCRIPT
-chmod +x "$temp_dir/migrate-staging"
-
-fake_staging_psql_log="$temp_dir/fake-staging-psql.log"
-cat > "$temp_dir/psql-staging" <<'SCRIPT'
-#!/usr/bin/env sh
-printf '%s\n' "$*" >> "$FAKE_STAGING_PSQL_LOG"
-SCRIPT
-chmod +x "$temp_dir/psql-staging"
-
-fake_staging_curl_log="$temp_dir/fake-staging-curl.log"
-cat > "$temp_dir/curl" <<'SCRIPT'
-#!/usr/bin/env sh
-printf '%s\n' "$*" >> "$FAKE_STAGING_CURL_LOG"
-exit 0
-SCRIPT
-chmod +x "$temp_dir/curl"
-
-PATH="$temp_dir:$PATH" \
-DOCKER_BIN="$temp_dir/docker-staging" \
-MIGRATE_BIN="$temp_dir/migrate-staging" \
-PSQL_BIN="$temp_dir/psql-staging" \
-FAKE_STAGING_DOCKER_LOG="$fake_staging_docker_log" \
-FAKE_STAGING_MIGRATE_LOG="$fake_staging_migrate_log" \
-FAKE_STAGING_PSQL_LOG="$fake_staging_psql_log" \
-FAKE_STAGING_CURL_LOG="$fake_staging_curl_log" \
-COMPOSE_FILE="$staging_compose_file" \
-ENV_FILE="$staging_env_file" \
-COMPOSE_PROJECT_NAME="recova-staging-test" \
-./scripts/staging-deploy.sh >/dev/null
-
-assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test config -q"
-assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test up -d db --wait --wait-timeout 120"
-assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test up -d api --build --wait --wait-timeout 180"
-assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test ps"
-assert_file_contains "$fake_staging_docker_log" "compose --env-file $staging_env_file -f $staging_compose_file -p recova-staging-test down -v --remove-orphans"
-assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM achievements;"
-assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM users;"
-assert_file_contains "$fake_staging_docker_log" "SELECT COUNT(*) FROM community_posts;"
-assert_file_contains "$fake_staging_docker_log" "daily_motivations GROUP BY content HAVING COUNT(*) > 1"
-assert_file_contains "$fake_staging_docker_log" "achievements GROUP BY code HAVING COUNT(*) > 1"
-
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable up"
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable down 1"
-assert_file_contains "$fake_staging_migrate_log" "-path migrations -database postgres://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable version"
-
-assert_file_contains "$fake_staging_psql_log" "postgresql://postgres:postgres@127.0.0.1:55432/recova_stage?sslmode=disable -v ON_ERROR_STOP=1 -f migrations/seeds/000001_baseline_seed.sql"
-assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/live"
-assert_file_contains "$fake_staging_curl_log" "http://127.0.0.1:33000/health/ready"
-
 # cutover-wave.sh should orchestrate waves serially and stop on failure.
 assert_fail ./scripts/cutover-wave.sh invalid-wave
 
@@ -373,14 +213,6 @@ exit 0
 SCRIPT
 chmod +x "$temp_dir/curl-cutover"
 
-fake_cutover_staging_log="$temp_dir/fake-cutover-staging.log"
-cat > "$temp_dir/staging-ok.sh" <<'SCRIPT'
-#!/usr/bin/env sh
-printf 'staging-ok\n' >> "$FAKE_CUTOVER_STAGING_LOG"
-exit 0
-SCRIPT
-chmod +x "$temp_dir/staging-ok.sh"
-
 fake_cutover_e2e_log="$temp_dir/fake-cutover-e2e.log"
 cat > "$temp_dir/e2e-ok.sh" <<'SCRIPT'
 #!/usr/bin/env sh
@@ -398,17 +230,14 @@ cutover_artifact_dir="$temp_dir/cutover-artifacts"
 RECOVA_DB_INTEGRATION_URL='postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable' \
 GO_BIN="$temp_dir/go-cutover" \
 CURL_BIN="$temp_dir/curl-cutover" \
-STAGING_DEPLOY_SCRIPT="$temp_dir/staging-ok.sh" \
 E2E_SCRIPT="$temp_dir/e2e-ok.sh" \
 FAKE_CUTOVER_GO_LOG="$fake_cutover_go_log" \
 FAKE_CUTOVER_CURL_LOG="$fake_cutover_curl_log" \
-FAKE_CUTOVER_STAGING_LOG="$fake_cutover_staging_log" \
 FAKE_CUTOVER_E2E_LOG="$fake_cutover_e2e_log" \
 CUTOVER_ARTIFACT_DIR="$cutover_artifact_dir" \
 CUTOVER_EXECUTION_ID="exec-success" \
 ./scripts/cutover-wave.sh all >/dev/null
 
-assert_file_contains "$fake_cutover_staging_log" "staging-ok"
 assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3001/health/live"
 assert_file_contains "$fake_cutover_curl_log" "http://127.0.0.1:3001/health/ready"
 assert_file_contains "$fake_cutover_go_log" "test -count=1 ./test/contract -run ^TestContract_HealthResponses_ValidAgainstOpenAPI$||"
@@ -442,11 +271,9 @@ assert_fail env \
   RECOVA_DB_INTEGRATION_URL='postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable' \
   GO_BIN="$temp_dir/go-cutover" \
   CURL_BIN="$temp_dir/curl-cutover" \
-  STAGING_DEPLOY_SCRIPT="$temp_dir/staging-ok.sh" \
   E2E_SCRIPT="$temp_dir/e2e-fail.sh" \
   FAKE_CUTOVER_GO_LOG="$fake_cutover_go_log" \
   FAKE_CUTOVER_CURL_LOG="$fake_cutover_curl_log" \
-  FAKE_CUTOVER_STAGING_LOG="$fake_cutover_staging_log" \
   FAKE_CUTOVER_FAIL_E2E_LOG="$fake_cutover_fail_e2e_log" \
   FAKE_CUTOVER_ROLLBACK_LOG="$fake_cutover_rollback_log" \
   RUN_ROLLBACK_ON_FAILURE="true" \
@@ -678,122 +505,3 @@ assert_file_contains "$maintenance_artifact_dir/maintenance-success-maintenance-
 ./scripts/preflight.sh >/dev/null
 
 echo "scripts integration checks passed"
-
-# remote-deploy.sh should enforce staging APP_ENV, run migrate/check, and run deploy smoke checks.
-remote_temp_dir="$(mktemp -d)"
-trap 'rm -rf "$temp_dir" "$remote_temp_dir"' EXIT
-
-remote_repo_dir="$remote_temp_dir/repo"
-mkdir -p "$remote_repo_dir/scripts" "$remote_repo_dir/scripts/deploy" "$remote_repo_dir/migrations"
-cp ./scripts/migrate.sh "$remote_repo_dir/scripts/migrate.sh"
-cp ./scripts/deploy/remote-deploy.sh "$remote_repo_dir/scripts/deploy/remote-deploy.sh"
-chmod +x "$remote_repo_dir/scripts/migrate.sh" "$remote_repo_dir/scripts/deploy/remote-deploy.sh"
-
-touch "$remote_repo_dir/docker-compose.staging.yml"
-cat > "$remote_repo_dir/.env.staging" <<'ENVFILE'
-APP_ENV=staging
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable"
-ENVFILE
-
-fake_remote_log="$remote_temp_dir/fake-remote.log"
-
-cat > "$remote_temp_dir/git" <<'SCRIPT'
-#!/usr/bin/env sh
-printf 'git %s\n' "$*" >> "$FAKE_REMOTE_LOG"
-case "${1:-}" in
-  rev-parse)
-    if [ "${2:-}" = "--is-inside-work-tree" ]; then
-      exit 0
-    fi
-    ;;
-  diff)
-    exit 0
-    ;;
-esac
-exit 0
-SCRIPT
-chmod +x "$remote_temp_dir/git"
-
-cat > "$remote_temp_dir/docker" <<'SCRIPT'
-#!/usr/bin/env sh
-printf 'docker %s\n' "$*" >> "$FAKE_REMOTE_LOG"
-exit 0
-SCRIPT
-chmod +x "$remote_temp_dir/docker"
-
-cat > "$remote_temp_dir/migrate" <<'SCRIPT'
-#!/usr/bin/env sh
-printf 'migrate %s\n' "$*" >> "$FAKE_REMOTE_LOG"
-if [ "${4:-}" = "version" ]; then
-  printf '43\n'
-fi
-exit 0
-SCRIPT
-chmod +x "$remote_temp_dir/migrate"
-
-cat > "$remote_temp_dir/curl" <<'SCRIPT'
-#!/usr/bin/env sh
-printf 'curl %s\n' "$*" >> "$FAKE_REMOTE_LOG"
-case "$*" in
-  *"%{http_code}"*)
-    printf '401'
-    ;;
-esac
-exit 0
-SCRIPT
-chmod +x "$remote_temp_dir/curl"
-
-PATH="$remote_temp_dir:$PATH" \
-FAKE_REMOTE_LOG="$fake_remote_log" \
-MIGRATE_BIN="$remote_temp_dir/migrate" \
-"$remote_repo_dir/scripts/deploy/remote-deploy.sh" \
-  "$remote_repo_dir" \
-  "develop" \
-  "ghcr.io/example/recova:sha-abc" \
-  "docker-compose.staging.yml" \
-  ".env.staging" \
-  "staging" \
-  "staging" \
-  "3000" \
-  "https://public.example.test" >/dev/null
-
-assert_file_contains "$fake_remote_log" "git fetch origin develop --prune"
-assert_file_contains "$fake_remote_log" "git checkout -B develop origin/develop"
-assert_file_not_contains "$fake_remote_log" "git reset --hard"
-assert_file_contains "$fake_remote_log" "docker compose --env-file .env.staging -f docker-compose.staging.yml pull api"
-assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable up"
-assert_file_contains "$fake_remote_log" "migrate -path migrations -database postgres://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable version"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/health/live"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 6 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/health/ready"
-assert_file_contains "$fake_remote_log" "curl -fsS --connect-timeout 5 --max-time 10 --retry 4 --retry-delay 2 http://127.0.0.1:3000/openapi.yaml"
-assert_file_contains "$fake_remote_log" "curl -sS --connect-timeout 5 --max-time 10 -o /dev/null -w %{http_code} http://127.0.0.1:3000/api/v1/users/me"
-assert_file_not_contains "$fake_remote_log" "https://public.example.test/health/live"
-
-# remote-deploy.sh must fail when APP_ENV is not staging.
-cat > "$remote_repo_dir/.env.bad" <<'ENVFILE'
-APP_ENV=production
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/recova_stage?sslmode=disable
-ENVFILE
-
-assert_fail env \
-  PATH="$remote_temp_dir:$PATH" \
-  FAKE_REMOTE_LOG="$fake_remote_log" \
-  MIGRATE_BIN="$remote_temp_dir/migrate" \
-  "$remote_repo_dir/scripts/deploy/remote-deploy.sh" \
-    "$remote_repo_dir" \
-    "develop" \
-    "ghcr.io/example/recova:sha-abc" \
-    "docker-compose.staging.yml" \
-    ".env.bad" \
-    "staging" \
-    "staging" \
-    "3000" \
-    "http://127.0.0.1:3001"
-
-# deploy-staging workflow must stay develop-only and use immutable sha tag.
-assert_file_contains .github/workflows/deploy-staging.yml "branches:"
-assert_file_contains .github/workflows/deploy-staging.yml "- develop"
-assert_file_contains .github/workflows/deploy-staging.yml 'image_tag_sha="sha-${source_sha}"'
-assert_file_contains .github/workflows/deploy-staging.yml "name: staging"
-assert_file_contains .github/workflows/deploy-staging.yml 'git checkout -B "${{ env.DEPLOY_BRANCH }}" "origin/${{ env.DEPLOY_BRANCH }}"'
-assert_file_contains .github/workflows/deploy-staging.yml 'cat <<'"'"'ENVEOF'"'"' > "$remote_path/$runtime_env_file"'

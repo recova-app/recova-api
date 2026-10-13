@@ -10,7 +10,7 @@ Ensure the following tools are installed on your workstation:
 
 - **Go**: Version `1.26+` (pinned in `go.mod`)
 - **Make**: Standard POSIX Make
-- **Docker & Docker Compose**: For containerized database and staging testing
+- **Docker & Docker Compose**: For containerized database and testing
 - **PostgreSQL Client / psql**: For direct database inspection (optional)
 
 Run the preflight verification script to confirm all dependencies:
@@ -165,7 +165,6 @@ docker build -t recova-backend:latest .
 ### Deployment Profiles
 
 - **Local Development**: `docker-compose.local.yml` (spins up local PostgreSQL).
-- **Staging**: `docker-compose.staging.yml` (production-parity staging container).
 - **Dokploy / Production**: `docker-compose.dokploy.yml` (production ingress with healthchecks and restart policies).
 
 ## Observability & Health Probes

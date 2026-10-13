@@ -202,6 +202,6 @@ Implement strict automated verification gates required on every commit and pull 
 
 - **Positive**:
   - Catches broken contracts and architecture drift before merging to main.
-  - High confidence in continuous deployments to staging and production.
+  - High confidence in continuous deployments to production.
 - **Negative / Trade-offs**:
   - Pull requests require passing all checks before merging, requiring discipline around OpenAPI synchronization.

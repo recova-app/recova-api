@@ -3,9 +3,9 @@ services:
     image: ${APP_IMAGE:?APP_IMAGE is required}
     restart: unless-stopped
     env_file:
-      - ${RUNTIME_ENV_FILE:-.env.staging}
+      - ${RUNTIME_ENV_FILE:-.env}
     environment:
-      APP_ENV: ${APP_ENV:-staging}
+      APP_ENV: ${APP_ENV:-production}
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3001}
     ports:

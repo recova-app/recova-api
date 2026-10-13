@@ -142,4 +142,4 @@ Baseline educational content, daily motivations, and initial recovery challenges
 make seed
 ```
 
-Seed scripts are located in `migrations/seeds/` (e.g. `000001_baseline_seed.sql`) and are written with `ON CONFLICT DO NOTHING` statements so they can be re-run safely in local and staging environments without corrupting existing records.
+Seed scripts are located in `migrations/seeds/` (e.g. `000001_baseline_seed.sql`) and are written with `ON CONFLICT DO NOTHING` statements so they can be re-run safely in local and development environments without corrupting existing records.
