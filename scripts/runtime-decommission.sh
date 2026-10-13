@@ -10,7 +10,7 @@ legacy_archive_paths="${LEGACY_ARCHIVE_PATHS:-references}"
 rollback_evidence_dir="${ROLLBACK_EVIDENCE_DIR:-artifacts/rollback-rehearsal}"
 rollback_retention_days="${ROLLBACK_RETENTION_DAYS:-90}"
 rollback_min_reports="${ROLLBACK_MIN_REPORTS:-1}"
-runtime_source_of_truth_file="${RUNTIME_SOURCE_OF_TRUTH_FILE:-docs/roadmap/current-runtime-inventory.md}"
+runtime_source_of_truth_file="${RUNTIME_SOURCE_OF_TRUTH_FILE:-docs/ARCHITECTURE.md}"
 runtime_keyword="${RUNTIME_SOURCE_OF_TRUTH_KEYWORD:-Go}"
 
 if [ -z "$legacy_traffic_count" ]; then

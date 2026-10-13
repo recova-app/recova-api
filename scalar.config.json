@@ -1,6 +1,5 @@
 {
   "$schema": "https://registry.scalar.com/@scalar/schemas/config",
-  "scalar": "2.0.0",
   "info": {
     "title": "Recova Backend API Docs",
     "description": "Service documentation and API reference for Recova Backend."
@@ -10,80 +9,60 @@
       "/": {
         "title": "Overview",
         "type": "page",
-        "filepath": "docs/overview.md"
+        "filepath": "docs/OVERVIEW.md"
       },
       "/api": {
         "title": "API Reference",
         "type": "openapi",
         "filepath": "docs/generated/openapi.yaml"
       },
+      "/api-guide": {
+        "title": "API Guide",
+        "type": "page",
+        "filepath": "docs/API.md"
+      },
       "/architecture": {
         "title": "Architecture",
         "type": "page",
-        "filepath": "docs/architecture.md"
-      },
-      "/environment": {
-        "title": "Environment",
-        "type": "page",
-        "filepath": "docs/environment.md"
-      },
-      "/project-structure": {
-        "title": "Project Structure",
-        "type": "page",
-        "filepath": "docs/project-structure.md"
+        "filepath": "docs/ARCHITECTURE.md"
       },
       "/database": {
         "title": "Database",
         "type": "page",
-        "filepath": "docs/database.md"
+        "filepath": "docs/DATABASE.md"
       },
-      "/api-guide": {
-        "title": "API Guide",
+      "/environment": {
+        "title": "Environment",
         "type": "page",
-        "filepath": "docs/api-reference.md"
+        "filepath": "docs/ENVIRONMENT.md"
       },
       "/modules": {
         "title": "Modules",
         "type": "page",
-        "filepath": "docs/modules/index.md"
+        "filepath": "docs/MODULES.md"
       },
       "/operations": {
         "title": "Operations",
-        "type": "group",
-        "children": {
-          "/operations/testing": {
-            "title": "Testing",
-            "type": "page",
-            "filepath": "docs/operations/testing.md"
-          },
-          "/operations/security": {
-            "title": "Security",
-            "type": "page",
-            "filepath": "docs/operations/security.md"
-          },
-          "/operations/documentation-sync": {
-            "title": "Documentation Sync",
-            "type": "page",
-            "filepath": "docs/operations/documentation-sync.md"
-          },
-          "/operations/api-docs-generation": {
-            "title": "API Docs Generation",
-            "type": "page",
-            "filepath": "docs/operations/api-docs-generation.md"
-          }
-        }
+        "type": "page",
+        "filepath": "docs/OPERATIONS.md"
+      },
+      "/decisions": {
+        "title": "Architecture Decisions",
+        "type": "page",
+        "filepath": "docs/ADR.md"
       }
     }
   },
+  "scalar": "2.0.0",
   "siteConfig": {
-    "theme": "default",
     "layout": {
-      "toc": true,
       "header": true,
       "search": {
         "enabled": true,
         "position": "header"
-      }
-    }
+      },
+      "toc": true
+    },
+    "theme": "default"
   }
 }

@@ -131,7 +131,7 @@ curl -I http://localhost:3001/docs/api
 
 Complete references are available in:
 
-- `docs/environment.md`
+- `docs/ENVIRONMENT.md`
 - `.env.example`
 
 Main environment variable groups:
@@ -223,7 +223,7 @@ make release-validation
 make module-consistency-full-check
 ```
 
-Detailed strategy: `docs/operations/testing.md`.
+Detailed strategy: `docs/OPERATIONS.md`.
 
 ## OpenAPI and API Docs
 
@@ -252,7 +252,7 @@ make openapi-check
 Notes:
 
 - `make openapi-autogen-watch` maintains `.openapi-watch-files` and regenerates artifacts on change.
-- Runbook: `docs/operations/api-docs-generation.md`.
+- Runbook: `docs/OPERATIONS.md`.
 
 ## Deployment Overview
 
@@ -278,7 +278,7 @@ Deployment smoke checks include:
 - `/health/ready`
 - `/openapi.yaml`
 
-Complete reference: `docs/operations/deployment.md`.
+Complete reference: `docs/OPERATIONS.md`.
 
 ## Repository Structure
 
@@ -303,27 +303,21 @@ Complete reference: `docs/operations/deployment.md`.
 
 Start here:
 
-- `docs/overview.md`
+- `docs/OVERVIEW.md`
 
-Important documents:
+Authoritative technical documentation:
 
-- Architecture: `docs/architecture.md`
-- API: `docs/api/index.md` and `docs/api-reference.md`
-- Database: `docs/database.md`
-- Environment: `docs/environment.md`
-- Project structure: `docs/project-structure.md`
-- Tech stack: `docs/tech-stack.md`
-- Local development: `docs/operations/local-development.md`
-- Testing: `docs/operations/testing.md`
-- Deployment: `docs/operations/deployment.md`
-- Security: `docs/operations/security.md`
-- API docs generation: `docs/operations/api-docs-generation.md`
-- Documentation sync: `docs/operations/documentation-sync.md`
-- Modules index: `docs/modules/index.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- API Specification: `docs/API.md`
+- Database Architecture: `docs/DATABASE.md`
+- Environment Configuration: `docs/ENVIRONMENT.md`
+- Domain Modules: `docs/MODULES.md`
+- Operations & Testing: `docs/OPERATIONS.md`
+- Architecture Decisions: `docs/ADR.md`
 
 ## Quick Troubleshooting
 
-- `config error` during startup: check required environment variables in `.env` and `docs/environment.md`
+- `config error` during startup: check required environment variables in `.env` and `docs/ENVIRONMENT.md`
 - Missing `migrate` binary: scripts will automatically fallback to the Docker image `migrate/migrate:v4.19.1` if Docker is available
 - `openapi-check` failed: run `make openapi-generate` and commit changes inside `docs/generated/*`
 - `health/ready` failed: check DB connectivity and migration status (`make migrate-status`, `make migrate-check`)

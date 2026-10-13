@@ -80,9 +80,9 @@ This route inventory is auto-synced from runtime. Any mismatch with the OpenAPI 
 
 ## Related Documents
 
-- [OpenAPI Standard](/Users/macbookpro/Development/recova-backend-v2/docs/standards/openapi.md)
-- [API Reference](/Users/macbookpro/Development/recova-backend-v2/docs/api-reference.md)
-- [API Docs Generation](/Users/macbookpro/Development/recova-backend-v2/docs/operations/api-docs-generation.md)
+- [API Specification](docs/API.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Operations Guide](docs/OPERATIONS.md)
 
 ## Source Reference
 
