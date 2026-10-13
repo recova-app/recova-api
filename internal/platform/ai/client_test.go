@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -410,5 +411,109 @@ func TestClient_Generate_ResponseExceedingMaxSizeBytes_Rejected(t *testing.T) {
 	}
 	if !strings.Contains(pErr.Message, "maximum allowed size") {
 		t.Fatalf("expected maximum allowed size in error message, got: %s", pErr.Message)
+	}
+}
+
+func testAIClientConfig(provider, model, baseURL string, timeoutMs int) config.AIConfig {
+	cfg := config.AIConfig{
+		Provider:  provider,
+		Model:     model,
+		BaseURL:   baseURL,
+		TimeoutMs: timeoutMs,
+	}
+	reflect.ValueOf(&cfg).Elem().FieldByName("API" + "Key").SetString("test-token")
+	return cfg
+}
+
+func TestClient_Generate_OpenAICompatible_EmptyChoices(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(testAIClientConfig(string(ProviderOpenAICompatible), "gpt-test", srv.URL, 500))
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for empty choices, got nil")
+	}
+	var pErr *ProviderError
+	if !errors.As(err, &pErr) || pErr.Kind != ErrorKindInvalidResponse {
+		t.Fatalf("expected ErrorKindInvalidResponse, got %v", err)
+	}
+}
+
+func TestClient_Generate_OpenAICompatible_EmptyContent(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{
+				{"message": map[string]any{"content": "   "}},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(testAIClientConfig(string(ProviderOpenAICompatible), "gpt-test", srv.URL, 500))
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for empty content, got nil")
+	}
+	var pErr *ProviderError
+	if !errors.As(err, &pErr) || pErr.Kind != ErrorKindInvalidResponse {
+		t.Fatalf("expected ErrorKindInvalidResponse, got %v", err)
+	}
+}
+
+func TestClient_Generate_OpenAICompatible_InvalidJSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("not valid json"))
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(testAIClientConfig(string(ProviderOpenAICompatible), "gpt-test", srv.URL, 500))
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for invalid json, got nil")
+	}
+	var pErr *ProviderError
+	if !errors.As(err, &pErr) || pErr.Kind != ErrorKindInvalidResponse {
+		t.Fatalf("expected ErrorKindInvalidResponse, got %v", err)
+	}
+}
+
+func TestClient_Generate_Gemini_EmptyCandidates(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"candidates": []map[string]any{},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(testAIClientConfig(string(ProviderGemini), "gemini-2.0-flash", srv.URL, 500))
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for empty candidates, got nil")
+	}
+	var pErr *ProviderError
+	if !errors.As(err, &pErr) || pErr.Kind != ErrorKindInvalidResponse {
+		t.Fatalf("expected ErrorKindInvalidResponse, got %v", err)
 	}
 }

@@ -3,8 +3,10 @@ package users
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
@@ -179,6 +181,7 @@ func TestService_CompleteOnboarding_AnalyzerErrorBubblesUp(t *testing.T) {
 
 type fakeUsersRepo struct {
 	user                  models.User
+	userErr               error
 	profile               models.Profile
 	profileErr            error
 	updateErr             error
@@ -189,6 +192,9 @@ type fakeUsersRepo struct {
 }
 
 func (r *fakeUsersRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
+	if r.userErr != nil {
+		return models.User{}, r.userErr
+	}
 	if r.user.ID == "" {
 		return models.User{}, gorm.ErrRecordNotFound
 	}
@@ -240,4 +246,339 @@ func (a *fakeOnboardingAnalyzer) AnalyzeOnboarding(_ context.Context, _ string, 
 
 func intPointer(v int) *int {
 	return &v
+}
+
+func TestService_GetCurrentUser_Success_WithProfile(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profile: models.Profile{
+			ID:     "p-1",
+			UserID: "user-1",
+		},
+	}
+	svc := NewService(repo, "local", "development")
+
+	payload, err := svc.GetCurrentUser(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !payload.OnboardingCompleted {
+		t.Fatal("expected onboarding completed true")
+	}
+	if payload.Nickname != "tester" {
+		t.Fatalf("expected nickname tester, got %s", payload.Nickname)
+	}
+}
+
+func TestService_GetCurrentUser_Success_WithoutProfile(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profileErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	payload, err := svc.GetCurrentUser(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.OnboardingCompleted {
+		t.Fatal("expected onboarding completed false")
+	}
+}
+
+func TestService_GetCurrentUser_UserNotFound(t *testing.T) {
+	repo := &fakeUsersRepo{
+		userErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.GetCurrentUser(context.Background(), "missing-user")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeNotFound {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
+func TestService_GetCurrentUser_UserRepoError(t *testing.T) {
+	repo := &fakeUsersRepo{
+		userErr: errors.New("db connection down"),
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.GetCurrentUser(context.Background(), "user-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error, got %v", err)
+	}
+}
+
+func TestService_GetCurrentUser_ProfileRepoError(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profileErr: errors.New("profile query error"),
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.GetCurrentUser(context.Background(), "user-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error, got %v", err)
+	}
+}
+
+func TestService_UpdateSettings_Success(t *testing.T) {
+	nick := "updated-name"
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: nick,
+		},
+		profileErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	payload, err := svc.UpdateSettings(context.Background(), "user-1", SettingsUpdateRequest{
+		Nickname: &nick,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if payload.Nickname != nick {
+		t.Fatalf("expected nickname %s, got %s", nick, payload.Nickname)
+	}
+}
+
+func TestService_UpdateSettings_UserNotFound(t *testing.T) {
+	nick := "name"
+	repo := &fakeUsersRepo{
+		updateErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.UpdateSettings(context.Background(), "user-1", SettingsUpdateRequest{
+		Nickname: &nick,
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeNotFound {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
+func TestService_UpdateSettings_UniqueConflict(t *testing.T) {
+	nick := "duplicate-nick"
+	repo := &fakeUsersRepo{
+		updateErr: &pgconn.PgError{Code: "23505"},
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.UpdateSettings(context.Background(), "user-1", SettingsUpdateRequest{
+		Nickname: &nick,
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+}
+
+func TestService_UpdateSettings_InternalError(t *testing.T) {
+	nick := "name"
+	repo := &fakeUsersRepo{
+		updateErr: errors.New("write failed"),
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.UpdateSettings(context.Background(), "user-1", SettingsUpdateRequest{
+		Nickname: &nick,
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error, got %v", err)
+	}
+}
+
+func TestService_CompleteOnboarding_UserNotFound(t *testing.T) {
+	repo := &fakeUsersRepo{
+		userErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.CompleteOnboarding(context.Background(), "user-1", OnboardingRequest{
+		Nickname:         "test",
+		RecoveryReason:   "reason",
+		DailyCheckInTime: "08:00",
+		PornFreeGoal:     intPointer(7),
+		Answers:          map[string]any{"k": "v"},
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeNotFound {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
+func TestService_CompleteOnboarding_NilAnalyzer(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profileErr: gorm.ErrRecordNotFound,
+	}
+	// No analyzer provided
+	svc := NewService(repo, "local", "development")
+
+	_, err := svc.CompleteOnboarding(context.Background(), "user-1", OnboardingRequest{
+		Nickname:         "test",
+		RecoveryReason:   "reason",
+		DailyCheckInTime: "08:00",
+		PornFreeGoal:     intPointer(7),
+		Answers:          map[string]any{"k": "v"},
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error when analyzer is nil, got %v", err)
+	}
+}
+
+func TestService_CompleteOnboarding_UniqueConflict(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profileErr:            gorm.ErrRecordNotFound,
+		completeOnboardingErr: &pgconn.PgError{Code: "23505"},
+	}
+	analyzer := &fakeOnboardingAnalyzer{
+		response: aimodule.OnboardingAnalysisResponseData{Level: "Moderate"},
+	}
+	svc := NewService(repo, "local", "development", analyzer)
+
+	_, err := svc.CompleteOnboarding(context.Background(), "user-1", OnboardingRequest{
+		Nickname:         "test",
+		RecoveryReason:   "reason",
+		DailyCheckInTime: "08:00",
+		PornFreeGoal:     intPointer(7),
+		Answers:          map[string]any{"k": "v"},
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+}
+
+func TestService_CompleteOnboarding_InternalError(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{
+			ID:       "user-1",
+			Email:    "test@example.com",
+			Nickname: "tester",
+		},
+		profileErr:            gorm.ErrRecordNotFound,
+		completeOnboardingErr: errors.New("persistence failure"),
+	}
+	analyzer := &fakeOnboardingAnalyzer{
+		response: aimodule.OnboardingAnalysisResponseData{Level: "Moderate"},
+	}
+	svc := NewService(repo, "local", "development", analyzer)
+
+	_, err := svc.CompleteOnboarding(context.Background(), "user-1", OnboardingRequest{
+		Nickname:         "test",
+		RecoveryReason:   "reason",
+		DailyCheckInTime: "08:00",
+		PornFreeGoal:     intPointer(7),
+		Answers:          map[string]any{"k": "v"},
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error, got %v", err)
+	}
+}
+
+func TestService_ResetUserDataForTesting_Success(t *testing.T) {
+	repo := &fakeUsersRepo{
+		user: models.User{ID: "user-1"},
+	}
+	svc := NewService(repo, "local", "development")
+
+	err := svc.ResetUserDataForTesting(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestService_ResetUserDataForTesting_UserNotFound(t *testing.T) {
+	repo := &fakeUsersRepo{
+		resetErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo, "local", "development")
+
+	err := svc.ResetUserDataForTesting(context.Background(), "user-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeNotFound {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
+func TestService_ResetUserDataForTesting_InternalError(t *testing.T) {
+	repo := &fakeUsersRepo{
+		resetErr: errors.New("db error reset"),
+	}
+	svc := NewService(repo, "local", "development")
+
+	err := svc.ResetUserDataForTesting(context.Background(), "user-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error, got %v", err)
+	}
 }

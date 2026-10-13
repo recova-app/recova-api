@@ -68,6 +68,15 @@ func NewService(repo routineRepository, advisors ...relapseAdvisor) *Service {
 	}
 }
 
+func (s *Service) withTx(ctx context.Context, fn func(txRepo routineRepository) error) error {
+	if s.repo.DB() == nil {
+		return fn(s.repo)
+	}
+	return database.WithTransaction(ctx, s.repo.DB(), func(tx *gorm.DB) error {
+		return fn(s.repo.CloneTx(tx))
+	})
+}
+
 // CreateDailyCheckIn stores a daily check-in and updates streak state atomically.
 func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req DailyCheckInRequest) (CheckInResponseData, error) {
 	input, err := NormalizeDailyCheckInRequest(req)
@@ -78,9 +87,7 @@ func (s *Service) CreateDailyCheckIn(ctx context.Context, userID string, req Dai
 	check_in_date := utcDayStart(s.now())
 
 	var stored models.CheckIn
-	err = database.WithTransaction(ctx, s.repo.DB(), func(tx *gorm.DB) error {
-		txRepo := s.repo.CloneTx(tx)
-
+	err = s.withTx(ctx, func(txRepo routineRepository) error {
 		if _, err := txRepo.FindUserByID(ctx, userID); err != nil {
 			if IsRecordNotFound(err) {
 				return errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
@@ -149,9 +156,7 @@ func (s *Service) CreateRelapse(ctx context.Context, userID string, req RelapseR
 	check_in_date := utcDayStart(s.now())
 
 	var stored models.Relapse
-	err = database.WithTransaction(ctx, s.repo.DB(), func(tx *gorm.DB) error {
-		txRepo := s.repo.CloneTx(tx)
-
+	err = s.withTx(ctx, func(txRepo routineRepository) error {
 		if _, err := txRepo.FindUserByID(ctx, userID); err != nil {
 			if IsRecordNotFound(err) {
 				return errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)

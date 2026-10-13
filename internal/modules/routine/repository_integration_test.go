@@ -148,6 +148,55 @@ func TestIntegration_Repository_ListActivityWithinRange(t *testing.T) {
 	}
 }
 
+func TestIntegration_Repository_DuplicateRelapseReturnsUniqueViolation(t *testing.T) {
+	databaseURL := databaseharness.RequireDatabaseURLFromEnv(t, "RECOVA_DB_INTEGRATION_URL")
+	databaseharness.ResetMigrations(t, databaseURL)
+
+	client, err := database.Connect(integrationConfig(databaseURL))
+	if err != nil {
+		t.Fatalf("connect db: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	repo := NewRepository(client.Gorm())
+	ctx := context.Background()
+
+	user := models.User{
+		GoogleID: models.StringPtr("google-routine-it-relapse-dup"),
+		Email:    "routine-it-relapse-dup@example.test",
+		Nickname: "routine-it-relapse",
+	}
+	if err := client.Gorm().WithContext(ctx).Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	relapseDate := time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC)
+	err = repo.CreateRelapse(ctx, models.Relapse{
+		UserID:         user.ID,
+		RelapseDate:    relapseDate,
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err != nil {
+		t.Fatalf("create first relapse: %v", err)
+	}
+
+	err = repo.CreateRelapse(ctx, models.Relapse{
+		UserID:         user.ID,
+		RelapseDate:    relapseDate,
+		Mood:           "lelah",
+		RelapseTrigger: []string{"bosan"},
+	})
+	if err == nil {
+		t.Fatal("expected duplicate relapse unique violation")
+	}
+	if !IsUniqueViolation(err) {
+		t.Fatalf("expected unique violation error, got: %v", err)
+	}
+}
+
 func integrationConfig(databaseURL string) config.Config {
 	return config.Config{
 		Database: config.DatabaseConfig{

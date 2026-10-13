@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	aimodule "github.com/recova-app/backend-v2/internal/modules/ai"
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
+	"github.com/recova-app/backend-v2/internal/shared/errs"
 	"gorm.io/gorm"
 )
 
@@ -487,11 +489,25 @@ func (r *fakeRoutineRepo) FindCheckInByUserAndDate(_ context.Context, _ string, 
 	}
 	return r.findCheckIn, nil
 }
-func (r *fakeRoutineRepo) CreateCheckIn(_ context.Context, _ models.CheckIn) error {
-	return r.createCheckInErr
+func (r *fakeRoutineRepo) CreateCheckIn(_ context.Context, checkIn models.CheckIn) error {
+	if r.createCheckInErr != nil {
+		return r.createCheckInErr
+	}
+	r.findCheckIn = checkIn
+	if r.findCheckIn.ID == "" {
+		r.findCheckIn.ID = "checkin-created"
+	}
+	if r.findCheckIn.CreatedAt.IsZero() {
+		r.findCheckIn.CreatedAt = time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	}
+	return nil
 }
-func (r *fakeRoutineRepo) CreateJournal(_ context.Context, _ models.Journal) error {
-	return r.createJournalErr
+func (r *fakeRoutineRepo) CreateJournal(_ context.Context, journal models.Journal) error {
+	if r.createJournalErr != nil {
+		return r.createJournalErr
+	}
+	r.journals = append(r.journals, journal)
+	return nil
 }
 func (r *fakeRoutineRepo) UpsertJournalByCheckInID(_ context.Context, _ string, _ string, _ string) error {
 	return r.upsertJournalErr
@@ -604,5 +620,296 @@ func TestService_GetRelapses_InternalError(t *testing.T) {
 	_, err := svc.GetRelapses(context.Background(), "user-1", ListRelapsesQuery{})
 	if err == nil {
 		t.Fatal("expected internal error")
+	}
+}
+
+type fakeRelapseAdvisor struct {
+	response aimodule.RelapseSolutionResponseData
+	err      error
+}
+
+func (f *fakeRelapseAdvisor) GenerateRelapseSolution(_ context.Context, _ string, _ aimodule.RelapseSolutionRequest) (aimodule.RelapseSolutionResponseData, error) {
+	if f.err != nil {
+		return aimodule.RelapseSolutionResponseData{}, f.err
+	}
+	return f.response, nil
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func TestService_CreateDailyCheckIn_Success(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user: models.User{ID: "user-1"},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	journal := "Today went well"
+	resp, err := svc.CreateDailyCheckIn(context.Background(), "user-1", DailyCheckInRequest{
+		Mood:         "fokus",
+		IsSuccessful: boolPtr(true),
+		Content:      &journal,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.CheckIn.Mood != "fokus" {
+		t.Fatalf("expected mood fokus, got %s", resp.CheckIn.Mood)
+	}
+	if !resp.CheckIn.IsSuccessful {
+		t.Fatal("expected is_successful true")
+	}
+	if len(repo.journals) != 1 || repo.journals[0].Content != journal {
+		t.Fatalf("expected journal to be persisted, got %v", repo.journals)
+	}
+	if len(repo.createdStreaks) != 1 {
+		t.Fatalf("expected 1 streak created, got %d", len(repo.createdStreaks))
+	}
+}
+
+func TestService_CreateDailyCheckIn_DuplicateReturnsConflict(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user:             models.User{ID: "user-1"},
+		createCheckInErr: &pgconn.PgError{Code: "23505"},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	_, err := svc.CreateDailyCheckIn(context.Background(), "user-1", DailyCheckInRequest{
+		Mood:         "fokus",
+		IsSuccessful: boolPtr(true),
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+}
+
+func TestService_CreateDailyCheckIn_UserNotFound(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		findUserErr: gorm.ErrRecordNotFound,
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	_, err := svc.CreateDailyCheckIn(context.Background(), "missing-user", DailyCheckInRequest{
+		Mood:         "fokus",
+		IsSuccessful: boolPtr(true),
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeNotFound {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
+func TestService_CreateDailyCheckIn_RollbackOnJournalFailure(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	journal := "Note"
+	repo := &fakeRoutineRepo{
+		user:             models.User{ID: "user-1"},
+		createJournalErr: errors.New("journal db error"),
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	_, err := svc.CreateDailyCheckIn(context.Background(), "user-1", DailyCheckInRequest{
+		Mood:         "fokus",
+		IsSuccessful: boolPtr(true),
+		Content:      &journal,
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeInternalError {
+		t.Fatalf("expected internal error on journal persistence failure, got %v", err)
+	}
+}
+
+func TestService_CreateDailyCheckIn_RollbackOnStreakFailure(t *testing.T) {
+	now := time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user:            models.User{ID: "user-1"},
+		createStreakErr: errors.New("streak db error"),
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	_, err := svc.CreateDailyCheckIn(context.Background(), "user-1", DailyCheckInRequest{
+		Mood:         "fokus",
+		IsSuccessful: boolPtr(true),
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestService_CreateRelapse_Success_LinksSameDayCheckIn(t *testing.T) {
+	now := time.Date(2026, 5, 8, 14, 0, 0, 0, time.UTC)
+	todayCheckIn := models.CheckIn{
+		ID:          "checkin-today-1",
+		UserID:      "user-1",
+		CheckInDate: time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+	}
+	repo := &fakeRoutineRepo{
+		user:         models.User{ID: "user-1"},
+		findCheckIn:  todayCheckIn,
+		activeStreak: models.Streak{ID: "streak-1", UserID: "user-1"},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	resp, err := svc.CreateRelapse(context.Background(), "user-1", RelapseRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Relapse.CheckInID == nil || *resp.Relapse.CheckInID != "checkin-today-1" {
+		t.Fatalf("expected relapse to link today checkin ID, got %v", resp.Relapse.CheckInID)
+	}
+	if len(repo.closedStreakIDs) != 1 || repo.closedStreakIDs[0] != "streak-1" {
+		t.Fatalf("expected active streak closed on relapse, got %v", repo.closedStreakIDs)
+	}
+}
+
+func TestService_CreateRelapse_Success_NoSameDayCheckIn(t *testing.T) {
+	now := time.Date(2026, 5, 8, 14, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user:           models.User{ID: "user-1"},
+		findCheckInErr: gorm.ErrRecordNotFound,
+		activeStreak:   models.Streak{ID: "streak-1", UserID: "user-1"},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return now }
+
+	resp, err := svc.CreateRelapse(context.Background(), "user-1", RelapseRequest{
+		Mood:           "lelah",
+		RelapseTrigger: []string{"bosan"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.Relapse.CheckInID != nil {
+		t.Fatalf("expected nil check_in_id when no same-day check-in, got %v", resp.Relapse.CheckInID)
+	}
+}
+
+func TestService_CreateRelapse_DuplicateReturnsConflict(t *testing.T) {
+	now := time.Date(2026, 5, 8, 14, 0, 0, 0, time.UTC)
+	repo1 := &fakeRoutineRepo{
+		user:        models.User{ID: "user-1"},
+		findRelapse: models.Relapse{ID: "existing-relapse"},
+	}
+	svc1 := NewService(repo1)
+	svc1.now = func() time.Time { return now }
+
+	_, err := svc1.CreateRelapse(context.Background(), "user-1", RelapseRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err == nil {
+		t.Fatal("expected conflict error, got nil")
+	}
+	var appErr *errs.AppError
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+
+	repo2 := &fakeRoutineRepo{
+		user:             models.User{ID: "user-1"},
+		findRelapseErr:   gorm.ErrRecordNotFound,
+		createRelapseErr: &pgconn.PgError{Code: "23505"},
+	}
+	svc2 := NewService(repo2)
+	svc2.now = func() time.Time { return now }
+
+	_, err = svc2.CreateRelapse(context.Background(), "user-1", RelapseRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err == nil {
+		t.Fatal("expected conflict error, got nil")
+	}
+	if !errors.As(err, &appErr) || appErr.Code() != errs.CodeConflict {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+}
+
+func TestService_CreateRelapse_AIErrorFallback(t *testing.T) {
+	now := time.Date(2026, 5, 8, 14, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user:           models.User{ID: "user-1"},
+		findCheckInErr: gorm.ErrRecordNotFound,
+	}
+	advisor := &fakeRelapseAdvisor{
+		err: errors.New("ai provider failed"),
+	}
+	svc := NewService(repo, advisor)
+	svc.now = func() time.Time { return now }
+
+	resp, err := svc.CreateRelapse(context.Background(), "user-1", RelapseRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.RelapseSolution == nil {
+		t.Fatal("expected relapse solution to be populated from fallback")
+	}
+	if !strings.Contains(resp.RelapseSolution.Analysis, "cemas") {
+		t.Fatalf("expected fallback analysis to contain mood, got %s", resp.RelapseSolution.Analysis)
+	}
+}
+
+func TestService_GetActivitySummary_WindowBoundaries(t *testing.T) {
+	today := time.Date(2026, 5, 8, 12, 0, 0, 0, time.UTC)
+	repo := &fakeRoutineRepo{
+		user: models.User{ID: "user-1"},
+	}
+	svc := NewService(repo)
+	svc.now = func() time.Time { return today }
+
+	w7 := 7
+	summary7, err := svc.GetActivitySummary(context.Background(), "user-1", ActivitySummaryQuery{WindowDays: &w7})
+	if err != nil {
+		t.Fatalf("unexpected error for window_days 7: %v", err)
+	}
+	if summary7.WindowDays != 7 {
+		t.Fatalf("expected window_days 7, got %d", summary7.WindowDays)
+	}
+
+	w90 := 90
+	summary90, err := svc.GetActivitySummary(context.Background(), "user-1", ActivitySummaryQuery{WindowDays: &w90})
+	if err != nil {
+		t.Fatalf("unexpected error for window_days 90: %v", err)
+	}
+	if summary90.WindowDays != 90 {
+		t.Fatalf("expected window_days 90, got %d", summary90.WindowDays)
+	}
+
+	w6 := 6
+	_, err = svc.GetActivitySummary(context.Background(), "user-1", ActivitySummaryQuery{WindowDays: &w6})
+	if err == nil {
+		t.Fatal("expected validation error for window_days 6, got nil")
+	}
+
+	w91 := 91
+	_, err = svc.GetActivitySummary(context.Background(), "user-1", ActivitySummaryQuery{WindowDays: &w91})
+	if err == nil {
+		t.Fatal("expected validation error for window_days 91, got nil")
 	}
 }

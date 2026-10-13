@@ -2,6 +2,7 @@ package community
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -164,19 +165,22 @@ func TestService_ListCommentThread_Success(t *testing.T) {
 }
 
 type fakeCommunityRepo struct {
-	userErr        error
-	createErr      error
-	listErr        error
-	toggleErr      error
-	threadErr      error
-	parentErr      error
-	createReplyErr error
+	userErr          error
+	createErr        error
+	createCommentErr error
+	listErr          error
+	toggleErr        error
+	threadErr        error
+	parentErr        error
+	createReplyErr   error
 
-	posts          []communityPostListRow
-	threadRows     []models.CommunityComment
-	parentComment  models.CommunityComment
-	recordedLimit  int
-	recordedCursor *time.Time
+	posts           []communityPostListRow
+	threadRows      []models.CommunityComment
+	parentComment   models.CommunityComment
+	toggleResponse  ToggleLikePayload
+	hasCustomToggle bool
+	recordedLimit   int
+	recordedCursor  *time.Time
 }
 
 func (r *fakeCommunityRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -205,6 +209,9 @@ func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory, limit 
 }
 
 func (r *fakeCommunityRepo) CreateCommentAndIncrement(_ context.Context, userID string, postID string, content string) (models.CommunityComment, error) {
+	if r.createCommentErr != nil {
+		return models.CommunityComment{}, r.createCommentErr
+	}
 	return models.CommunityComment{
 		ID:              "comment-1",
 		UserID:          userID,
@@ -255,9 +262,332 @@ func (r *fakeCommunityRepo) ToggleLike(_ context.Context, _ string, _ string) (T
 	if r.toggleErr != nil {
 		return ToggleLikePayload{}, r.toggleErr
 	}
+	if r.hasCustomToggle {
+		return r.toggleResponse, nil
+	}
 	return ToggleLikePayload{LikedCount: 1, IsLiked: true}, nil
 }
 
 func ptrStringService(v string) *string {
 	return &v
+}
+
+func TestService_CreatePost_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		createErr: errors.New("db write failed"),
+	}
+	service := NewService(repo)
+
+	_, err := service.CreatePost(context.Background(), "user-1", CreatePostRequest{
+		Content:  "valid community content with enough length",
+		Category: "saran",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateComment_Success(t *testing.T) {
+	repo := &fakeCommunityRepo{}
+	service := NewService(repo)
+
+	comment, err := service.CreateComment(context.Background(), "user-1", "post-1", CreateCommentRequest{
+		Content: "valid comment content here",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if comment.Content != "valid comment content here" {
+		t.Fatalf("unexpected content: %s", comment.Content)
+	}
+	if comment.PostID != "post-1" {
+		t.Fatalf("unexpected post id: %s", comment.PostID)
+	}
+}
+
+func TestService_CreateComment_UserNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: gorm.ErrRecordNotFound}
+	service := NewService(repo)
+
+	_, err := service.CreateComment(context.Background(), "user-1", "post-1", CreateCommentRequest{
+		Content: "valid comment content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateComment_UserRepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: errors.New("db error")}
+	service := NewService(repo)
+
+	_, err := service.CreateComment(context.Background(), "user-1", "post-1", CreateCommentRequest{
+		Content: "valid comment content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateComment_PostNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{createCommentErr: gorm.ErrRecordNotFound}
+	service := NewService(repo)
+
+	_, err := service.CreateComment(context.Background(), "user-1", "post-1", CreateCommentRequest{
+		Content: "valid comment content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateComment_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{createCommentErr: errors.New("db write failed")}
+	service := NewService(repo)
+
+	_, err := service.CreateComment(context.Background(), "user-1", "post-1", CreateCommentRequest{
+		Content: "valid comment content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateReply_ParentCommentNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{parentErr: gorm.ErrRecordNotFound}
+	service := NewService(repo)
+
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "parent-1", CreateReplyRequest{
+		Content: "valid reply content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateReply_ParentCommentRepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{parentErr: errors.New("db read failed")}
+	service := NewService(repo)
+
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "parent-1", CreateReplyRequest{
+		Content: "valid reply content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateReply_ParentPostMismatch(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		parentComment: models.CommunityComment{
+			ID:     "parent-1",
+			PostID: "other-post-id",
+			Depth:  0,
+		},
+	}
+	service := NewService(repo)
+
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "parent-1", CreateReplyRequest{
+		Content: "valid reply content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected VALIDATION_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateReply_RepoNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		parentComment: models.CommunityComment{
+			ID:     "parent-1",
+			PostID: "post-1",
+			Depth:  0,
+		},
+		createReplyErr: gorm.ErrRecordNotFound,
+	}
+	service := NewService(repo)
+
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "parent-1", CreateReplyRequest{
+		Content: "valid reply content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_CreateReply_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		parentComment: models.CommunityComment{
+			ID:     "parent-1",
+			PostID: "post-1",
+			Depth:  0,
+		},
+		createReplyErr: errors.New("db error write reply"),
+	}
+	service := NewService(repo)
+
+	_, err := service.CreateReply(context.Background(), "user-1", "post-1", "parent-1", CreateReplyRequest{
+		Content: "valid reply content here",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ListCommentThread_UserNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: gorm.ErrRecordNotFound}
+	service := NewService(repo)
+
+	_, err := service.ListCommentThread(context.Background(), "user-1", "post-1", ListCommentThreadQuery{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ListCommentThread_UserRepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: errors.New("db error")}
+	service := NewService(repo)
+
+	_, err := service.ListCommentThread(context.Background(), "user-1", "post-1", ListCommentThreadQuery{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ListCommentThread_InvalidLimit(t *testing.T) {
+	repo := &fakeCommunityRepo{}
+	service := NewService(repo)
+
+	invalidLimit := 201
+	_, err := service.ListCommentThread(context.Background(), "user-1", "post-1", ListCommentThreadQuery{
+		Limit: &invalidLimit,
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeValidationError {
+		t.Fatalf("expected VALIDATION_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ListCommentThread_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{threadErr: errors.New("db thread error")}
+	service := NewService(repo)
+
+	_, err := service.ListCommentThread(context.Background(), "user-1", "post-1", ListCommentThreadQuery{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ToggleLike_UserNotFound(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: gorm.ErrRecordNotFound}
+	service := NewService(repo)
+
+	_, err := service.ToggleLike(context.Background(), "user-1", "post-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected NOT_FOUND, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ToggleLike_UserRepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{userErr: errors.New("db error")}
+	service := NewService(repo)
+
+	_, err := service.ToggleLike(context.Background(), "user-1", "post-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ToggleLike_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{toggleErr: errors.New("db error")}
+	service := NewService(repo)
+
+	_, err := service.ToggleLike(context.Background(), "user-1", "post-1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
+}
+
+func TestService_ToggleLike_UnlikeFlow(t *testing.T) {
+	repo := &fakeCommunityRepo{
+		hasCustomToggle: true,
+		toggleResponse: ToggleLikePayload{
+			LikedCount: 0,
+			IsLiked:    false,
+		},
+	}
+	service := NewService(repo)
+
+	resp, err := service.ToggleLike(context.Background(), "user-1", "post-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.IsLiked {
+		t.Fatal("expected is_liked to be false")
+	}
+	if resp.LikedCount != 0 {
+		t.Fatalf("expected liked count 0, got %d", resp.LikedCount)
+	}
+}
+
+func TestService_ListPosts_RepoError(t *testing.T) {
+	repo := &fakeCommunityRepo{listErr: errors.New("db error")}
+	service := NewService(repo)
+
+	_, err := service.ListPosts(context.Background(), ListPostsQuery{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected INTERNAL_ERROR, got %s", errs.Map(err).Code)
+	}
 }

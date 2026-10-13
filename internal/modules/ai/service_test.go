@@ -400,3 +400,300 @@ func (p *fakeAIProvider) Generate(_ context.Context, req aiplatform.GenerateRequ
 	}
 	return p.response, nil
 }
+
+type mockTelemetry struct {
+	recordedActions  []string
+	recordedPersonas []string
+	recordedErrors   []error
+}
+
+func (m *mockTelemetry) RecordPersonaUsage(action string, persona string, err error) {
+	m.recordedActions = append(m.recordedActions, action)
+	m.recordedPersonas = append(m.recordedPersonas, persona)
+	m.recordedErrors = append(m.recordedErrors, err)
+}
+
+func TestSanitizeCoachReply_MarkerVariants(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "Halo, semangat terus ya!\n\nsignature_id: recova.persona.supportive.v1",
+			expected: "Halo, semangat terus ya!",
+		},
+		{
+			input:    "Halo!\n- signature_id: recova.persona.friendly.v1\nAda yang bisa dibantu?",
+			expected: "Halo!\nAda yang bisa dibantu?",
+		},
+		{
+			input:    "Langkah awal sudah bagus recova.persona.direct.v1.",
+			expected: "Langkah awal sudah bagus",
+		},
+		{
+			input:    "Tetap fokus hari ini recova.persona.concise.v1,",
+			expected: "Tetap fokus hari ini",
+		},
+		{
+			input:    "signature_id: recova.persona.supportive.v1",
+			expected: "",
+		},
+	}
+
+	for _, tc := range cases {
+		got := sanitizeCoachReply(tc.input)
+		if got != tc.expected {
+			t.Errorf("sanitizeCoachReply(%q) = %q, expected %q", tc.input, got, tc.expected)
+		}
+	}
+}
+
+func TestService_AskCoach_RepositoryErrors(t *testing.T) {
+	// 1. User not found
+	svc1 := NewService(&fakeAIRepo{userErr: gorm.ErrRecordNotFound}, &fakeAIProvider{})
+	_, err := svc1.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeNotFound {
+		t.Fatalf("expected not found for missing user, got %v", err)
+	}
+
+	// 2. User repo error
+	svc2 := NewService(&fakeAIRepo{userErr: errors.New("db error")}, &fakeAIProvider{})
+	_, err = svc2.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for user repo error, got %v", err)
+	}
+
+	// 3. Profile repo error
+	repo3 := &fakeAIRepo{
+		user:       models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		profileErr: errors.New("db error"),
+	}
+	svc3 := NewService(repo3, &fakeAIProvider{})
+	_, err = svc3.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for profile repo error, got %v", err)
+	}
+
+	// 4. Streak repo error
+	repo4 := &fakeAIRepo{
+		user:            models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		activeStreakErr: errors.New("db error"),
+	}
+	svc4 := NewService(repo4, &fakeAIProvider{})
+	_, err = svc4.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for streak repo error, got %v", err)
+	}
+
+	// 5. History repo error
+	repo5 := &fakeAIRepo{
+		user:       models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		historyErr: errors.New("db error"),
+	}
+	svc5 := NewService(repo5, &fakeAIProvider{})
+	_, err = svc5.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for history repo error, got %v", err)
+	}
+}
+
+func TestService_AskCoach_ChatPersistenceError(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:      models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		createErr: errors.New("insert failed"),
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Saran AI"}}
+	service := NewService(repo, provider)
+
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error on chat persistence error, got %v", err)
+	}
+}
+
+func TestService_AskCoach_Cancellation(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+	}
+	provider := &fakeAIProvider{err: context.Canceled}
+	service := NewService(repo, provider)
+
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil {
+		t.Fatal("expected error on cancelled context, got nil")
+	}
+}
+
+func TestService_AskCoach_EmptyProviderResponse(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+	}
+	provider := &fakeAIProvider{
+		err: &aiplatform.ProviderError{
+			Kind:    aiplatform.ErrorKindInvalidResponse,
+			Message: "provider response content is empty",
+		},
+	}
+	service := NewService(repo, provider)
+
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err == nil || errs.Map(err).Code != errs.CodeDownstreamError {
+		t.Fatalf("expected downstream error on empty response, got %v", err)
+	}
+}
+
+func TestService_GetSummary_RepositoryErrors(t *testing.T) {
+	// 1. User repo error
+	svc1 := NewService(&fakeAIRepo{userErr: errors.New("db error")}, &fakeAIProvider{})
+	_, err := svc1.GetSummary(context.Background(), "user-1")
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for user repo error, got %v", err)
+	}
+
+	// 2. Profile repo error
+	svc2 := NewService(&fakeAIRepo{
+		user:       models.User{ID: "user-1", Email: "u@test.local"},
+		profileErr: errors.New("db error"),
+	}, &fakeAIProvider{})
+	_, err = svc2.GetSummary(context.Background(), "user-1")
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error for profile repo error, got %v", err)
+	}
+}
+
+func TestService_GenerateRelapseSolution_InvalidJSON(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Email: "user@test.local"},
+	}
+	provider := &fakeAIProvider{
+		response: aiplatform.GenerateResponse{Text: "this is clearly not json"},
+	}
+	service := NewService(repo, provider)
+
+	_, err := service.GenerateRelapseSolution(context.Background(), "user-1", RelapseSolutionRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err == nil {
+		t.Fatal("expected error on invalid json, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeDownstreamError {
+		t.Fatalf("expected downstream error on invalid json, got %v", errs.Map(err).Code)
+	}
+}
+
+func TestService_GenerateRelapseSolution_ProviderError(t *testing.T) {
+	repo := &fakeAIRepo{
+		user: models.User{ID: "user-1", Email: "user@test.local"},
+	}
+	provider := &fakeAIProvider{
+		err: errors.New("provider unavailable"),
+	}
+	service := NewService(repo, provider)
+
+	_, err := service.GenerateRelapseSolution(context.Background(), "user-1", RelapseSolutionRequest{
+		Mood:           "cemas",
+		RelapseTrigger: []string{"stres"},
+	})
+	if err == nil {
+		t.Fatal("expected error on provider failure, got nil")
+	}
+	if errs.Map(err).Code != errs.CodeDownstreamError {
+		t.Fatalf("expected downstream error on provider error, got %v", errs.Map(err).Code)
+	}
+}
+
+func TestService_GetPersonaPreference_RepositoryError(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:       models.User{ID: "user-1"},
+		personaErr: errors.New("db error"),
+	}
+	service := NewService(repo, &fakeAIProvider{})
+
+	_, err := service.GetPersonaPreference(context.Background(), "user-1")
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error on persona repo error, got %v", err)
+	}
+}
+
+func TestService_UpdatePersonaPreference_RepositoryError(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:      models.User{ID: "user-1"},
+		upsertErr: errors.New("db error"),
+	}
+	service := NewService(repo, &fakeAIProvider{})
+
+	_, err := service.UpdatePersonaPreference(context.Background(), "user-1", PersonaPreferenceRequest{
+		Persona: "supportive",
+	})
+	if err == nil || errs.Map(err).Code != errs.CodeInternalError {
+		t.Fatalf("expected internal error on persona upsert error, got %v", err)
+	}
+}
+
+func TestService_Telemetry_NilDoesNotPanic(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		persona: models.UserAIPersonaPreference{UserID: "user-1", Persona: "supportive"},
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Jawaban"}}
+	service := NewService(repo, provider)
+
+	// Explicitly pass nil to SetTelemetry
+	service.SetTelemetry(nil)
+
+	// Ensure calls don't panic
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = service.GetPersonaPreference(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = service.UpdatePersonaPreference(context.Background(), "user-1", PersonaPreferenceRequest{
+		Persona: "friendly",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestService_Telemetry_RecordsPersonaUsage(t *testing.T) {
+	repo := &fakeAIRepo{
+		user:    models.User{ID: "user-1", Nickname: "tester", Email: "user@example.test"},
+		persona: models.UserAIPersonaPreference{UserID: "user-1", Persona: "supportive"},
+	}
+	provider := &fakeAIProvider{response: aiplatform.GenerateResponse{Text: "Jawaban"}}
+	service := NewService(repo, provider)
+
+	tel := &mockTelemetry{}
+	service.SetTelemetry(tel)
+
+	_, err := service.AskCoach(context.Background(), "user-1", AskCoachRequest{Message: "halo"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, err = service.GetPersonaPreference(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, err = service.UpdatePersonaPreference(context.Background(), "user-1", PersonaPreferenceRequest{
+		Persona: "direct",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedActions := []string{"ask_coach", "persona_preference_get", "persona_preference_update"}
+	if len(tel.recordedActions) != len(expectedActions) {
+		t.Fatalf("expected %d telemetry records, got %d", len(expectedActions), len(tel.recordedActions))
+	}
+	for i, expected := range expectedActions {
+		if tel.recordedActions[i] != expected {
+			t.Errorf("action[%d] = %s, expected %s", i, tel.recordedActions[i], expected)
+		}
+	}
+}
