@@ -345,6 +345,13 @@ func TestNewServer_ProductionWithRequiredDatabaseProbe_Succeeds(t *testing.T) {
 	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/ready", nil, nil)
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	data := resp.JSON["data"].(map[string]any)
+	checks := data["checks"].(map[string]any)
+	dbCheck := checks["database"].(map[string]any)
+	if dbCheck["message"] != "Koneksi database sehat" {
+		t.Fatalf("expected healthy message 'Koneksi database sehat', got: %v", dbCheck["message"])
+	}
 }
 
 func TestNewServer_ProductionDatabaseDown_ReturnsServiceUnavailable(t *testing.T) {

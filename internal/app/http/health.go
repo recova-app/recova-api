@@ -62,11 +62,12 @@ func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string)
 
 		err := check.Probe(checkCtx)
 		status := "ok"
-		message := strings.TrimSpace(check.Message)
+		message := "Koneksi " + name + " sehat"
 		healthy := err == nil
 
 		if check.Mode == ReadinessModePlaceholder {
 			status = "placeholder"
+			message = strings.TrimSpace(check.Message)
 			if s.appEnv == "production" {
 				healthy = false
 				ready = false
@@ -75,6 +76,7 @@ func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string)
 			status = "down"
 			ready = false
 			healthy = false
+			message = strings.TrimSpace(check.Message)
 			if message == "" {
 				message = "Dependency tidak sehat"
 			}
