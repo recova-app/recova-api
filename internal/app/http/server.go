@@ -38,10 +38,25 @@ type Server struct {
 	app              *fiber.App
 	addr             string
 	logger           *slog.Logger
+	appEnv           string
 	readinessChecks  []ReadinessCheck
 	readinessTimeout time.Duration
 	moduleDeps       ModuleDependencies
+	routeRegistrars  []RouteRegistrar
 	observability    *observability.Recorder
+}
+
+// RouteRegistrar defines a typed contract for registering an API module's routes.
+type RouteRegistrar interface {
+	RegisterRoutes(router fiber.Router)
+}
+
+// RouteRegistrarFunc adapts an ordinary function to the RouteRegistrar interface.
+type RouteRegistrarFunc func(router fiber.Router)
+
+// RegisterRoutes calls the underlying function with the provided router.
+func (f RouteRegistrarFunc) RegisterRoutes(router fiber.Router) {
+	f(router)
 }
 
 // ModuleDependencies stores domain services required to register API routes.
@@ -55,6 +70,85 @@ type ModuleDependencies struct {
 	EducationService    *educationmodule.Service
 	ContentService      *contentmodule.Service
 	AIService           *aimodule.Service
+}
+
+// Registrars converts ModuleDependencies into typed route registrars for configured modules.
+func (d ModuleDependencies) Registrars(cfg config.Config) []RouteRegistrar {
+	var registrars []RouteRegistrar
+
+	if d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			authGroup := api.Group("/auth")
+			authGroup.Use(authRequestLimiter(cfg))
+			authmodule.RegisterCoreRoutes(authGroup, d.AuthService)
+			if d.UsersService != nil {
+				usersmodule.RegisterOnboardingRoute(authGroup, d.AuthService, d.UsersService)
+			}
+		}))
+	}
+
+	if d.UsersService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			usersGroup := api.Group("/users")
+			usersmodule.RegisterUserRoutes(usersGroup, d.AuthService, d.UsersService)
+		}))
+	}
+
+	if d.RoutineService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			routineGroup := api.Group("/routine")
+			routinemodule.RegisterRoutes(routineGroup, d.AuthService, d.RoutineService)
+		}))
+	}
+
+	if d.JournalsService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			journalsGroup := api.Group("/journals")
+			journalsmodule.RegisterRoutes(journalsGroup, d.AuthService, d.JournalsService)
+		}))
+	}
+
+	if d.CommunityService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			communityGroup := api.Group("/community")
+			communitymodule.RegisterRoutes(
+				communityGroup,
+				d.AuthService,
+				d.CommunityService,
+				communityWriteLimiter(cfg),
+			)
+		}))
+	}
+
+	if d.AchievementsService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			achievementsGroup := api.Group("/achievements")
+			achievementsmodule.RegisterRoutes(achievementsGroup, d.AuthService, d.AchievementsService)
+		}))
+	}
+
+	if d.EducationService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			educationGroup := api.Group("/education")
+			educationmodule.RegisterRoutes(educationGroup, d.AuthService, d.EducationService)
+		}))
+	}
+
+	if d.ContentService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			contentGroup := api.Group("/content")
+			contentmodule.RegisterRoutes(contentGroup, d.AuthService, d.ContentService)
+		}))
+	}
+
+	if d.AIService != nil && d.AuthService != nil {
+		registrars = append(registrars, RouteRegistrarFunc(func(api fiber.Router) {
+			aiGroup := api.Group("/ai")
+			aimodule.RegisterRoutes(aiGroup, d.AuthService, d.AIService, aiRequestLimiter(cfg))
+		}))
+	}
+
+	return registrars
 }
 
 // ServerOption customizes server runtime assembly.
@@ -95,6 +189,17 @@ func WithObservability(recorder *observability.Recorder) ServerOption {
 	}
 }
 
+// WithRouteRegistrars appends explicit route registrars to the runtime assembly.
+func WithRouteRegistrars(registrars ...RouteRegistrar) ServerOption {
+	return func(s *Server) {
+		for _, reg := range registrars {
+			if reg != nil {
+				s.routeRegistrars = append(s.routeRegistrars, reg)
+			}
+		}
+	}
+}
+
 // NewServer creates an HTTP server instance using the runtime configuration.
 func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*Server, error) {
 	bodyLimit, err := parseBodyLimitBytes(cfg.Security.RequestBodyLimit)
@@ -105,6 +210,7 @@ func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*S
 	srv := &Server{
 		addr:             fmt.Sprintf(":%s", cfg.Application.Port),
 		logger:           logger,
+		appEnv:           cfg.Application.AppEnv,
 		readinessChecks:  defaultReadinessChecks(),
 		readinessTimeout: time.Duration(cfg.Observability.HealthCheckTimeoutMs) * time.Millisecond,
 	}
@@ -113,6 +219,12 @@ func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*S
 			continue
 		}
 		opt(srv)
+	}
+
+	if srv.appEnv == "production" {
+		if err := srv.validateProductionReadiness(); err != nil {
+			return nil, err
+		}
 	}
 
 	app := fiber.New(fiber.Config{
@@ -128,6 +240,22 @@ func NewServer(cfg config.Config, logger *slog.Logger, opts ...ServerOption) (*S
 	srv.registerFallbackRoutes()
 
 	return srv, nil
+}
+
+func (s *Server) validateProductionReadiness() error {
+	hasRequiredDatabaseProbe := false
+	for _, check := range s.readinessChecks {
+		if check.Mode == ReadinessModePlaceholder {
+			return fmt.Errorf("production environment cannot use placeholder readiness check: %s", check.Name)
+		}
+		if check.Name == "database" && check.Mode == ReadinessModeRequired && check.Probe != nil {
+			hasRequiredDatabaseProbe = true
+		}
+	}
+	if !hasRequiredDatabaseProbe {
+		return fmt.Errorf("production environment requires an active database readiness probe")
+	}
+	return nil
 }
 
 // Start runs the server and performs graceful shutdown when context is canceled.
@@ -235,58 +363,11 @@ func (s *Server) registerRoutes(cfg config.Config) {
 	})
 
 	apiGroup := s.app.Group(strings.TrimSpace(cfg.Application.APIPrefix))
-	if s.moduleDeps.AuthService != nil {
-		authGroup := apiGroup.Group("/auth")
-		authGroup.Use(authRequestLimiter(cfg))
-		authmodule.RegisterCoreRoutes(authGroup, s.moduleDeps.AuthService)
-		if s.moduleDeps.UsersService != nil {
-			usersmodule.RegisterOnboardingRoute(authGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
-		}
+	for _, registrar := range s.moduleDeps.Registrars(cfg) {
+		registrar.RegisterRoutes(apiGroup)
 	}
-
-	if s.moduleDeps.UsersService != nil && s.moduleDeps.AuthService != nil {
-		usersGroup := apiGroup.Group("/users")
-		usersmodule.RegisterUserRoutes(usersGroup, s.moduleDeps.AuthService, s.moduleDeps.UsersService)
-	}
-
-	if s.moduleDeps.RoutineService != nil && s.moduleDeps.AuthService != nil {
-		routineGroup := apiGroup.Group("/routine")
-		routinemodule.RegisterRoutes(routineGroup, s.moduleDeps.AuthService, s.moduleDeps.RoutineService)
-	}
-
-	if s.moduleDeps.JournalsService != nil && s.moduleDeps.AuthService != nil {
-		journalsGroup := apiGroup.Group("/journals")
-		journalsmodule.RegisterRoutes(journalsGroup, s.moduleDeps.AuthService, s.moduleDeps.JournalsService)
-	}
-
-	if s.moduleDeps.CommunityService != nil && s.moduleDeps.AuthService != nil {
-		communityGroup := apiGroup.Group("/community")
-		communitymodule.RegisterRoutes(
-			communityGroup,
-			s.moduleDeps.AuthService,
-			s.moduleDeps.CommunityService,
-			communityWriteLimiter(cfg),
-		)
-	}
-
-	if s.moduleDeps.AchievementsService != nil && s.moduleDeps.AuthService != nil {
-		achievementsGroup := apiGroup.Group("/achievements")
-		achievementsmodule.RegisterRoutes(achievementsGroup, s.moduleDeps.AuthService, s.moduleDeps.AchievementsService)
-	}
-
-	if s.moduleDeps.EducationService != nil && s.moduleDeps.AuthService != nil {
-		educationGroup := apiGroup.Group("/education")
-		educationmodule.RegisterRoutes(educationGroup, s.moduleDeps.AuthService, s.moduleDeps.EducationService)
-	}
-
-	if s.moduleDeps.ContentService != nil && s.moduleDeps.AuthService != nil {
-		contentGroup := apiGroup.Group("/content")
-		contentmodule.RegisterRoutes(contentGroup, s.moduleDeps.AuthService, s.moduleDeps.ContentService)
-	}
-
-	if s.moduleDeps.AIService != nil && s.moduleDeps.AuthService != nil {
-		aiGroup := apiGroup.Group("/ai")
-		aimodule.RegisterRoutes(aiGroup, s.moduleDeps.AuthService, s.moduleDeps.AIService, aiRequestLimiter(cfg))
+	for _, registrar := range s.routeRegistrars {
+		registrar.RegisterRoutes(apiGroup)
 	}
 
 	s.registerAPIDocsRoutes()

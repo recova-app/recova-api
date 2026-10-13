@@ -9,7 +9,8 @@ import (
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service) {
 	handler := NewHandler(service)
 
-	router.Get("/catalog", authmodule.RequireAuth(authService), handler.GetCatalog)
-	router.Get("/progress", authmodule.RequireAuth(authService), handler.GetProgress)
-	router.Get("/unlocked", authmodule.RequireAuth(authService), handler.GetUnlocked)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/catalog", handler.GetCatalog)
+	router.Get("/progress", handler.GetProgress)
+	router.Get("/unlocked", handler.GetUnlocked)
 }

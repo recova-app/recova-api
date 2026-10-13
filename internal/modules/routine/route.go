@@ -9,10 +9,11 @@ import (
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service) {
 	handler := NewHandler(service)
 
-	router.Post("/checkin", authmodule.RequireAuth(authService), handler.DailyCheckIn)
-	router.Post("/relapses", authmodule.RequireAuth(authService), handler.CreateRelapse)
-	router.Get("/statistics", authmodule.RequireAuth(authService), handler.GetStatistics)
-	router.Get("/statistics/activity-summary", authmodule.RequireAuth(authService), handler.GetActivitySummary)
-	router.Get("/relapses/statistics", authmodule.RequireAuth(authService), handler.GetRelapseStatistics)
-	router.Get("/relapses", authmodule.RequireAuth(authService), handler.GetRelapses)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Post("/checkin", handler.DailyCheckIn)
+	router.Post("/relapses", handler.CreateRelapse)
+	router.Get("/statistics", handler.GetStatistics)
+	router.Get("/statistics/activity-summary", handler.GetActivitySummary)
+	router.Get("/relapses/statistics", handler.GetRelapseStatistics)
+	router.Get("/relapses", handler.GetRelapses)
 }

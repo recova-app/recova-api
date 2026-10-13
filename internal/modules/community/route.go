@@ -9,18 +9,19 @@ import (
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service, writeLimiter fiber.Handler) {
 	handler := NewHandler(service)
 
-	router.Get("/", authmodule.RequireAuth(authService), handler.ListPosts)
-	router.Get("/:post_id/comments", authmodule.RequireAuth(authService), handler.ListCommentThread)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/", handler.ListPosts)
+	router.Get("/:post_id/comments", handler.ListCommentThread)
 	if writeLimiter == nil {
-		router.Post("/", authmodule.RequireAuth(authService), handler.CreatePost)
-		router.Post("/:post_id/comments", authmodule.RequireAuth(authService), handler.CreateComment)
-		router.Post("/:post_id/comments/:comment_id/replies", authmodule.RequireAuth(authService), handler.CreateReply)
-		router.Post("/:post_id/like", authmodule.RequireAuth(authService), handler.ToggleLike)
+		router.Post("/", handler.CreatePost)
+		router.Post("/:post_id/comments", handler.CreateComment)
+		router.Post("/:post_id/comments/:comment_id/replies", handler.CreateReply)
+		router.Post("/:post_id/like", handler.ToggleLike)
 		return
 	}
 
-	router.Post("/", authmodule.RequireAuth(authService), writeLimiter, handler.CreatePost)
-	router.Post("/:post_id/comments", authmodule.RequireAuth(authService), writeLimiter, handler.CreateComment)
-	router.Post("/:post_id/comments/:comment_id/replies", authmodule.RequireAuth(authService), writeLimiter, handler.CreateReply)
-	router.Post("/:post_id/like", authmodule.RequireAuth(authService), writeLimiter, handler.ToggleLike)
+	router.Post("/", writeLimiter, handler.CreatePost)
+	router.Post("/:post_id/comments", writeLimiter, handler.CreateComment)
+	router.Post("/:post_id/comments/:comment_id/replies", writeLimiter, handler.CreateReply)
+	router.Post("/:post_id/like", writeLimiter, handler.ToggleLike)
 }

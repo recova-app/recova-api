@@ -9,6 +9,7 @@ import (
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service) {
 	handler := NewHandler(service)
 
-	router.Get("/", authmodule.RequireAuth(authService), handler.ListJournals)
-	router.Post("/", authmodule.RequireAuth(authService), handler.CreateJournal)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/", handler.ListJournals)
+	router.Post("/", handler.CreateJournal)
 }

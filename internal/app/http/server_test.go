@@ -311,3 +311,79 @@ func newLimiterTestApp() *fiber.App {
 		},
 	})
 }
+
+func TestNewServer_ProductionWithoutRequiredDatabaseProbe_ReturnsError(t *testing.T) {
+	cfg := testServerConfig()
+	cfg.Application.AppEnv = "production"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	_, err := NewServer(cfg, logger)
+	if err == nil {
+		t.Fatal("expected error when building production server without active database probe")
+	}
+	if !strings.Contains(err.Error(), "production environment") {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+}
+
+func TestNewServer_ProductionWithRequiredDatabaseProbe_Succeeds(t *testing.T) {
+	cfg := testServerConfig()
+	cfg.Application.AppEnv = "production"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	srv, err := NewServer(cfg, logger, WithReadinessChecks([]ReadinessCheck{
+		{
+			Name:  "database",
+			Mode:  ReadinessModeRequired,
+			Probe: func(_ context.Context) error { return nil },
+		},
+	}))
+	if err != nil {
+		t.Fatalf("unexpected error building production server: %v", err)
+	}
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/ready", nil, nil)
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+}
+
+func TestNewServer_ProductionDatabaseDown_ReturnsServiceUnavailable(t *testing.T) {
+	cfg := testServerConfig()
+	cfg.Application.AppEnv = "production"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	srv, err := NewServer(cfg, logger, WithReadinessChecks([]ReadinessCheck{
+		{
+			Name:    "database",
+			Mode:    ReadinessModeRequired,
+			Message: "Database offline",
+			Probe:   func(_ context.Context) error { return errors.New("db connection down") },
+		},
+	}))
+	if err != nil {
+		t.Fatalf("unexpected error building production server: %v", err)
+	}
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/ready", nil, nil)
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusServiceUnavailable)
+	httpharness.RequireErrorEnvelope(t, resp.JSON, "SERVICE_UNAVAILABLE")
+}
+
+func TestNewServer_WithRouteRegistrars(t *testing.T) {
+	cfg := testServerConfig()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	customRegistrar := RouteRegistrarFunc(func(router fiber.Router) {
+		router.Get("/custom-endpoint", func(c fiber.Ctx) error {
+			return c.JSON(fiber.Map{"custom": true})
+		})
+	})
+
+	srv, err := NewServer(cfg, logger, WithRouteRegistrars(customRegistrar))
+	if err != nil {
+		t.Fatalf("failed to build server with route registrar: %v", err)
+	}
+
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/api/v1/custom-endpoint", nil, nil)
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+}

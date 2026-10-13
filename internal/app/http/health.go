@@ -51,6 +51,7 @@ func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string)
 	defer cancel()
 
 	ready := true
+	hasActiveRequiredDB := false
 	checks := make(map[string]any, len(s.readinessChecks))
 
 	for _, check := range s.readinessChecks {
@@ -62,12 +63,18 @@ func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string)
 		err := check.Probe(checkCtx)
 		status := "ok"
 		message := strings.TrimSpace(check.Message)
+		healthy := err == nil
 
 		if check.Mode == ReadinessModePlaceholder {
 			status = "placeholder"
+			if s.appEnv == "production" {
+				healthy = false
+				ready = false
+			}
 		} else if err != nil {
 			status = "down"
 			ready = false
+			healthy = false
 			if message == "" {
 				message = "Dependency tidak sehat"
 			}
@@ -79,13 +86,19 @@ func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string)
 					"error", err,
 				)
 			}
+		} else if name == "database" && check.Mode == ReadinessModeRequired {
+			hasActiveRequiredDB = true
 		}
 
 		checks[name] = map[string]any{
 			"status":  status,
-			"healthy": err == nil || check.Mode == ReadinessModePlaceholder,
+			"healthy": healthy,
 			"message": message,
 		}
+	}
+
+	if s.appEnv == "production" && !hasActiveRequiredDB {
+		ready = false
 	}
 
 	return checks, ready

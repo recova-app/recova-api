@@ -8,5 +8,6 @@ import (
 // RegisterRoutes registers daily-content module routes.
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service) {
 	handler := NewHandler(service)
-	router.Get("/daily", authmodule.RequireAuth(authService), handler.GetDailyContent)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/daily", handler.GetDailyContent)
 }

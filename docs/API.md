@@ -58,7 +58,7 @@ Every JSON response emitted by the API is wrapped in a consistent top-level enve
 | `error`            | `object \| null`          | Present only on failure; contains machine-readable error details                     |
 | `error.code`       | `string`                  | Stable, machine-readable uppercase error identifier (English)                        |
 | `error.details`    | `array`                   | Detailed validation errors or contextual failure reasons (Indonesian)                |
-| `error.request_id` | `string`                  | Unique request ID for log correlation and tracing                                    |
+| `error.request_id` | `string`                  | Unique request ID for log correlation and request tracking                           |
 
 ## Pagination Metadata
 

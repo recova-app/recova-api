@@ -9,9 +9,10 @@ import (
 func RegisterUserRoutes(router fiber.Router, authService *authmodule.Service, usersService *Service) {
 	handler := NewHandler(usersService)
 
-	router.Get("/me", authmodule.RequireAuth(authService), handler.GetMe)
-	router.Put("/settings", authmodule.RequireAuth(authService), handler.UpdateSettings)
-	router.Delete("/me/reset-data", authmodule.RequireAuth(authService), handler.ResetUserDataForTesting)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/me", handler.GetMe)
+	router.Put("/settings", handler.UpdateSettings)
+	router.Delete("/me/reset-data", handler.ResetUserDataForTesting)
 }
 
 // RegisterOnboardingRoute registers onboarding route under auth prefix.

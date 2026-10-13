@@ -1,4 +1,4 @@
-// Package observability contains metrics, tracing, and diagnostics adapters.
+// Package observability contains metrics, audit, and diagnostics adapters.
 package observability
 
 import (

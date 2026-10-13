@@ -100,7 +100,7 @@ type RateLimitConfig struct {
 	AIMax    int
 }
 
-// ObservabilityConfig stores health and tracing header settings.
+// ObservabilityConfig stores health and request correlation header settings.
 type ObservabilityConfig struct {
 	RequestIDHeader      string
 	HealthCheckTimeoutMs int

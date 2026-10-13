@@ -161,22 +161,29 @@ func assertProtectedRouteAuthGuard(t testing.TB, module string, routePath string
 	t.Helper()
 
 	allowAuthGuardAlias := strings.Contains(content, "authGuard := authmodule.RequireAuth(")
+	hasGroupLevelAuth := strings.Contains(content, "router.Use(authmodule.RequireAuth(") ||
+		strings.Contains(content, "router.Use(RequireAuth(")
+
 	lines := strings.Split(content, "\n")
 	registeredRouteLines := 0
 	authGuardedRouteLines := 0
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "router.") {
+		if !strings.HasPrefix(trimmed, "router.") && !strings.HasPrefix(trimmed, "authRouter.") {
 			continue
 		}
-		if strings.HasPrefix(trimmed, "router.Use(") {
+		if strings.HasPrefix(trimmed, "router.Use(") || strings.HasPrefix(trimmed, "authRouter.Use(") {
 			continue
 		}
 		if !strings.Contains(trimmed, "(") || !strings.Contains(trimmed, ",") {
 			continue
 		}
 		registeredRouteLines++
+		if hasGroupLevelAuth && strings.HasPrefix(trimmed, "router.") {
+			authGuardedRouteLines++
+			continue
+		}
 		if strings.Contains(trimmed, "RequireAuth(") {
 			authGuardedRouteLines++
 			continue

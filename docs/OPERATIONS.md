@@ -176,18 +176,25 @@ docker build -t recova-backend:latest .
   - Returns HTTP `200` with JSON status `ok`.
 - **Readiness Probe** (`GET /health/ready`):
   - Pings PostgreSQL via connection pool.
+  - In production runtime, an active database probe is required at startup; unconfigured probes fail fast during server assembly.
   - Returns HTTP `200` (`"status": "ready"`) if database is healthy.
-  - Returns HTTP `503` (`"status": "unhealthy"`) if database connection fails, signaling load balancers to halt traffic routing.
+  - Returns HTTP `503` (`"status": "not_ready"`) if database connection fails, signaling load balancers to halt traffic routing.
 
 ### Prometheus Metrics
 
 - **Endpoint**: `GET /metrics`
-- Exposes standard HTTP metrics: request counters, response latency histograms partitioned by status code and path, active connection counts, and Go runtime memory/garbage collection stats.
+- Exposes runtime Prometheus metrics:
+  - HTTP requests, duration histograms, and errors partitioned by route and status class (`recova_http_requests_total`, `recova_http_request_duration_seconds`, `recova_http_errors_total`).
+  - Database operation latency and status partitioned by operation and table (`recova_db_operation_duration_seconds`).
+  - AI provider latency partitioned by provider and model (`recova_ai_request_duration_seconds`) and persona usage counters (`recova_ai_persona_usage_total`).
+  - Sensitive action audit event counters (`recova_audit_events_total`).
+  - Standard Go runtime process metrics (memory allocation, goroutines, garbage collection).
 
-### Structured Logging
+### Structured Logging & Request Correlation
 
+- Request correlation is maintained via `X-Request-ID` across structured logs, audit events, and API error envelopes. Distributed tracing spans are not implemented; correlation relies on indexed request IDs in structured logs.
 - Logs are emitted in structured JSON format with configurable log levels (`LOG_LEVEL=debug|info|warn|error`).
-- Every request log includes `request_id`, HTTP method, path, response latency, and client IP.
+- Request logs capture `requestId`, `method`, `path`, `status`, `latencyMs`, and `userId` (when authenticated).
 
 ## Common Troubleshooting
 

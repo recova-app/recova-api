@@ -8,5 +8,6 @@ import (
 // RegisterRoutes registers education-module routes.
 func RegisterRoutes(router fiber.Router, authService *authmodule.Service, service *Service) {
 	handler := NewHandler(service)
-	router.Get("/", authmodule.RequireAuth(authService), handler.ListContents)
+	router.Use(authmodule.RequireAuth(authService))
+	router.Get("/", handler.ListContents)
 }
