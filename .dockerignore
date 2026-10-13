@@ -6,6 +6,7 @@
 .idea
 bin
 docs
+!docs/generated/openapi.yaml
 tasks
 references
 test
