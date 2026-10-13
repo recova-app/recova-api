@@ -192,14 +192,10 @@ All tasks are available in the `Makefile`. Core commands:
 - `make security-scan`
 - `make compose-smoke`
 
-### Deployment Operations
+### Deployment and Verification
 
-- `make cutover-wave WAVE=<64|65|66|67|68>`
-- `make cutover-all`
-- `make stabilization-gate`
-- `make rollback-rehearsal`
-- `make runtime-decommission`
-- `make post-migration-maintenance`
+- `make compose-smoke` smoke test container compose stack
+- `make release-validation` run E2E and performance release validation
 
 ## Testing and Quality Gates
 
