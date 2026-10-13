@@ -44,7 +44,12 @@ func (h *Handler) ListJournals(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	payload, err := h.service.ListJournals(c.Context(), principal.UserID)
+	var query ListJournalsQuery
+	if err := c.Bind().Query(&query); err != nil {
+		return err
+	}
+
+	payload, err := h.service.ListJournals(c.Context(), principal.UserID, query)
 	if err != nil {
 		return err
 	}

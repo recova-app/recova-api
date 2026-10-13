@@ -10,6 +10,12 @@ type CreateJournalInput struct {
 	Content string
 }
 
+// ListJournalsQuery captures list-journals query parameters.
+type ListJournalsQuery struct {
+	Limit  *int    `query:"limit"`
+	Cursor *string `query:"cursor"`
+}
+
 // JournalPayload is API payload for one journal entry.
 type JournalPayload struct {
 	ID        string `json:"id"`

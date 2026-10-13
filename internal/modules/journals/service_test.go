@@ -50,7 +50,7 @@ func TestService_ListJournalsSuccess(t *testing.T) {
 	}
 	svc := NewService(repo)
 
-	rows, err := svc.ListJournals(context.Background(), "user-1")
+	rows, err := svc.ListJournals(context.Background(), "user-1", ListJournalsQuery{})
 	if err != nil {
 		t.Fatalf("list journals: %v", err)
 	}
@@ -66,9 +66,36 @@ func TestService_ListJournalsInternalError(t *testing.T) {
 	}
 	svc := NewService(repo)
 
-	_, err := svc.ListJournals(context.Background(), "user-1")
+	_, err := svc.ListJournals(context.Background(), "user-1", ListJournalsQuery{})
 	if err == nil {
 		t.Fatal("expected internal error")
+	}
+}
+
+func TestService_ListJournals_EmptyAndBounded(t *testing.T) {
+	repo := &fakeJournalsRepo{
+		user:     models.User{ID: "user-1"},
+		listRows: []models.Journal{},
+	}
+	svc := NewService(repo)
+
+	limit := 10
+	cursorStr := "2026-05-10T00:00:00Z"
+	rows, err := svc.ListJournals(context.Background(), "user-1", ListJournalsQuery{
+		Limit:  &limit,
+		Cursor: &cursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("expected empty array, got %d items", len(rows))
+	}
+	if repo.recordedLimit != 10 {
+		t.Fatalf("expected recorded limit 10, got %d", repo.recordedLimit)
+	}
+	if repo.recordedCursor == nil || repo.recordedCursor.Format(time.RFC3339) != cursorStr {
+		t.Fatalf("expected recorded cursor %s, got %v", cursorStr, repo.recordedCursor)
 	}
 }
 
@@ -77,8 +104,10 @@ type fakeJournalsRepo struct {
 	findErr   error
 	createRow models.Journal
 	createErr error
-	listRows  []models.Journal
-	listErr   error
+	listRows       []models.Journal
+	listErr        error
+	recordedLimit  int
+	recordedCursor *time.Time
 }
 
 func (r *fakeJournalsRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -98,7 +127,9 @@ func (r *fakeJournalsRepo) CreateJournal(_ context.Context, _ string, _ string) 
 	return r.createRow, nil
 }
 
-func (r *fakeJournalsRepo) ListJournalsByUserID(_ context.Context, _ string) ([]models.Journal, error) {
+func (r *fakeJournalsRepo) ListJournalsByUserID(_ context.Context, _ string, limit int, cursor *time.Time) ([]models.Journal, error) {
+	r.recordedLimit = limit
+	r.recordedCursor = cursor
 	if r.listErr != nil {
 		return nil, r.listErr
 	}

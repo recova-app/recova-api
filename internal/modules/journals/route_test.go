@@ -64,6 +64,31 @@ func TestRegisterRoutes_ListSuccess(t *testing.T) {
 	httpharness.RequireSuccessEnvelope(t, resp.JSON)
 }
 
+func TestRegisterRoutes_ListWithPaginationAndValidation(t *testing.T) {
+	authService := buildJournalsAuthService(t, "user-1")
+	service := NewService(&fakeJournalsRepo{
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		listRows: []models.Journal{
+			{ID: "journal-1", UserID: "user-1", Content: "isi", CreatedAt: time.Date(2026, 5, 8, 10, 0, 0, 0, time.UTC)},
+		},
+	})
+
+	app := newJournalsTestApp()
+	RegisterRoutes(app.Group("/api/v1/journals"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/journals?limit=10&cursor=2026-05-10T12:00:00Z", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	badResp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/journals?limit=150", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, badResp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, badResp.JSON, "VALIDATION_ERROR")
+}
+
 func buildJournalsAuthService(t testing.TB, userID string) *authmodule.Service {
 	t.Helper()
 

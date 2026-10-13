@@ -71,8 +71,8 @@ type communityPostListRow struct {
 	StreakStartDate *time.Time
 }
 
-// ListPosts returns posts sorted latest first with visible author info.
-func (r *Repository) ListPosts(ctx context.Context, category *PostCategory) ([]communityPostListRow, error) {
+// ListPosts returns posts sorted latest first with visible author info, bounded by limit and optional cursor.
+func (r *Repository) ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error) {
 	query := r.db.WithContext(ctx).
 		Table("community_posts AS p").
 		Select(`
@@ -93,12 +93,20 @@ func (r *Repository) ListPosts(ctx context.Context, category *PostCategory) ([]c
 			WHERE user_id = p.user_id AND is_active = true
 			ORDER BY start_date DESC
 			LIMIT 1
-		) AS s ON true`).
-		Order("p.created_at DESC")
+		) AS s ON true`)
 
 	if category != nil {
 		query = query.Where("p.category = ?", strings.TrimSpace(string(*category)))
 	}
+	if cursor != nil {
+		query = query.Where("p.created_at < ?", cursor.UTC())
+	}
+
+	if limit <= 0 || limit > maxPostLimit {
+		limit = defaultPostLimit
+	}
+
+	query = query.Order("p.created_at DESC").Limit(limit)
 
 	var rows []communityPostListRow
 	if err := query.Scan(&rows).Error; err != nil {

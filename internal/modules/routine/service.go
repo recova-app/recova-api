@@ -26,7 +26,7 @@ type routineRepository interface {
 	UpsertJournalByCheckInID(ctx context.Context, userID string, checkInID string, content string) error
 	FindRelapseByUserAndDate(ctx context.Context, userID string, relapseDate time.Time) (models.Relapse, error)
 	CreateRelapse(ctx context.Context, relapse models.Relapse) error
-	ListRelapsesByUser(ctx context.Context, userID string) ([]models.Relapse, error)
+	ListRelapsesByUser(ctx context.Context, userID string, limit int, cursor *time.Time) ([]models.Relapse, error)
 	ListRelapsesByUserWithinDateRange(ctx context.Context, userID string, startDate time.Time, endDate time.Time) ([]models.Relapse, error)
 	FindActiveStreak(ctx context.Context, userID string) (models.Streak, error)
 	CreateStreak(ctx context.Context, streak models.Streak) error
@@ -232,7 +232,7 @@ func (s *Service) GetStatistics(ctx context.Context, userID string) (StatisticsP
 	if err != nil {
 		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik check-in", nil, err)
 	}
-	relapses, err := s.repo.ListRelapsesByUser(ctx, userID)
+	relapses, err := s.repo.ListRelapsesByUser(ctx, userID, 365, nil)
 	if err != nil {
 		return StatisticsPayload{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik relapse", nil, err)
 	}
@@ -274,8 +274,8 @@ func (s *Service) GetActivitySummary(ctx context.Context, userID string, query A
 	return computeActivitySummary(window_days, checkIns, relapses, journals), nil
 }
 
-// GetRelapses returns user relapse history.
-func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayload, error) {
+// GetRelapses returns user relapse history bounded by limit and optional cursor.
+func (s *Service) GetRelapses(ctx context.Context, userID string, query ListRelapsesQuery) ([]RelapsePayload, error) {
 	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
 		if IsRecordNotFound(err) {
 			return nil, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
@@ -283,7 +283,12 @@ func (s *Service) GetRelapses(ctx context.Context, userID string) ([]RelapsePayl
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	rows, err := s.repo.ListRelapsesByUser(ctx, userID)
+	limit, cursor, err := NormalizeListRelapsesQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.repo.ListRelapsesByUser(ctx, userID, limit, cursor)
 	if err != nil {
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca riwayat relapse", nil, err)
 	}
@@ -310,7 +315,7 @@ func (s *Service) GetRelapseStatistics(ctx context.Context, userID string) (Rela
 	if err != nil {
 		return RelapseStatisticsResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik check-in", nil, err)
 	}
-	relapses, err := s.repo.ListRelapsesByUser(ctx, userID)
+	relapses, err := s.repo.ListRelapsesByUser(ctx, userID, 365, nil)
 	if err != nil {
 		return RelapseStatisticsResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca statistik relapse", nil, err)
 	}

@@ -13,7 +13,7 @@ import (
 type communityRepository interface {
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	CreatePost(ctx context.Context, row models.CommunityPost) (models.CommunityPost, error)
-	ListPosts(ctx context.Context, category *PostCategory) ([]communityPostListRow, error)
+	ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error)
 	CreateCommentAndIncrement(ctx context.Context, userID string, postID string, content string) (models.CommunityComment, error)
 	CreateReplyAndIncrement(ctx context.Context, userID string, postID string, parentCommentID string, content string, depth int16) (models.CommunityComment, error)
 	FindCommentByID(ctx context.Context, commentID string) (models.CommunityComment, error)
@@ -37,14 +37,14 @@ func NewService(repo communityRepository) *Service {
 	}
 }
 
-// ListPosts returns community feed payload with optional category filter.
+// ListPosts returns bounded community feed payload with optional category filter and cursor pagination.
 func (s *Service) ListPosts(ctx context.Context, query ListPostsQuery) ([]PostPayload, error) {
-	category, err := NormalizeListPostsQuery(query)
+	category, limit, cursor, err := NormalizeListPostsQuery(query)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := s.repo.ListPosts(ctx, category)
+	rows, err := s.repo.ListPosts(ctx, category, limit, cursor)
 	if err != nil {
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca postingan komunitas", nil, err)
 	}

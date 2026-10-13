@@ -132,6 +132,13 @@ To sustain fast queries on mobile read flows and high-volume check-ins:
    - `CREATE INDEX idx_ai_chats_user_history ON ai_chats (user_id, created_at)`: Optimizes retrieval of the user's recent chat context.
 5. **Session Token Validation**:
    - `CREATE INDEX idx_refresh_tokens_active ON auth_refresh_tokens (user_id, revoked_at, expires_at)`: Speeds up active session lookups and bulk revocation during logout.
+6. **Journals Chronological Owner Retrieval**:
+   - `CREATE INDEX idx_journals_user_created ON journals (user_id, created_at DESC)`: Optimizes user journal listing and pagination without in-memory sort.
+7. **Community Feed Timeline and Category Filtering**:
+   - `CREATE INDEX idx_community_posts_created_at_desc ON community_posts (created_at DESC)`: Enables index scans for global feed timeline queries.
+   - `CREATE INDEX idx_community_posts_category_created_at_desc ON community_posts (category, created_at DESC)`: Optimizes category-filtered community feed retrieval.
+8. **Relapse History Ordered Retrieval**:
+   - `CREATE INDEX idx_relapses_user_created ON relapses (user_id, created_at DESC)`: Optimizes user relapse history listing and chronological ordering.
 
 ## Database Seeding
 

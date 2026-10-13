@@ -2,6 +2,7 @@ package routine
 
 import (
 	"strings"
+	"time"
 
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 )
@@ -13,7 +14,43 @@ const (
 	defaultWindowDays       = 30
 	minWindowDays           = 7
 	maxWindowDays           = 90
+	minRelapseLimit         = 1
+	maxRelapseLimit         = 100
+	defaultRelapseLimit     = 20
 )
+
+// NormalizeListRelapsesQuery validates list-relapses query and returns normalized limit and cursor.
+func NormalizeListRelapsesQuery(query ListRelapsesQuery) (int, *time.Time, error) {
+	limit := defaultRelapseLimit
+	if query.Limit != nil {
+		if *query.Limit < minRelapseLimit || *query.Limit > maxRelapseLimit {
+			return 0, nil, errs.New(errs.CodeValidationError, "Nilai limit relapse tidak valid", []map[string]string{
+				{"field": "limit", "message": "Limit relapse harus di antara 1 sampai 100"},
+			}, nil)
+		}
+		limit = *query.Limit
+	}
+
+	var cursorTime *time.Time
+	if query.Cursor != nil {
+		trimmed := strings.TrimSpace(*query.Cursor)
+		if trimmed != "" {
+			parsed, err := time.Parse(time.RFC3339Nano, trimmed)
+			if err != nil {
+				parsed, err = time.Parse(time.RFC3339, trimmed)
+			}
+			if err != nil {
+				return 0, nil, errs.New(errs.CodeValidationError, "Format cursor tidak valid", []map[string]string{
+					{"field": "cursor", "message": "Format cursor harus RFC3339 valid"},
+				}, nil)
+			}
+			cursorUTC := parsed.UTC()
+			cursorTime = &cursorUTC
+		}
+	}
+
+	return limit, cursorTime, nil
+}
 
 // NormalizeDailyCheckInRequest validates and normalizes check-in request payload.
 func NormalizeDailyCheckInRequest(req DailyCheckInRequest) (DailyCheckInInput, error) {

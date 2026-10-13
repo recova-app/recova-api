@@ -99,7 +99,12 @@ func (h *Handler) GetRelapses(c fiber.Ctx) error {
 		return errs.New(errs.CodeUnauthenticated, "Autentikasi dibutuhkan", nil, nil)
 	}
 
-	payload, err := h.service.GetRelapses(c.Context(), principal.UserID)
+	var query ListRelapsesQuery
+	if err := c.Bind().Query(&query); err != nil {
+		return err
+	}
+
+	payload, err := h.service.GetRelapses(c.Context(), principal.UserID, query)
 	if err != nil {
 		return err
 	}

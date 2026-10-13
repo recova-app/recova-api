@@ -1240,6 +1240,20 @@ paths:
       summary: Get user relapse history
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            format: date-time
       responses:
         "200":
           description: Relapse history fetched successfully
@@ -1279,6 +1293,24 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_routine_relapses_401
+        "422":
+          description: Validation error for query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalid_query:
+                  value:
+                    success: false
+                    message: Nilai limit relapse tidak valid
+                    data: null
+                    error:
+                      code: VALIDATION_ERROR
+                      details:
+                        - field: limit
+                          message: Limit relapse harus di antara 1 sampai 100
+                      request_id: req_routine_relapses_get_422
   /api/v1/routine/relapses/statistics:
     get:
       tags:
@@ -1404,6 +1436,20 @@ paths:
       summary: Get user journal list
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            format: date-time
       responses:
         "200":
           description: Journal list fetched successfully
@@ -1438,6 +1484,24 @@ paths:
                       code: UNAUTHENTICATED
                       details: null
                       request_id: req_journals_get_401
+        "422":
+          description: Validation error for query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalid_query:
+                  value:
+                    success: false
+                    message: Nilai limit jurnal tidak valid
+                    data: null
+                    error:
+                      code: VALIDATION_ERROR
+                      details:
+                        - field: limit
+                          message: Limit jurnal harus di antara 1 sampai 100
+                      request_id: req_journals_get_422
     post:
       tags:
         - journals
@@ -1517,6 +1581,19 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/CommunityCategory"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            format: date-time
       responses:
         "200":
           description: Community post list fetched successfully
@@ -1558,7 +1635,7 @@ paths:
                       details: null
                       request_id: req_community_list_401
         "422":
-          description: Invalid category query
+          description: Validation error for query parameters
           content:
             application/json:
               schema:

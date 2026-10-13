@@ -30,3 +30,50 @@ func TestNormalizeCreateJournalRequest_Success(t *testing.T) {
 		t.Fatalf("unexpected normalized content: %q", input.Content)
 	}
 }
+
+func TestNormalizeListJournalsQuery_DefaultAndBounds(t *testing.T) {
+	limit, cursor, err := NormalizeListJournalsQuery(ListJournalsQuery{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if limit != defaultJournalLimit {
+		t.Fatalf("expected default limit %d, got %d", defaultJournalLimit, limit)
+	}
+	if cursor != nil {
+		t.Fatalf("expected nil cursor, got %v", cursor)
+	}
+
+	validLimit := 50
+	cursorStr := "2026-05-10T15:30:00Z"
+	limit, cursor, err = NormalizeListJournalsQuery(ListJournalsQuery{
+		Limit:  &validLimit,
+		Cursor: &cursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if limit != 50 {
+		t.Fatalf("expected limit 50, got %d", limit)
+	}
+	if cursor == nil || cursor.Format("2006-01-02T15:04:05Z07:00") != cursorStr {
+		t.Fatalf("expected parsed cursor %s, got %v", cursorStr, cursor)
+	}
+
+	invalidLimitHigh := 101
+	_, _, err = NormalizeListJournalsQuery(ListJournalsQuery{Limit: &invalidLimitHigh})
+	if err == nil {
+		t.Fatal("expected error for limit > 100")
+	}
+
+	invalidLimitLow := 0
+	_, _, err = NormalizeListJournalsQuery(ListJournalsQuery{Limit: &invalidLimitLow})
+	if err == nil {
+		t.Fatal("expected error for limit < 1")
+	}
+
+	invalidCursor := "not-a-timestamp"
+	_, _, err = NormalizeListJournalsQuery(ListJournalsQuery{Cursor: &invalidCursor})
+	if err == nil {
+		t.Fatal("expected error for invalid cursor")
+	}
+}

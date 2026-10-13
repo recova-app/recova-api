@@ -218,6 +218,38 @@ func TestRegisterRoutes_GetActivitySummarySuccess(t *testing.T) {
 	}
 }
 
+func TestRegisterRoutes_GetRelapsesPaginationAndValidation(t *testing.T) {
+	authService := buildRoutineAuthService(t, "user-1")
+	service := NewService(&fakeRoutineRepo{
+		user: models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		relapseRows: []models.Relapse{
+			{
+				ID:             "relapse-1",
+				UserID:         "user-1",
+				RelapseDate:    time.Date(2026, 5, 8, 0, 0, 0, 0, time.UTC),
+				Mood:           "cemas",
+				RelapseTrigger: []string{"stres"},
+				CreatedAt:      time.Date(2026, 5, 8, 21, 0, 0, 0, time.UTC),
+			},
+		},
+	})
+
+	app := newRoutineTestApp()
+	RegisterRoutes(app.Group("/api/v1/routine"), authService, service)
+
+	resp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/relapses?limit=10&cursor=2026-05-10T12:00:00Z", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusOK)
+	httpharness.RequireSuccessEnvelope(t, resp.JSON)
+
+	badResp := httpharness.JSONRequest(t, app, fiber.MethodGet, "/api/v1/routine/relapses?limit=150", nil, map[string]string{
+		"Authorization": "Bearer access-token",
+	})
+	httpharness.RequireStatus(t, badResp.StatusCode, fiber.StatusUnprocessableEntity)
+	httpharness.RequireErrorEnvelope(t, badResp.JSON, "VALIDATION_ERROR")
+}
+
 func buildRoutineAuthService(t testing.TB, userID string) *authmodule.Service {
 	t.Helper()
 

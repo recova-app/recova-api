@@ -229,7 +229,7 @@ func (r *communityRouteRepo) CreatePost(_ context.Context, row models.CommunityP
 	return row, nil
 }
 
-func (r *communityRouteRepo) ListPosts(_ context.Context, _ *PostCategory) ([]communityPostListRow, error) {
+func (r *communityRouteRepo) ListPosts(_ context.Context, _ *PostCategory, _ int, _ *time.Time) ([]communityPostListRow, error) {
 	return r.posts, nil
 }
 

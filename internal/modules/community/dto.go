@@ -16,6 +16,8 @@ const (
 // ListPostsQuery captures list-posts query parameters.
 type ListPostsQuery struct {
 	Category *string `query:"category"`
+	Limit    *int    `query:"limit"`
+	Cursor   *string `query:"cursor"`
 }
 
 // CreatePostRequest is payload for post creation.

@@ -2,6 +2,7 @@ package community
 
 import (
 	"strings"
+	"time"
 
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 )
@@ -14,6 +15,9 @@ const (
 	minThreadLimit       = 1
 	maxThreadLimit       = 200
 	maxThreadDepth       = 2
+	minPostLimit         = 1
+	maxPostLimit         = 100
+	defaultPostLimit     = 20
 )
 
 var allowedCategories = map[PostCategory]struct{}{
@@ -24,23 +28,50 @@ var allowedCategories = map[PostCategory]struct{}{
 	PostCategoryBantuan:    {},
 }
 
-// NormalizeListPostsQuery validates list-post query and returns normalized category.
-func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, error) {
-	if query.Category == nil {
-		return nil, nil
+// NormalizeListPostsQuery validates list-post query and returns normalized category, limit, and cursor.
+func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, int, *time.Time, error) {
+	var category *PostCategory
+	if query.Category != nil {
+		cat := PostCategory(strings.ToLower(strings.TrimSpace(*query.Category)))
+		if cat != "" {
+			if !isAllowedCategory(cat) {
+				return nil, 0, nil, errs.New(errs.CodeValidationError, "Kategori postingan tidak valid", []map[string]string{
+					{"field": "category", "message": "Kategori harus salah satu dari saran, motivasi, cerita, pertanyaan, bantuan"},
+				}, nil)
+			}
+			category = &cat
+		}
 	}
 
-	category := PostCategory(strings.ToLower(strings.TrimSpace(*query.Category)))
-	if category == "" {
-		return nil, nil
-	}
-	if !isAllowedCategory(category) {
-		return nil, errs.New(errs.CodeValidationError, "Kategori postingan tidak valid", []map[string]string{
-			{"field": "category", "message": "Kategori harus salah satu dari saran, motivasi, cerita, pertanyaan, bantuan"},
-		}, nil)
+	limit := defaultPostLimit
+	if query.Limit != nil {
+		if *query.Limit < minPostLimit || *query.Limit > maxPostLimit {
+			return nil, 0, nil, errs.New(errs.CodeValidationError, "Nilai limit postingan tidak valid", []map[string]string{
+				{"field": "limit", "message": "Limit postingan harus di antara 1 sampai 100"},
+			}, nil)
+		}
+		limit = *query.Limit
 	}
 
-	return &category, nil
+	var cursorTime *time.Time
+	if query.Cursor != nil {
+		trimmed := strings.TrimSpace(*query.Cursor)
+		if trimmed != "" {
+			parsed, err := time.Parse(time.RFC3339Nano, trimmed)
+			if err != nil {
+				parsed, err = time.Parse(time.RFC3339, trimmed)
+			}
+			if err != nil {
+				return nil, 0, nil, errs.New(errs.CodeValidationError, "Format cursor tidak valid", []map[string]string{
+					{"field": "cursor", "message": "Format cursor harus RFC3339 valid"},
+				}, nil)
+			}
+			cursorUTC := parsed.UTC()
+			cursorTime = &cursorUTC
+		}
+	}
+
+	return category, limit, cursorTime, nil
 }
 
 // NormalizeCreatePostRequest validates and normalizes create-post payload.

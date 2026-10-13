@@ -3,6 +3,7 @@ package routine
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -162,16 +163,18 @@ func (r *Repository) ListSuccessfulCheckInsByUser(ctx context.Context, userID st
 	return rows, nil
 }
 
-// ListCheckInsByUser returns all check-ins sorted by day and creation time.
+// ListCheckInsByUser returns all check-ins sorted by day and creation time, bounded by server maximum limit.
 func (r *Repository) ListCheckInsByUser(ctx context.Context, userID string) ([]models.CheckIn, error) {
 	var rows []models.CheckIn
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", strings.TrimSpace(userID)).
-		Order("check_in_date asc").
-		Order("created_at asc").
+		Order("check_in_date desc").
+		Order("created_at desc").
+		Limit(365).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	slices.Reverse(rows)
 	return rows, nil
 }
 
@@ -222,13 +225,23 @@ func (r *Repository) CreateRelapse(ctx context.Context, relapse models.Relapse) 
 	return r.db.WithContext(ctx).Create(&relapse).Error
 }
 
-// ListRelapsesByUser returns all relapse rows sorted by day and creation time.
-func (r *Repository) ListRelapsesByUser(ctx context.Context, userID string) ([]models.Relapse, error) {
+// ListRelapsesByUser returns all relapse rows sorted by day and creation time, bounded by limit and optional cursor.
+func (r *Repository) ListRelapsesByUser(ctx context.Context, userID string, limit int, cursor *time.Time) ([]models.Relapse, error) {
+	query := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID))
+
+	if cursor != nil {
+		query = query.Where("created_at < ?", cursor.UTC())
+	}
+
+	if limit <= 0 || limit > maxRelapseLimit {
+		limit = defaultRelapseLimit
+	}
+
 	var rows []models.Relapse
-	if err := r.db.WithContext(ctx).
-		Where("user_id = ?", strings.TrimSpace(userID)).
-		Order("relapse_date desc").
+	if err := query.
 		Order("created_at desc").
+		Limit(limit).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}

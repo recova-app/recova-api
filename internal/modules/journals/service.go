@@ -11,7 +11,7 @@ import (
 type journalsRepository interface {
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	CreateJournal(ctx context.Context, userID string, content string) (models.Journal, error)
-	ListJournalsByUserID(ctx context.Context, userID string) ([]models.Journal, error)
+	ListJournalsByUserID(ctx context.Context, userID string, limit int, cursor *time.Time) ([]models.Journal, error)
 }
 
 // Service owns journals business rules.
@@ -46,8 +46,13 @@ func (s *Service) CreateJournal(ctx context.Context, userID string, req CreateJo
 	return mapJournalPayload(row), nil
 }
 
-// ListJournals returns user-scoped journal entries.
-func (s *Service) ListJournals(ctx context.Context, userID string) ([]JournalPayload, error) {
+// ListJournals returns user-scoped journal entries bounded by limit and optional cursor.
+func (s *Service) ListJournals(ctx context.Context, userID string, query ListJournalsQuery) ([]JournalPayload, error) {
+	limit, cursor, err := NormalizeListJournalsQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := s.repo.FindUserByID(ctx, userID); err != nil {
 		if IsRecordNotFound(err) {
 			return nil, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
@@ -55,7 +60,7 @@ func (s *Service) ListJournals(ctx context.Context, userID string) ([]JournalPay
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	rows, err := s.repo.ListJournalsByUserID(ctx, userID)
+	rows, err := s.repo.ListJournalsByUserID(ctx, userID, limit, cursor)
 	if err != nil {
 		return nil, errs.New(errs.CodeInternalError, "Gagal membaca jurnal pengguna", nil, err)
 	}

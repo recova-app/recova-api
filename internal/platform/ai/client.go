@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,7 +21,24 @@ import (
 const (
 	defaultOpenAIBaseURL = "https://api.openai.com/v1"
 	defaultGeminiBaseURL = "https://generativelanguage.googleapis.com/v1beta"
+	maxAIResponseBytes   = 2 * 1024 * 1024
+	minFallbackBudget    = 100 * time.Millisecond
 )
+
+var defaultAITransport = &http.Transport{
+	Proxy: http.ProxyFromEnvironment,
+	DialContext: (&net.Dialer{
+		Timeout:   5 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).DialContext,
+	ForceAttemptHTTP2:     true,
+	MaxIdleConns:          100,
+	MaxIdleConnsPerHost:   20,
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   5 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
+	ResponseHeaderTimeout: 15 * time.Second,
+}
 
 // Provider identifies the concrete upstream AI provider family.
 type Provider string
@@ -172,12 +190,13 @@ type providerClient interface {
 }
 
 type providerRuntimeConfig struct {
-	Provider Provider
-	Model    string
-	APIKey   string
-	BaseURL  string
-	Timeout  time.Duration
-	AppEnv   string
+	Provider   Provider
+	Model      string
+	APIKey     string
+	BaseURL    string
+	Timeout    time.Duration
+	AppEnv     string
+	HTTPClient *http.Client
 }
 
 type compositeClient struct {
@@ -193,6 +212,15 @@ func (c *compositeClient) Generate(ctx context.Context, req GenerateRequest) (Ge
 	resp, err := c.primary.Generate(ctx, req)
 	if err == nil || c.fallback == nil || !IsFallbackEligible(err) {
 		return resp, err
+	}
+
+	if parentErr := ctx.Err(); parentErr != nil {
+		return resp, err
+	}
+	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+		if time.Until(deadline) < minFallbackBudget {
+			return resp, err
+		}
 	}
 
 	fallbackResp, fallbackErr := c.fallback.Generate(ctx, req)
@@ -247,7 +275,12 @@ func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
 		return nil, fmt.Errorf("ai api key is required")
 	}
 
-	httpClient := &http.Client{}
+	httpClient := cfg.HTTPClient
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Transport: defaultAITransport,
+		}
+	}
 
 	switch provider {
 	case ProviderOpenAICompatible:
@@ -305,6 +338,7 @@ type openAICompatibleClient struct {
 }
 
 func (c *openAICompatibleClient) Generate(ctx context.Context, req GenerateRequest) (GenerateResponse, error) {
+	startedAt := time.Now()
 	requestCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -344,33 +378,52 @@ func (c *openAICompatibleClient) Generate(ctx context.Context, req GenerateReque
 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return GenerateResponse{}, classifyTransportError(c.provider, err)
+		tErr := classifyTransportError(c.provider, err)
+		logSafeAIOutbound(c.provider, c.model, 0, time.Since(startedAt), ClassifyError(tErr))
+		return GenerateResponse{}, tErr
 	}
 	defer httpResp.Body.Close()
 
-	respBody, readErr := io.ReadAll(httpResp.Body)
+	limitedReader := io.LimitReader(httpResp.Body, maxAIResponseBytes+1)
+	respBody, readErr := io.ReadAll(limitedReader)
 	if readErr != nil {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "failed to read provider response", Cause: readErr}
+		rErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "failed to read provider response", Cause: readErr}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, rErr
+	}
+	if len(respBody) > maxAIResponseBytes {
+		sErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response exceeded maximum allowed size"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, sErr
 	}
 
 	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
-		return GenerateResponse{}, classifyHTTPError(c.provider, httpResp.StatusCode, extractOpenAIErrorMessage(respBody))
+		hErr := classifyHTTPError(c.provider, httpResp.StatusCode, extractOpenAIErrorMessage(respBody))
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ClassifyError(hErr))
+		return GenerateResponse{}, hErr
 	}
 
 	var parsed openAIResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "invalid provider response payload", Cause: err}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "invalid provider response payload", Cause: err}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 
 	if len(parsed.Choices) == 0 {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response has no choices"}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response has no choices"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 
 	text := extractOpenAIContent(parsed.Choices[0].Message.Content)
 	if strings.TrimSpace(text) == "" {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response content is empty"}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response content is empty"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 
+	logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), "")
 	return GenerateResponse{Provider: c.provider, Model: c.model, Text: text}, nil
 }
 
@@ -384,6 +437,7 @@ type geminiClient struct {
 }
 
 func (c *geminiClient) Generate(ctx context.Context, req GenerateRequest) (GenerateResponse, error) {
+	startedAt := time.Now()
 	requestCtx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -423,32 +477,51 @@ func (c *geminiClient) Generate(ctx context.Context, req GenerateRequest) (Gener
 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return GenerateResponse{}, classifyTransportError(c.provider, err)
+		tErr := classifyTransportError(c.provider, err)
+		logSafeAIOutbound(c.provider, c.model, 0, time.Since(startedAt), ClassifyError(tErr))
+		return GenerateResponse{}, tErr
 	}
 	defer httpResp.Body.Close()
 
-	respBody, readErr := io.ReadAll(httpResp.Body)
+	limitedReader := io.LimitReader(httpResp.Body, maxAIResponseBytes+1)
+	respBody, readErr := io.ReadAll(limitedReader)
 	if readErr != nil {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "failed to read provider response", Cause: readErr}
+		rErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "failed to read provider response", Cause: readErr}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, rErr
+	}
+	if len(respBody) > maxAIResponseBytes {
+		sErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response exceeded maximum allowed size"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, sErr
 	}
 
 	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
-		return GenerateResponse{}, classifyHTTPError(c.provider, httpResp.StatusCode, extractGeminiErrorMessage(respBody))
+		hErr := classifyHTTPError(c.provider, httpResp.StatusCode, extractGeminiErrorMessage(respBody))
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ClassifyError(hErr))
+		return GenerateResponse{}, hErr
 	}
 
 	var parsed geminiResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "invalid provider response payload", Cause: err}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "invalid provider response payload", Cause: err}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 	if len(parsed.Candidates) == 0 {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response has no candidates"}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response has no candidates"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 
 	text := extractGeminiText(parsed.Candidates[0])
 	if strings.TrimSpace(text) == "" {
-		return GenerateResponse{}, &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response content is empty"}
+		pErr := &ProviderError{Provider: c.provider, Kind: ErrorKindInvalidResponse, StatusCode: httpResp.StatusCode, Message: "provider response content is empty"}
+		logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), ErrorKindInvalidResponse)
+		return GenerateResponse{}, pErr
 	}
 
+	logSafeAIOutbound(c.provider, c.model, httpResp.StatusCode, time.Since(startedAt), "")
 	return GenerateResponse{Provider: c.provider, Model: c.model, Text: text}, nil
 }
 
@@ -656,4 +729,23 @@ type geminiResponse struct {
 
 type geminiCandidate struct {
 	Content geminiContent `json:"content"`
+}
+
+func logSafeAIOutbound(provider Provider, model string, statusCode int, latency time.Duration, errKind ErrorKind) {
+	if errKind == "" {
+		slog.Info("ai outbound request completed",
+			slog.String("provider", string(provider)),
+			slog.String("model", model),
+			slog.Int("status_code", statusCode),
+			slog.Duration("latency", latency),
+		)
+	} else {
+		slog.Warn("ai outbound request failed",
+			slog.String("provider", string(provider)),
+			slog.String("model", model),
+			slog.Int("status_code", statusCode),
+			slog.Duration("latency", latency),
+			slog.String("error_kind", string(errKind)),
+		)
+	}
 }

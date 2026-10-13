@@ -45,6 +45,30 @@ func TestService_ListPosts_Success(t *testing.T) {
 	}
 }
 
+func TestService_ListPosts_EmptyAndBounded(t *testing.T) {
+	repo := &fakeCommunityRepo{posts: []communityPostListRow{}}
+	service := NewService(repo)
+
+	limit := 10
+	cursorStr := "2026-05-10T00:00:00Z"
+	result, err := service.ListPosts(context.Background(), ListPostsQuery{
+		Limit:  &limit,
+		Cursor: &cursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 0 {
+		t.Fatalf("expected empty array, got %d items", len(result))
+	}
+	if repo.recordedLimit != 10 {
+		t.Fatalf("expected recorded limit 10, got %d", repo.recordedLimit)
+	}
+	if repo.recordedCursor == nil || repo.recordedCursor.Format(time.RFC3339) != cursorStr {
+		t.Fatalf("expected recorded cursor %s, got %v", cursorStr, repo.recordedCursor)
+	}
+}
+
 func TestService_CreatePost_UserNotFound(t *testing.T) {
 	repo := &fakeCommunityRepo{userErr: gorm.ErrRecordNotFound}
 	service := NewService(repo)
@@ -148,9 +172,11 @@ type fakeCommunityRepo struct {
 	parentErr      error
 	createReplyErr error
 
-	posts         []communityPostListRow
-	threadRows    []models.CommunityComment
-	parentComment models.CommunityComment
+	posts          []communityPostListRow
+	threadRows     []models.CommunityComment
+	parentComment  models.CommunityComment
+	recordedLimit  int
+	recordedCursor *time.Time
 }
 
 func (r *fakeCommunityRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -169,7 +195,9 @@ func (r *fakeCommunityRepo) CreatePost(_ context.Context, row models.CommunityPo
 	return row, nil
 }
 
-func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory) ([]communityPostListRow, error) {
+func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error) {
+	r.recordedLimit = limit
+	r.recordedCursor = cursor
 	if r.listErr != nil {
 		return nil, r.listErr
 	}

@@ -268,7 +268,7 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	}
 	svc := NewService(repo)
 
-	payload, err := svc.GetRelapses(context.Background(), "user-1")
+	payload, err := svc.GetRelapses(context.Background(), "user-1", ListRelapsesQuery{})
 	if err != nil {
 		t.Fatalf("get relapses: %v", err)
 	}
@@ -283,6 +283,27 @@ func TestService_GetRelapses_MapsJournalCommitment(t *testing.T) {
 	}
 	if payload[0].RelapseDayName != "Jumat" {
 		t.Fatalf("expected relapse day name Jumat, got %s", payload[0].RelapseDayName)
+	}
+}
+
+func TestService_GetRelapses_EmptyAndBounded(t *testing.T) {
+	repo := &fakeRoutineRepo{
+		user:        models.User{ID: "user-1", Email: "user@example.test", Nickname: "tester"},
+		relapseRows: []models.Relapse{},
+	}
+	svc := NewService(repo)
+
+	limit := 10
+	cursorStr := "2026-05-10T00:00:00Z"
+	rows, err := svc.GetRelapses(context.Background(), "user-1", ListRelapsesQuery{
+		Limit:  &limit,
+		Cursor: &cursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("expected empty array, got %d items", len(rows))
 	}
 }
 
@@ -541,7 +562,7 @@ func (r *fakeRoutineRepo) ListCheckInsByUserWithinDateRange(_ context.Context, _
 	}
 	return r.windowRows, nil
 }
-func (r *fakeRoutineRepo) ListRelapsesByUser(_ context.Context, _ string) ([]models.Relapse, error) {
+func (r *fakeRoutineRepo) ListRelapsesByUser(_ context.Context, _ string, _ int, _ *time.Time) ([]models.Relapse, error) {
 	if r.listRelapseErr != nil {
 		return nil, r.listRelapseErr
 	}
@@ -580,7 +601,7 @@ func TestService_GetRelapses_InternalError(t *testing.T) {
 	}
 	svc := NewService(repo)
 
-	_, err := svc.GetRelapses(context.Background(), "user-1")
+	_, err := svc.GetRelapses(context.Background(), "user-1", ListRelapsesQuery{})
 	if err == nil {
 		t.Fatal("expected internal error")
 	}

@@ -72,7 +72,7 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 	}
 
 	category := PostCategoryMotivasi
-	rows, err := repo.ListPosts(ctx, &category)
+	rows, err := repo.ListPosts(ctx, &category, 20, nil)
 	if err != nil {
 		t.Fatalf("list posts: %v", err)
 	}

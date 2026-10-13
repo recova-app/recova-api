@@ -53,7 +53,7 @@ func TestIntegration_Repository_ListJournals_UserScoped(t *testing.T) {
 		t.Fatalf("create journal b1: %v", err)
 	}
 
-	rows, err := repo.ListJournalsByUserID(ctx, userA.ID)
+	rows, err := repo.ListJournalsByUserID(ctx, userA.ID, 20, nil)
 	if err != nil {
 		t.Fatalf("list journals userA: %v", err)
 	}

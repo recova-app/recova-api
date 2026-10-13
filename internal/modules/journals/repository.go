@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/recova-app/backend-v2/internal/platform/database/models"
 	"gorm.io/gorm"
@@ -40,12 +41,23 @@ func (r *Repository) CreateJournal(ctx context.Context, userID string, content s
 	return row, nil
 }
 
-// ListJournalsByUserID returns journals by owner sorted latest first.
-func (r *Repository) ListJournalsByUserID(ctx context.Context, userID string) ([]models.Journal, error) {
+// ListJournalsByUserID returns journals by owner sorted latest first, bounded by limit and optional cursor.
+func (r *Repository) ListJournalsByUserID(ctx context.Context, userID string, limit int, cursor *time.Time) ([]models.Journal, error) {
+	query := r.db.WithContext(ctx).
+		Where("user_id = ?", strings.TrimSpace(userID))
+
+	if cursor != nil {
+		query = query.Where("created_at < ?", cursor.UTC())
+	}
+
+	if limit <= 0 || limit > maxJournalLimit {
+		limit = defaultJournalLimit
+	}
+
 	var rows []models.Journal
-	if err := r.db.WithContext(ctx).
-		Where("user_id = ?", strings.TrimSpace(userID)).
+	if err := query.
 		Order("created_at desc").
+		Limit(limit).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}

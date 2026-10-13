@@ -282,3 +282,133 @@ func TestNewClient_LocalMockEndpoint_Success(t *testing.T) {
 		t.Fatal("expected non-nil client")
 	}
 }
+
+func TestClient_Generate_FallbackSkippedWhenParentContextCancelled(t *testing.T) {
+	fallbackHit := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		model, _ := payload["model"].(string)
+		if model == "primary-model" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "unavailable"}})
+			return
+		}
+		fallbackHit = true
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{{"message": map[string]any{"content": "fallback"}}},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(config.AIConfig{
+		Provider:         string(ProviderOpenAICompatible),
+		Model:            "primary-model",
+		APIKey:           "test-key",
+		BaseURL:          srv.URL,
+		TimeoutMs:        500,
+		FallbackProvider: string(ProviderOpenAICompatible),
+		FallbackModel:    "fallback-model",
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel context before call
+
+	_, err = client.Generate(ctx, GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+	if fallbackHit {
+		t.Fatal("expected fallback to be skipped when parent context cancelled")
+	}
+}
+
+func TestClient_Generate_FallbackSkippedWhenBudgetDepleted(t *testing.T) {
+	fallbackHit := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		model, _ := payload["model"].(string)
+		if model == "primary-model" {
+			time.Sleep(30 * time.Millisecond)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "unavailable"}})
+			return
+		}
+		fallbackHit = true
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{{"message": map[string]any{"content": "fallback"}}},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(config.AIConfig{
+		Provider:         string(ProviderOpenAICompatible),
+		Model:            "primary-model",
+		APIKey:           "test-key",
+		BaseURL:          srv.URL,
+		TimeoutMs:        500,
+		FallbackProvider: string(ProviderOpenAICompatible),
+		FallbackModel:    "fallback-model",
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	// Budget remaining is very short (50ms < minFallbackBudget 100ms)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	_, err = client.Generate(ctx, GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error when budget depleted")
+	}
+	if fallbackHit {
+		t.Fatal("expected fallback to be skipped when budget is depleted")
+	}
+}
+
+func TestClient_Generate_ResponseExceedingMaxSizeBytes_Rejected(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		// Write > 2MB response
+		chunk := make([]byte, 1024*1024)
+		for i := range chunk {
+			chunk[i] = 'a'
+		}
+		for i := 0; i < 3; i++ {
+			_, _ = w.Write(chunk)
+		}
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderOpenAICompatible),
+		Model:     "gpt-test",
+		APIKey:    "test-key",
+		BaseURL:   srv.URL,
+		TimeoutMs: 500,
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error for response exceeding max size")
+	}
+	var pErr *ProviderError
+	if !errors.As(err, &pErr) {
+		t.Fatalf("expected ProviderError, got: %T", err)
+	}
+	if pErr.Kind != ErrorKindInvalidResponse {
+		t.Fatalf("expected ErrorKindInvalidResponse, got: %s", pErr.Kind)
+	}
+	if !strings.Contains(pErr.Message, "maximum allowed size") {
+		t.Fatalf("expected maximum allowed size in error message, got: %s", pErr.Message)
+	}
+}

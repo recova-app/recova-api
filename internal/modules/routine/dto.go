@@ -141,6 +141,12 @@ type RelapseSolutionPayload struct {
 	GeneratedAt string `json:"generated_at"`
 }
 
+// ListRelapsesQuery captures list-relapses query parameters.
+type ListRelapsesQuery struct {
+	Limit  *int    `query:"limit"`
+	Cursor *string `query:"cursor"`
+}
+
 // RelapsePayload is API payload for one relapse history record.
 type RelapsePayload struct {
 	ID             string   `json:"id"`
