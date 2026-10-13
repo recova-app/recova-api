@@ -31,6 +31,7 @@ Dokumen ini menjelaskan tujuan tiap environment dan baseline konfigurasi runtime
 | `APP_ENV`           | `local`                       | `test`                    | `staging`                       | `production`                      |
 | `NODE_ENV`          | `development`                 | `test`                    | `production`                    | `production`                      |
 | DB target           | local container/instance      | isolated test DB          | managed DB non-prod             | managed DB prod                   |
+| DB SSL mode         | `disable` (opsional SSL)      | `disable` (opsional SSL)  | `require` / managed TLS         | `require` / `verify-full` (wajib) |
 | cookie secure       | `false`                       | `false`                   | `true`                          | `true`                            |
 | CORS origins        | localhost allowlist           | test-runner origin only   | staging frontend allowlist      | production frontend allowlist     |
 | AI provider         | provider utama atau mock aman | deterministic test mode   | provider nyata dengan guardrail | provider nyata + fallback policy  |
@@ -61,6 +62,7 @@ Dokumen ini menjelaskan tujuan tiap environment dan baseline konfigurasi runtime
 ### Production
 
 - tidak boleh memakai mock provider,
+- database SSL mode dilarang `disable` (wajib `require`, `verify-ca`, atau `verify-full`),
 - semua secret wajib dikelola terpusat dan dapat dirotasi,
 - logging harus mengikuti redaction policy,
 - health dan readiness wajib dipantau kontinu.

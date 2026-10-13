@@ -82,6 +82,7 @@ type AIConfig struct {
 	TimeoutMs        int
 	FallbackProvider string
 	FallbackModel    string
+	AppEnv           string
 }
 
 // SecurityConfig stores security and traffic guard settings.
@@ -173,6 +174,7 @@ func Load() (Config, error) {
 	}
 
 	cfg.Logger.SlogLevel = parseSlogLevel(cfg.Logger.Level)
+	cfg.AI.AppEnv = cfg.Application.AppEnv
 
 	if !strings.HasPrefix(cfg.Application.APIPrefix, "/") {
 		v.addIssue("API_PREFIX", "must start with '/'")
@@ -181,6 +183,17 @@ func Load() (Config, error) {
 	if cfg.Database.MaxIdleConns > cfg.Database.MaxOpenConns {
 		v.addIssue("DATABASE_MAX_IDLE_CONNS", "must not be greater than DATABASE_MAX_OPEN_CONNS")
 	}
+
+	if cfg.Application.AppEnv == "production" && cfg.Database.SSLMode == "disable" {
+		v.addIssue("DATABASE_SSL_MODE", "cannot be 'disable' in production environment")
+	}
+
+	validateDatabaseURLSSLMode(v, "DATABASE_URL", cfg.Database.URL, cfg.Database.SSLMode, cfg.Application.AppEnv)
+	if cfg.Database.DirectURL != "" {
+		validateDatabaseURLSSLMode(v, "DIRECT_DATABASE_URL", cfg.Database.DirectURL, cfg.Database.SSLMode, cfg.Application.AppEnv)
+	}
+
+	validateAIBaseURL(v, "AI_BASE_URL", cfg.AI.BaseURL, cfg.AI.Provider, cfg.Application.AppEnv)
 
 	if cfg.AI.FallbackProvider == "" && cfg.AI.FallbackModel != "" {
 		v.addIssue("AI_FALLBACK_PROVIDER", "is required when AI_FALLBACK_MODEL is set")
@@ -512,4 +525,54 @@ func isDatabaseURL(raw string) bool {
 	}
 
 	return parsed.Scheme != "" && parsed.Host != ""
+}
+
+var allowedAIHostsByProvider = map[string][]string{
+	"gemini":            {"generativelanguage.googleapis.com"},
+	"openai-compatible": {"api.openai.com"},
+}
+
+func validateDatabaseURLSSLMode(v *validator, key string, rawURL string, configuredSSLMode string, appEnv string) {
+	if rawURL == "" {
+		return
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return
+	}
+
+	urlSSLMode := strings.ToLower(strings.TrimSpace(parsed.Query().Get("sslmode")))
+	if appEnv == "production" {
+		if urlSSLMode == "" {
+			v.addIssue(key, "sslmode query parameter is required in production environment")
+		} else if urlSSLMode == "disable" {
+			v.addIssue(key, "sslmode query parameter cannot be 'disable' in production environment")
+		} else if urlSSLMode != configuredSSLMode {
+			v.addIssue(key, fmt.Sprintf("sslmode query parameter '%s' does not match DATABASE_SSL_MODE '%s'", urlSSLMode, configuredSSLMode))
+		}
+	} else if urlSSLMode != "" && urlSSLMode != configuredSSLMode {
+		v.addIssue(key, fmt.Sprintf("sslmode query parameter '%s' does not match DATABASE_SSL_MODE '%s'", urlSSLMode, configuredSSLMode))
+	}
+}
+
+func validateAIBaseURL(v *validator, key string, rawURL string, provider string, appEnv string) {
+	if rawURL == "" {
+		return
+	}
+	parsed, err := url.ParseRequestURI(rawURL)
+	if err != nil {
+		return
+	}
+
+	if appEnv == "staging" || appEnv == "production" {
+		if strings.ToLower(parsed.Scheme) != "https" {
+			v.addIssue(key, "must use https scheme in staging and production")
+		}
+
+		hostname := strings.ToLower(parsed.Hostname())
+		allowedHosts, ok := allowedAIHostsByProvider[strings.ToLower(provider)]
+		if !ok || !slices.Contains(allowedHosts, hostname) {
+			v.addIssue(key, fmt.Sprintf("host '%s' is not an allowed host for provider '%s' in staging and production", hostname, provider))
+		}
+	}
 }

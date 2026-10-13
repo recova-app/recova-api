@@ -210,7 +210,11 @@ func (s *Server) registerRoutes(cfg config.Config) {
 	})
 
 	s.app.Get("/health/ready", func(c fiber.Ctx) error {
-		checkSummary, ready := s.evaluateReadiness(c.Context())
+		reqID := strings.TrimSpace(requestid.FromContext(c))
+		if reqID == "" {
+			reqID = strings.TrimSpace(c.Get(cfg.Observability.RequestIDHeader))
+		}
+		checkSummary, ready := s.evaluateReadiness(c.Context(), reqID)
 		if !ready {
 			return errs.New(
 				errs.CodeServiceUnavailable,

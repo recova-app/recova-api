@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -107,6 +108,7 @@ func NewClient(cfg config.AIConfig) (Client, error) {
 		APIKey:   strings.TrimSpace(cfg.APIKey),
 		BaseURL:  strings.TrimSpace(cfg.BaseURL),
 		Timeout:  time.Duration(cfg.TimeoutMs) * time.Millisecond,
+		AppEnv:   strings.TrimSpace(cfg.AppEnv),
 	})
 	if err != nil {
 		return nil, err
@@ -120,12 +122,18 @@ func NewClient(cfg config.AIConfig) (Client, error) {
 		return client, nil
 	}
 
+	fallbackBaseURL := ""
+	if fallbackProvider == strings.TrimSpace(cfg.Provider) {
+		fallbackBaseURL = strings.TrimSpace(cfg.BaseURL)
+	}
+
 	fallback, err := buildProviderClient(providerRuntimeConfig{
 		Provider: Provider(fallbackProvider),
 		Model:    fallbackModel,
 		APIKey:   strings.TrimSpace(cfg.APIKey),
-		BaseURL:  strings.TrimSpace(cfg.BaseURL),
+		BaseURL:  fallbackBaseURL,
 		Timeout:  time.Duration(cfg.TimeoutMs) * time.Millisecond,
+		AppEnv:   strings.TrimSpace(cfg.AppEnv),
 	})
 	if err != nil {
 		return nil, err
@@ -169,6 +177,7 @@ type providerRuntimeConfig struct {
 	APIKey   string
 	BaseURL  string
 	Timeout  time.Duration
+	AppEnv   string
 }
 
 type compositeClient struct {
@@ -191,6 +200,35 @@ func (c *compositeClient) Generate(ctx context.Context, req GenerateRequest) (Ge
 		return fallbackResp, nil
 	}
 	return GenerateResponse{}, fallbackErr
+}
+
+var allowedAIHostsByProvider = map[Provider][]string{
+	ProviderGemini:           {"generativelanguage.googleapis.com"},
+	ProviderOpenAICompatible: {"api.openai.com"},
+}
+
+func validateProviderEndpoint(provider Provider, rawURL string, appEnv string) error {
+	trimmed := strings.TrimSpace(rawURL)
+	if trimmed == "" {
+		return nil
+	}
+	parsed, err := url.ParseRequestURI(trimmed)
+	if err != nil {
+		return fmt.Errorf("invalid provider base url: %w", err)
+	}
+
+	env := strings.ToLower(strings.TrimSpace(appEnv))
+	if env == "staging" || env == "production" {
+		if strings.ToLower(parsed.Scheme) != "https" {
+			return fmt.Errorf("provider endpoint must use https in %s: %s", env, rawURL)
+		}
+		hostname := strings.ToLower(parsed.Hostname())
+		allowed, ok := allowedAIHostsByProvider[provider]
+		if !ok || !slices.Contains(allowed, hostname) {
+			return fmt.Errorf("host '%s' is not allowed for provider '%s' in %s", hostname, provider, env)
+		}
+	}
+	return nil
 }
 
 func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
@@ -217,6 +255,9 @@ func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
 		if strings.TrimSpace(base) == "" {
 			base = defaultOpenAIBaseURL
 		}
+		if err := validateProviderEndpoint(provider, base, cfg.AppEnv); err != nil {
+			return nil, err
+		}
 		parsed, err := normalizeBaseURL(base)
 		if err != nil {
 			return nil, fmt.Errorf("invalid openai-compatible base url: %w", err)
@@ -233,6 +274,9 @@ func buildProviderClient(cfg providerRuntimeConfig) (providerClient, error) {
 		base := cfg.BaseURL
 		if strings.TrimSpace(base) == "" {
 			base = defaultGeminiBaseURL
+		}
+		if err := validateProviderEndpoint(provider, base, cfg.AppEnv); err != nil {
+			return nil, err
 		}
 		parsed, err := normalizeBaseURL(base)
 		if err != nil {

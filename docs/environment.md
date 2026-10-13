@@ -55,6 +55,21 @@ Prinsip inti:
 | `DATABASE_CONN_MAX_LIFETIME_SEC` | Yes      | `300`                                               | umur maksimum koneksi  |
 | `DATABASE_SSL_MODE`              | Yes      | `disable` / `require` / `verify-ca` / `verify-full` | mode SSL PostgreSQL    |
 
+### Database TLS & SSL Mode Policy
+
+Aturan kebijakan TLS database lintas environment:
+
+1. **Production Requirement**:
+   - Pada `APP_ENV=production`, `DATABASE_SSL_MODE` dilarang bernilai `disable`. Nilai yang diizinkan adalah `require`, `verify-ca`, atau `verify-full`.
+   - Baseline minimum di production adalah `require`. Mode `verify-full` direkomendasikan saat root CA certificate dan hostname validasi telah dikonfigurasi pada managed database.
+   - Pada `APP_ENV=production`, `DATABASE_URL` (dan `DIRECT_DATABASE_URL` bila ada) wajib secara eksplisit menyertakan parameter query `sslmode` yang tidak bernilai `disable`.
+2. **Konsistensi URL dan Konfigurasi**:
+   - Jika parameter query `sslmode` tercantum pada `DATABASE_URL` atau `DIRECT_DATABASE_URL`, nilainya wajib identik dengan variabel `DATABASE_SSL_MODE`.
+   - Ketidakcocokan antara parameter URL dan `DATABASE_SSL_MODE` akan menggagalkan startup aplikasi (`CONFIG_VALIDATION_ERROR`).
+3. **Pengecualian Local dan Test**:
+   - Pada `APP_ENV=local` dan `APP_ENV=test`, mode `DATABASE_SSL_MODE=disable` diizinkan untuk mendukung database container atau instance lokal tanpa konfigurasi TLS.
+   - Jika parameter query `sslmode` disertakan pada URL database lokal/test, nilainya tetap harus konsisten dengan `DATABASE_SSL_MODE`.
+
 Jika deployment memisahkan URL direct migration, definisikan juga:
 
 - `DIRECT_DATABASE_URL`.
@@ -94,6 +109,20 @@ Aturan URL database:
 Kompatibilitas nilai lama pada source saat ini:
 
 - `GEMINI_API_KEY`, `GEMINI_MODEL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` dapat dipetakan ke contract unified di atas selama masa transisi konfigurasi.
+
+### AI Endpoint Restrictions & Outbound Policy
+
+Aturan pengamanan endpoint AI:
+
+- **Staging dan Production**:
+  - `AI_BASE_URL` (jika diisi) wajib menggunakan skema `https://`. Skema non-HTTPS dilarang keras.
+  - Host pada `AI_BASE_URL` wajib terdaftar dalam allowlist provider resmi:
+    - Provider `gemini`: `generativelanguage.googleapis.com`
+    - Provider `openai-compatible`: `api.openai.com`
+  - Jika `AI_BASE_URL` dikosongkan, backend secara otomatis memakai endpoint resmi default masing-masing provider via HTTPS.
+  - Host arbitrary atau tidak tepercaya di luar allowlist akan ditolak saat validasi startup (`CONFIG_VALIDATION_ERROR`).
+- **Local dan Test Override**:
+  - Pada `APP_ENV=local` dan `APP_ENV=test`, `AI_BASE_URL` diizinkan diarahkan ke host lokal/mock (misalnya `http://localhost:8080` atau test server terisolasi) guna mendukung unit/integration testing tanpa ketergantungan provider publik.
 
 ## Security Variables
 

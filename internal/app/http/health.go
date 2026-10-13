@@ -36,7 +36,12 @@ func defaultReadinessChecks() []ReadinessCheck {
 	}
 }
 
-func (s *Server) evaluateReadiness(parent context.Context) (map[string]any, bool) {
+func (s *Server) evaluateReadiness(parent context.Context, requestIDs ...string) (map[string]any, bool) {
+	reqID := ""
+	if len(requestIDs) > 0 {
+		reqID = strings.TrimSpace(requestIDs[0])
+	}
+
 	timeout := s.readinessTimeout
 	if timeout <= 0 {
 		timeout = 2 * time.Second
@@ -58,22 +63,21 @@ func (s *Server) evaluateReadiness(parent context.Context) (map[string]any, bool
 		status := "ok"
 		message := strings.TrimSpace(check.Message)
 
-		switch {
-		case check.Mode == ReadinessModePlaceholder:
+		if check.Mode == ReadinessModePlaceholder {
 			status = "placeholder"
-		case err != nil:
+		} else if err != nil {
 			status = "down"
 			ready = false
 			if message == "" {
 				message = "Dependency tidak sehat"
 			}
-		}
-
-		if err != nil {
-			if message == "" {
-				message = err.Error()
-			} else {
-				message = message + " (" + err.Error() + ")"
+			if s.logger != nil {
+				s.logger.Error("readiness probe failed",
+					"request_id", reqID,
+					"dependency", name,
+					"mode", string(check.Mode),
+					"error", err,
+				)
 			}
 		}
 

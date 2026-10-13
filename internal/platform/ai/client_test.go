@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -175,5 +176,109 @@ func TestClient_Generate_TimeoutClassified(t *testing.T) {
 	}
 	if pErr.Kind != ErrorKindTimeout {
 		t.Fatalf("expected timeout kind, got: %s", pErr.Kind)
+	}
+}
+
+func TestNewClient_ProductionNonHTTPSEndpoint_ReturnsError(t *testing.T) {
+	_, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderOpenAICompatible),
+		Model:     "gpt-test",
+		APIKey:    "test-key",
+		BaseURL:   "http://api.openai.com/v1",
+		TimeoutMs: 500,
+		AppEnv:    "production",
+	})
+	if err == nil {
+		t.Fatal("expected error for non-https endpoint in production")
+	}
+	if !strings.Contains(err.Error(), "https") {
+		t.Fatalf("expected https error, got: %v", err)
+	}
+}
+
+func TestNewClient_ProductionUntrustedHost_ReturnsError(t *testing.T) {
+	_, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderGemini),
+		Model:     "gemini-test",
+		APIKey:    "test-key",
+		BaseURL:   "https://evil-proxy.com/v1beta",
+		TimeoutMs: 500,
+		AppEnv:    "production",
+	})
+	if err == nil {
+		t.Fatal("expected error for untrusted host in production")
+	}
+	if !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("expected not allowed host error, got: %v", err)
+	}
+}
+
+func TestNewClient_ProductionTrustedHost_Success(t *testing.T) {
+	client, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderGemini),
+		Model:     "gemini-test",
+		APIKey:    "test-key",
+		BaseURL:   "https://generativelanguage.googleapis.com/v1beta",
+		TimeoutMs: 500,
+		AppEnv:    "production",
+	})
+	if err != nil {
+		t.Fatalf("expected client creation success for trusted host, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestNewClient_StagingUntrustedHost_ReturnsError(t *testing.T) {
+	_, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderOpenAICompatible),
+		Model:     "gpt-test",
+		APIKey:    "test-key",
+		BaseURL:   "https://random-api.example.com/v1",
+		TimeoutMs: 500,
+		AppEnv:    "staging",
+	})
+	if err == nil {
+		t.Fatal("expected error for untrusted host in staging")
+	}
+	if !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("expected not allowed host error, got: %v", err)
+	}
+}
+
+func TestNewClient_HeterogeneousFallbackWithCustomPrimaryBaseURL_Success(t *testing.T) {
+	client, err := NewClient(config.AIConfig{
+		Provider:         string(ProviderGemini),
+		Model:            "gemini-test",
+		APIKey:           "test-key",
+		BaseURL:          "https://generativelanguage.googleapis.com/v1beta",
+		TimeoutMs:        500,
+		FallbackProvider: string(ProviderOpenAICompatible),
+		FallbackModel:    "gpt-4o-mini",
+		AppEnv:           "production",
+	})
+	if err != nil {
+		t.Fatalf("expected client creation success for heterogeneous fallback, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestNewClient_LocalMockEndpoint_Success(t *testing.T) {
+	client, err := NewClient(config.AIConfig{
+		Provider:  string(ProviderOpenAICompatible),
+		Model:     "gpt-test",
+		APIKey:    "test-key",
+		BaseURL:   "http://localhost:8080/v1",
+		TimeoutMs: 500,
+		AppEnv:    "local",
+	})
+	if err != nil {
+		t.Fatalf("expected local mock endpoint success, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
 	}
 }

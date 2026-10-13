@@ -107,7 +107,9 @@ Aturan:
 - API key provider hanya tersedia pada sisi backend,
 - kunci tidak boleh dikirim ke frontend,
 - request/response raw dari provider tidak boleh langsung dipantulkan ke klien,
-- gunakan request id untuk korelasi troubleshooting.
+- gunakan request id untuk korelasi troubleshooting,
+- pada environment non-local (`staging` dan `production`), `AI_BASE_URL` wajib HTTPS dan dibatasi hanya ke host provider resmi (`generativelanguage.googleapis.com` untuk Gemini, `api.openai.com` untuk OpenAI-compatible) guna mencegah pembocoran kunci atau konteks ke host arbitrary,
+- override host non-HTTPS atau custom mock hanya diizinkan pada environment `local` dan `test`.
 
 ## Operational Gaps
 

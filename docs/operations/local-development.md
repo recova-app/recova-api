@@ -77,6 +77,16 @@ Catatan build:
 - layout repository menggunakan direktori `api/` untuk kontrak OpenAPI;
 - karena itu build artifact diarahkan eksplisit ke `./bin/recova-api` agar tidak bentrok dengan direktori `api/`.
 
+### Local Testing Utilities
+
+Untuk pengujian endpoint yang membutuhkan token otentikasi tanpa alur login lengkap:
+
+- Script generator token: `node generate-jwt.js`
+- Secret wajib diberikan secara eksplisit melalui input runtime. Disarankan menggunakan environment variable (misalnya `JWT_SECRET="<secret>" node generate-jwt.js`) untuk menghindari eksposur rahasia di process table (`ps aux`) atau shell history. Flag `--secret="<secret>"` juga didukung untuk testing sementara.
+- Default audience mengikuti port lokal backend (`http://localhost:3001` atau `APP_URL`).
+- Opsi pendukung: `--type=access|refresh`, `--user=<user-id>`, `--ttl=<seconds>`, `--audience=<aud>`, `--issuer=<iss>`, `--raw`.
+- Generator tidak menyimpan secret di dalam source code dan tidak mencetak nilai rahasia ke pesan error.
+
 Catatan env local:
 
 - target `make run`, `make migrate-*`, dan `make seed` auto-load env dari `.env` melalui `scripts/with-env.sh`,

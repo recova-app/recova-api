@@ -2,6 +2,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -148,20 +149,67 @@ func TestNewServer_RequestIDAndSecurityHeaders(t *testing.T) {
 	}
 }
 
-// TestNewServer_ReadinessFailure_ReturnsServiceUnavailable ensures failed required dependency returns 503.
+// TestNewServer_ReadinessFailure_ReturnsServiceUnavailable ensures failed required dependency returns 503 without leaking internal errors.
 func TestNewServer_ReadinessFailure_ReturnsServiceUnavailable(t *testing.T) {
 	srv := buildTestServer(t)
+	var logBuf bytes.Buffer
+	srv.logger = slog.New(slog.NewJSONHandler(&logBuf, nil))
+
+	rawError := "dial tcp 127.0.0.1:5432: connection refused"
 	srv.readinessChecks = []ReadinessCheck{
 		{
 			Name:  "database",
 			Mode:  ReadinessModeRequired,
-			Probe: func(_ context.Context) error { return errors.New("dial failed") },
+			Probe: func(_ context.Context) error { return errors.New(rawError) },
 		},
 	}
 
-	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/ready", nil, nil)
+	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/ready", nil, map[string]string{
+		"x-request-id": "req-readiness-fail",
+	})
 	httpharness.RequireStatus(t, resp.StatusCode, fiber.StatusServiceUnavailable)
 	httpharness.RequireErrorEnvelope(t, resp.JSON, "SERVICE_UNAVAILABLE")
+
+	if strings.Contains(string(resp.Body), rawError) {
+		t.Fatalf("readiness response leaked internal error detail: %s", string(resp.Body))
+	}
+
+	logOutput := logBuf.String()
+	if !strings.Contains(logOutput, "readiness probe failed") {
+		t.Fatalf("expected structured log 'readiness probe failed', got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "req-readiness-fail") {
+		t.Fatalf("expected structured log to include request_id 'req-readiness-fail', got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "database") {
+		t.Fatalf("expected structured log to include dependency 'database', got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, rawError) {
+		t.Fatalf("expected structured log to include internal probe error detail, got: %s", logOutput)
+	}
+
+	errObj, ok := resp.JSON["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected error object, got: %#v", resp.JSON["error"])
+	}
+	details, ok := errObj["details"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected details object, got: %#v", errObj["details"])
+	}
+	checks, ok := details["checks"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected checks object, got: %#v", details["checks"])
+	}
+	dbCheck, ok := checks["database"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected database check object, got: %#v", checks["database"])
+	}
+	if dbCheck["status"] != "down" {
+		t.Fatalf("expected status down, got: %v", dbCheck["status"])
+	}
+	if dbCheck["message"] != "Dependency tidak sehat" {
+		t.Fatalf("expected safe message, got: %v", dbCheck["message"])
+	}
 }
 
 // TestNewServer_APIPrefixBaseline_NotFoundEnvelope ensures /api/v1 baseline exists and returns standard not found envelope.
