@@ -15,7 +15,7 @@ else
   go_bin="$(go env GOPATH)/bin/govulncheck"
   if [ ! -x "$go_bin" ]; then
     echo "[security-scan] govulncheck not found, installing automatically..." >&2
-    go install golang.org/x/vuln/cmd/govulncheck@latest
+    go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
   fi
   scan_bin="$go_bin"
 fi

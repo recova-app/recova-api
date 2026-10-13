@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/containerization.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-18
 ---
 
 # Recova Backend Containerization Strategy
@@ -37,7 +37,7 @@ Aturan:
 
 Implementasi repository saat ini:
 
-- `Dockerfile` memakai stage `golang:1.25.0-alpine` untuk build binary dan stage runtime `alpine:3.22`,
+- `Dockerfile` memakai stage `golang:1.26.6-alpine` untuk build binary dan stage runtime `alpine:3.22`,
 - build args `VERSION`, `VCS_REF`, `BUILD_DATE` dipetakan ke OCI label image,
 - `.dockerignore` mengecualikan file yang tidak boleh masuk build context seperti `.env`, `docs`, `tasks`, `references`, dan `test`.
 

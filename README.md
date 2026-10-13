@@ -53,8 +53,8 @@ Runtime route inventory is automatically synchronized in: `docs/generated/routes
 
 | Area              | Technology                               |
 | ----------------- | ---------------------------------------- |
-| Language          | Go 1.25.x (toolchain pinned in `go.mod`) |
-| HTTP Framework    | Fiber v3.1.x                             |
+| Language          | Go 1.26.x (toolchain pinned in `go.mod`) |
+| HTTP Framework    | Fiber v3.4.x                             |
 | Database          | PostgreSQL                               |
 | ORM               | GORM                                     |
 | Migration         | golang-migrate (SQL up/down)             |
@@ -69,7 +69,7 @@ Runtime route inventory is automatically synchronized in: `docs/generated/routes
 
 ### 1) Prerequisites
 
-- Go `>= 1.25`
+- Go `>= 1.26`
 - Make
 - Git
 - Docker + Docker Compose (required for local DB/container profile)
@@ -324,6 +324,6 @@ Important documents:
 ## Quick Troubleshooting
 
 - `config error` during startup: check required environment variables in `.env` and `docs/environment.md`
-- Missing `migrate` binary: scripts will automatically fallback to the Docker image `migrate/migrate:v4.19.0` if Docker is available
+- Missing `migrate` binary: scripts will automatically fallback to the Docker image `migrate/migrate:v4.19.1` if Docker is available
 - `openapi-check` failed: run `make openapi-generate` and commit changes inside `docs/generated/*`
 - `health/ready` failed: check DB connectivity and migration status (`make migrate-status`, `make migrate-check`)

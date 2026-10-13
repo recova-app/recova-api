@@ -28,8 +28,8 @@ if [ -z "$major" ] || [ -z "$minor" ]; then
   exit 1
 fi
 
-if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 25 ]; }; then
-  echo "[preflight] go >= 1.25 required, found $goversion_raw" >&2
+if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 26 ]; }; then
+  echo "[preflight] go >= 1.26 required, found $goversion_raw" >&2
   exit 1
 fi
 

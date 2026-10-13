@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/tech-stack.md
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-18
 ---
 
 # Recova Backend Tech Stack
@@ -19,7 +19,7 @@ Dokumen ini memformalkan pilihan stack backend target dan kriteria seleksi packa
 
 | Area           | Target                        | Rationale                                                             |
 | -------------- | ----------------------------- | --------------------------------------------------------------------- |
-| Language       | Go `1.25+`                    | mengikuti requirement framework target dan tooling modern             |
+| Language       | Go `1.26+`                    | mengikuti requirement framework target dan tooling modern             |
 | HTTP framework | Fiber `v3`                    | performa tinggi, middleware ekosistem matang, model handler sederhana |
 | Database       | PostgreSQL                    | transactional consistency dan dukungan relasional kuat                |
 | ORM            | GORM `v2`                     | produktivitas query + kontrol transaksi + ekosistem luas              |

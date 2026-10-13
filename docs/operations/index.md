@@ -8,7 +8,7 @@ reviewers:
 doc_status: draft
 source_repo: recova-backend-v2
 source_path: docs/operations/index.md
-last_reviewed: 2026-05-14
+last_reviewed: 2026-05-18
 ---
 
 # Recova Backend Operations
@@ -30,6 +30,7 @@ Halaman ini memetakan dokumen operasi harian layanan, termasuk security baseline
 - [Data Privacy Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/data-privacy.md)
 - [Data Retention Operations](/Users/macbookpro/Development/recova-backend-v2/docs/operations/data-retention.md)
 - [Security Checklist](/Users/macbookpro/Development/recova-backend-v2/docs/operations/security-checklist.md)
+- [Dependency Compatibility Plan](/Users/macbookpro/Development/recova-backend-v2/docs/operations/dependency-compatibility-plan.md)
 - [Observability](/Users/macbookpro/Development/recova-backend-v2/docs/operations/observability.md)
 - [Failure Scenarios](/Users/macbookpro/Development/recova-backend-v2/docs/operations/failure-scenarios.md)
 - [Incident Triage](/Users/macbookpro/Development/recova-backend-v2/docs/operations/incident-triage.md)

@@ -190,7 +190,7 @@ jobs:
                 echo 'set -eu'
                 echo 'docker run --rm --network host \'
                 echo '  -v "$PWD/migrations:/migrations:ro" \'
-                echo '  migrate/migrate:v4.19.0 "$@"'
+                echo '  migrate/migrate:v4.19.1 "$@"'
               } > "$HOME/.local/bin/migrate"
               chmod +x "$HOME/.local/bin/migrate"
             fi

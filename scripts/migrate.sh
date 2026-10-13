@@ -8,7 +8,7 @@ migrate_bin="${MIGRATE_BIN:-migrate}"
 migrations_path="${MIGRATIONS_PATH:-migrations}"
 database_url="${DATABASE_URL:-}"
 docker_bin="${DOCKER_BIN:-docker}"
-migrate_image="${MIGRATE_IMAGE:-migrate/migrate:v4.19.0}"
+migrate_image="${MIGRATE_IMAGE:-migrate/migrate:v4.19.1}"
 
 usage() {
   echo "usage: scripts/migrate.sh <up|down|status|check|force> [arg]" >&2
