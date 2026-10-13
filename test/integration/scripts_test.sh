@@ -41,8 +41,8 @@ trap 'rm -rf "$temp_dir"' EXIT
 assert_fail ./scripts/with-env.sh
 
 # e2e/performance scripts must fail without integration DB url.
-assert_fail ./scripts/e2e-critical.sh
-assert_fail ./scripts/performance-smoke.sh
+assert_fail env -u RECOVA_DB_INTEGRATION_URL ./scripts/e2e-critical.sh
+assert_fail env -u RECOVA_DB_INTEGRATION_URL ./scripts/performance-smoke.sh
 assert_fail env RECOVA_DB_INTEGRATION_URL='postgresql://postgres:postgres@localhost:5432/recova_ci_test?sslmode=disable' RECOVA_E2E_SCOPE='invalid-scope' ./scripts/e2e-critical.sh
 
 # openapi.sh must fail for unsupported command.

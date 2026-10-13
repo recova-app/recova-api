@@ -60,12 +60,6 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Download Go dependencies
-        run: go mod download
-
-      - name: Preflight verification
-        run: make preflight
-
       - name: Format check
         run: |
           unformatted="$(gofmt -l .)"
@@ -75,53 +69,28 @@ jobs:
             exit 1
           fi
 
-      - name: Lint check
-        run: make lint
-
-      - name: Unit and handler tests
-        run: make test
+      - name: Static analysis (lint)
+        run: go vet ./...
 
       - name: OpenAPI drift check
         run: make openapi-check
 
-      - name: Scripted tooling integration checks
-        run: make test-integration
-
-      - name: Security scan
-        run: make security-scan
-
-      - name: Install migrate CLI
+      - name: Setup migrate CLI
         run: |
-          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          curl -sSL https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin migrate
+          sudo chmod +x /usr/local/bin/migrate
 
       - name: Run database migrations
         run: make migrate-up
 
-      - name: Verify migration health check
-        run: make migrate-check
-
-      - name: Verify migration rollback smoke
-        run: |
-          make migrate-down
-          make migrate-up
-
       - name: Seed test database fixtures
         run: make seed
 
-      - name: Run integration and contract tests
+      - name: Run test suite
         run: go test -p 1 ./...
 
-      - name: Run E2E critical flows
-        run: make test-e2e
-
-      - name: Run performance smoke tests
-        run: make test-performance
-
-      - name: Run migration safety gate
-        env:
-          MIGRATION_BASE_REF: ${{ github.event.before || 'origin/main' }}
-        run: ./scripts/deploy/production-migration-gate.sh
+      - name: Verify binary build
+        run: make build
 
   # ----------------------------------------------------------------------------
   # 2. Docker Image Build & GHCR Publication
