@@ -166,6 +166,21 @@ type aiRouteRepo struct {
 	upsertPreferenceE error
 }
 
+func (r *aiRouteRepo) GetCoachContext(_ context.Context, _ string, _ int) (CoachContext, error) {
+	if r.user.ID == "" {
+		return CoachContext{}, gorm.ErrRecordNotFound
+	}
+	persona := DefaultPersona
+	if r.personaRow.Persona != "" {
+		persona = ResolvePersonaOrDefault(r.personaRow.Persona)
+	}
+	return CoachContext{
+		User:        r.user,
+		RecentChats: r.history,
+		Persona:     persona,
+	}, nil
+}
+
 func (r *aiRouteRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
 	if r.user.ID == "" {
 		return models.User{}, errors.New("user not found")

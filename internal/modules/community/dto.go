@@ -5,6 +5,12 @@ import "time"
 // PostCategory is allowed classification for community post content.
 type PostCategory string
 
+// PostCursor captures keyset pagination state for deterministic feed ordering.
+type PostCursor struct {
+	CreatedAt time.Time
+	ID        string
+}
+
 const (
 	PostCategorySaran      PostCategory = "saran"
 	PostCategoryMotivasi   PostCategory = "motivasi"

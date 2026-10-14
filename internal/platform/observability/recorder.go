@@ -28,6 +28,7 @@ type Recorder struct {
 	dbOperationDurationSec *prometheus.HistogramVec
 	aiRequestDurationSec   *prometheus.HistogramVec
 	aiPersonaUsageTotal    *prometheus.CounterVec
+	aiFallbackTotal        *prometheus.CounterVec
 
 	auditEventsTotal *prometheus.CounterVec
 }
@@ -65,6 +66,10 @@ func NewRecorder() *Recorder {
 			Name: "recova_ai_persona_usage_total",
 			Help: "Total AI persona usage events by action, persona, and status.",
 		}, []string{"action", "persona", "status"}),
+		aiFallbackTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "recova_ai_fallback_total",
+			Help: "Total AI fallback attempts by provider and status.",
+		}, []string{"provider", "status"}),
 		auditEventsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "recova_audit_events_total",
 			Help: "Total audit events by action and result.",
@@ -78,6 +83,7 @@ func NewRecorder() *Recorder {
 		recorder.dbOperationDurationSec,
 		recorder.aiRequestDurationSec,
 		recorder.aiPersonaUsageTotal,
+		recorder.aiFallbackTotal,
 		recorder.auditEventsTotal,
 	)
 
@@ -90,6 +96,14 @@ func (r *Recorder) MetricsHandler() http.Handler {
 		return promhttp.Handler()
 	}
 	return promhttp.HandlerFor(r.registry, promhttp.HandlerOpts{})
+}
+
+// RegisterCollector registers an external collector with the recorder registry.
+func (r *Recorder) RegisterCollector(collector prometheus.Collector) error {
+	if r == nil || r.registry == nil || collector == nil {
+		return nil
+	}
+	return r.registry.Register(collector)
 }
 
 // RecordHTTPRequest captures request count/latency and error counters.
@@ -153,6 +167,21 @@ func (r *Recorder) RecordAIPersonaUsage(action string, persona string, err error
 	r.aiPersonaUsageTotal.WithLabelValues(
 		normalizeLabel(action),
 		normalizeLabel(persona),
+		status,
+	).Inc()
+}
+
+// RecordAIFallback captures AI fallback invocations and outcome status.
+func (r *Recorder) RecordAIFallback(provider string, err error) {
+	if r == nil {
+		return
+	}
+	status := statusSuccess
+	if err != nil {
+		status = statusFailure
+	}
+	r.aiFallbackTotal.WithLabelValues(
+		normalizeLabel(provider),
 		status,
 	).Inc()
 }

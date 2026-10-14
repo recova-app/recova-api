@@ -302,6 +302,55 @@ func TestPersonaStyleInstruction_HasDistinctSignature(t *testing.T) {
 	}
 }
 
+func TestMapAIHistory_BudgetEnforced_TruncatesOlderMessages(t *testing.T) {
+	// Create messages: m1 (user, 3000), m2 (assistant, 3000), m3 (user, 2000), m4 (assistant, 2000)
+	// Total: 10000 chars > maxCoachHistoryChars (8000)
+	// Should keep newest user-initiated pair: m3 (user) + m4 (assistant) = 4000 chars
+	m1 := models.AIChat{Role: "user", Content: strings.Repeat("a", 3000)}
+	m2 := models.AIChat{Role: "assistant", Content: strings.Repeat("b", 3000)}
+	m3 := models.AIChat{Role: "user", Content: strings.Repeat("c", 2000)}
+	m4 := models.AIChat{Role: "assistant", Content: strings.Repeat("d", 2000)}
+
+	res := mapAIHistory([]models.AIChat{m1, m2, m3, m4})
+	if len(res) != 2 {
+		t.Fatalf("expected 2 messages kept within budget, got %d", len(res))
+	}
+	if res[0].Content != m3.Content || res[0].Role != "user" {
+		t.Fatalf("expected first kept message to be m3 user turn")
+	}
+	if res[1].Content != m4.Content || res[1].Role != "assistant" {
+		t.Fatalf("expected second kept message to be m4 assistant turn")
+	}
+}
+
+func TestMapAIHistory_EnsuresHistoryStartsWithUserTurn(t *testing.T) {
+	// If truncation would land on assistant turn:
+	// m1 (user, 5000), m2 (assistant, 4000), m3 (user, 2000), m4 (assistant, 1000)
+	// Budget (8000) fits m2+m3+m4 (7000 chars), but m2 is assistant.
+	// Must drop m2 so history starts with user turn (m3 + m4 = 3000 chars).
+	m1 := models.AIChat{Role: "user", Content: strings.Repeat("a", 5000)}
+	m2 := models.AIChat{Role: "assistant", Content: strings.Repeat("b", 4000)}
+	m3 := models.AIChat{Role: "user", Content: strings.Repeat("c", 2000)}
+	m4 := models.AIChat{Role: "assistant", Content: strings.Repeat("d", 1000)}
+
+	res := mapAIHistory([]models.AIChat{m1, m2, m3, m4})
+	if len(res) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(res))
+	}
+	if res[0].Role != "user" {
+		t.Fatalf("expected first message to have user role, got: %s", res[0].Role)
+	}
+}
+
+func TestMapAIHistory_SingleHugeMessage_TruncatedOrDropped(t *testing.T) {
+	huge := models.AIChat{Role: "user", Content: strings.Repeat("x", 10000)}
+	res := mapAIHistory([]models.AIChat{huge})
+	// Single message of 10k chars exceeds 8k budget -> keepFrom moves past it -> returns nil
+	if len(res) != 0 {
+		t.Fatalf("expected 0 messages when single turn exceeds entire budget, got %d", len(res))
+	}
+}
+
 func ptrString(v string) *string {
 	return &v
 }
@@ -321,6 +370,41 @@ type fakeAIRepo struct {
 	personaErr      error
 	upsertErr       error
 	upsertPersona   models.UserAIPersonaPreference
+}
+
+func (r *fakeAIRepo) GetCoachContext(_ context.Context, _ string, _ int) (CoachContext, error) {
+	if r.userErr != nil {
+		return CoachContext{}, r.userErr
+	}
+	if strings.TrimSpace(r.user.ID) == "" {
+		return CoachContext{}, gorm.ErrRecordNotFound
+	}
+	if r.profileErr != nil && !IsRecordNotFound(r.profileErr) {
+		return CoachContext{}, r.profileErr
+	}
+	if r.activeStreakErr != nil {
+		return CoachContext{}, r.activeStreakErr
+	}
+	if r.historyErr != nil {
+		return CoachContext{}, r.historyErr
+	}
+	if r.personaErr != nil && !IsRecordNotFound(r.personaErr) {
+		return CoachContext{}, r.personaErr
+	}
+
+	persona := DefaultPersona
+	if r.persona.Persona != "" {
+		persona = ResolvePersonaOrDefault(r.persona.Persona)
+	}
+
+	return CoachContext{
+		User:         r.user,
+		Profile:      r.profile,
+		HasProfile:   r.profile.ID != "",
+		ActiveStreak: r.activeStreak,
+		RecentChats:  r.history,
+		Persona:      persona,
+	}, nil
 }
 
 func (r *fakeAIRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {

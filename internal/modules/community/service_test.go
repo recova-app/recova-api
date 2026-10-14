@@ -65,8 +65,30 @@ func TestService_ListPosts_EmptyAndBounded(t *testing.T) {
 	if repo.recordedLimit != 10 {
 		t.Fatalf("expected recorded limit 10, got %d", repo.recordedLimit)
 	}
-	if repo.recordedCursor == nil || repo.recordedCursor.Format(time.RFC3339) != cursorStr {
+	if repo.recordedCursor == nil || repo.recordedCursor.CreatedAt.Format(time.RFC3339) != cursorStr {
 		t.Fatalf("expected recorded cursor %s, got %v", cursorStr, repo.recordedCursor)
+	}
+}
+
+func TestService_ListPosts_CompositeCursor(t *testing.T) {
+	repo := &fakeCommunityRepo{posts: []communityPostListRow{}}
+	service := NewService(repo)
+
+	cursorStr := "2026-05-10T00:00:00Z_550e8400-e29b-41d4-a716-446655440000"
+	_, err := service.ListPosts(context.Background(), ListPostsQuery{
+		Cursor: &cursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if repo.recordedCursor == nil {
+		t.Fatal("expected non-nil recorded cursor")
+	}
+	if repo.recordedCursor.CreatedAt.Format(time.RFC3339) != "2026-05-10T00:00:00Z" {
+		t.Fatalf("expected 2026-05-10T00:00:00Z, got %v", repo.recordedCursor.CreatedAt)
+	}
+	if repo.recordedCursor.ID != "550e8400-e29b-41d4-a716-446655440000" {
+		t.Fatalf("expected cursor ID 550e8400-e29b-41d4-a716-446655440000, got %s", repo.recordedCursor.ID)
 	}
 }
 
@@ -180,7 +202,7 @@ type fakeCommunityRepo struct {
 	toggleResponse  ToggleLikePayload
 	hasCustomToggle bool
 	recordedLimit   int
-	recordedCursor  *time.Time
+	recordedCursor  *PostCursor
 }
 
 func (r *fakeCommunityRepo) FindUserByID(_ context.Context, _ string) (models.User, error) {
@@ -199,7 +221,7 @@ func (r *fakeCommunityRepo) CreatePost(_ context.Context, row models.CommunityPo
 	return row, nil
 }
 
-func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error) {
+func (r *fakeCommunityRepo) ListPosts(_ context.Context, _ *PostCategory, limit int, cursor *PostCursor) ([]communityPostListRow, error) {
 	r.recordedLimit = limit
 	r.recordedCursor = cursor
 	if r.listErr != nil {

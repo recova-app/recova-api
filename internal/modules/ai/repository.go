@@ -21,6 +21,102 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// GetCoachContext retrieves user, profile, active streak, chat history, and persona preference in consolidated queries.
+func (r *Repository) GetCoachContext(ctx context.Context, userID string, historyLimit int) (CoachContext, error) {
+	trimmedID := strings.TrimSpace(userID)
+
+	type metaRow struct {
+		UserID                 string
+		Nickname               string
+		UserWhy                *string
+		ProfileID              *string
+		ProfileAnswers         []byte
+		ProfileDependencyLevel *string
+		ProfileAISummary       *string
+		StreakStartDate        *time.Time
+		Persona                *string
+	}
+
+	var row metaRow
+	err := r.db.WithContext(ctx).
+		Table("users AS u").
+		Select(`
+			u.id AS user_id,
+			u.nickname,
+			u.user_why,
+			p.id AS profile_id,
+			p.answers AS profile_answers,
+			p.dependency_level AS profile_dependency_level,
+			p.ai_summary AS profile_ai_summary,
+			s.start_date AS streak_start_date,
+			pref.persona
+		`).
+		Joins("LEFT JOIN profiles AS p ON p.user_id = u.id").
+		Joins(`LEFT JOIN LATERAL (
+			SELECT start_date
+			FROM streaks
+			WHERE user_id = u.id AND is_active = true
+			ORDER BY start_date DESC
+			LIMIT 1
+		) AS s ON true`).
+		Joins("LEFT JOIN user_ai_persona_preferences AS pref ON pref.user_id = u.id").
+		Where("u.id = ?", trimmedID).
+		Scan(&row).Error
+	if err != nil {
+		return CoachContext{}, err
+	}
+	if row.UserID == "" {
+		return CoachContext{}, gorm.ErrRecordNotFound
+	}
+
+	chats, err := r.ListRecentChatsByUserID(ctx, trimmedID, historyLimit)
+	if err != nil {
+		return CoachContext{}, err
+	}
+
+	user := models.User{
+		ID:       row.UserID,
+		Nickname: row.Nickname,
+		UserWhy:  row.UserWhy,
+	}
+
+	var profile models.Profile
+	hasProfile := false
+	if row.ProfileID != nil && *row.ProfileID != "" {
+		hasProfile = true
+		profile.ID = *row.ProfileID
+		profile.UserID = row.UserID
+		if row.ProfileAnswers != nil {
+			profile.Answers = row.ProfileAnswers
+		}
+		profile.DependencyLevel = row.ProfileDependencyLevel
+		profile.AISummary = row.ProfileAISummary
+	}
+
+	var activeStreak *models.Streak
+	if row.StreakStartDate != nil {
+		activeStreak = &models.Streak{
+			UserID:    row.UserID,
+			StartDate: *row.StreakStartDate,
+			IsActive:  true,
+		}
+	}
+
+	persona := DefaultPersona
+	if row.Persona != nil && strings.TrimSpace(*row.Persona) != "" {
+		persona = ResolvePersonaOrDefault(*row.Persona)
+	}
+
+	return CoachContext{
+		User:         user,
+		Profile:      profile,
+		HasProfile:   hasProfile,
+		ActiveStreak: activeStreak,
+		RecentChats:  chats,
+		Persona:      persona,
+	}, nil
+}
+
 // FindUserByID loads user by id.
 func (r *Repository) FindUserByID(ctx context.Context, userID string) (models.User, error) {
 	var user models.User

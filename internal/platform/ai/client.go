@@ -86,6 +86,11 @@ type Client interface {
 	Generate(ctx context.Context, req GenerateRequest) (GenerateResponse, error)
 }
 
+// FallbackObserver captures AI provider fallback execution events.
+type FallbackObserver interface {
+	RecordAIFallback(provider string, err error)
+}
+
 // ProviderError contains safe classified downstream failure metadata.
 type ProviderError struct {
 	Provider   Provider
@@ -133,7 +138,15 @@ func NewClient(cfg config.AIConfig) (Client, error) {
 		return nil, err
 	}
 
-	client := &compositeClient{primary: primary}
+	totalTimeout := time.Duration(cfg.TimeoutMs) * time.Millisecond
+	if totalTimeout <= 0 {
+		totalTimeout = 10 * time.Second
+	}
+
+	client := &compositeClient{
+		primary:      primary,
+		totalTimeout: totalTimeout,
+	}
 
 	fallbackProvider := strings.TrimSpace(cfg.FallbackProvider)
 	fallbackModel := strings.TrimSpace(cfg.FallbackModel)
@@ -160,6 +173,7 @@ func NewClient(cfg config.AIConfig) (Client, error) {
 	}
 
 	client.fallback = fallback
+	client.fallbackProvider = Provider(fallbackProvider)
 	return client, nil
 }
 
@@ -203,8 +217,19 @@ type providerRuntimeConfig struct {
 }
 
 type compositeClient struct {
-	primary  providerClient
-	fallback providerClient
+	primary          providerClient
+	fallback         providerClient
+	fallbackProvider Provider
+	fallbackObserver FallbackObserver
+	totalTimeout     time.Duration
+}
+
+// SetFallbackObserver attaches an optional observer for fallback executions.
+func (c *compositeClient) SetFallbackObserver(observer FallbackObserver) {
+	if c == nil {
+		return
+	}
+	c.fallbackObserver = observer
 }
 
 func (c *compositeClient) Generate(ctx context.Context, req GenerateRequest) (GenerateResponse, error) {
@@ -212,21 +237,52 @@ func (c *compositeClient) Generate(ctx context.Context, req GenerateRequest) (Ge
 		return GenerateResponse{}, &ProviderError{Kind: ErrorKindUnavailable, Message: "provider client is not ready"}
 	}
 
-	resp, err := c.primary.Generate(ctx, req)
+	totalBudget := c.totalTimeout
+	if totalBudget <= 0 {
+		totalBudget = 10 * time.Second
+	}
+
+	overallCtx, overallCancel := context.WithTimeout(ctx, totalBudget)
+	defer overallCancel()
+
+	primaryCtx := overallCtx
+	var primaryCancel context.CancelFunc
+	if c.fallback != nil {
+		primaryBudget := totalBudget * 7 / 10
+		if deadline, hasDeadline := overallCtx.Deadline(); hasDeadline {
+			remaining := time.Until(deadline)
+			if remaining < totalBudget {
+				primaryBudget = remaining * 7 / 10
+			}
+		}
+		if primaryBudget > 0 {
+			primaryCtx, primaryCancel = context.WithTimeout(overallCtx, primaryBudget)
+			defer primaryCancel()
+		}
+	}
+
+	resp, err := c.primary.Generate(primaryCtx, req)
 	if err == nil || c.fallback == nil || !IsFallbackEligible(err) {
 		return resp, err
 	}
 
-	if parentErr := ctx.Err(); parentErr != nil {
+	if parentErr := overallCtx.Err(); parentErr != nil {
 		return resp, err
 	}
-	if deadline, hasDeadline := ctx.Deadline(); hasDeadline {
+	if deadline, hasDeadline := overallCtx.Deadline(); hasDeadline {
 		if time.Until(deadline) < minFallbackBudget {
 			return resp, err
 		}
 	}
 
-	fallbackResp, fallbackErr := c.fallback.Generate(ctx, req)
+	fallbackResp, fallbackErr := c.fallback.Generate(overallCtx, req)
+	if c.fallbackObserver != nil {
+		providerName := strings.TrimSpace(string(c.fallbackProvider))
+		if providerName == "" {
+			providerName = "unknown"
+		}
+		c.fallbackObserver.RecordAIFallback(providerName, fallbackErr)
+	}
 	if fallbackErr == nil {
 		return fallbackResp, nil
 	}

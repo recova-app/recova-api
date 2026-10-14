@@ -63,8 +63,32 @@ func TestNormalizeListPostsQuery_LimitAndCursor(t *testing.T) {
 	if limit != 50 {
 		t.Fatalf("expected limit 50, got %d", limit)
 	}
-	if cursor == nil || cursor.Format(time.RFC3339) != cursorStr {
+	if cursor == nil || cursor.CreatedAt.Format(time.RFC3339) != cursorStr {
 		t.Fatalf("expected parsed cursor %s, got %v", cursorStr, cursor)
+	}
+	if cursor.ID != "" {
+		t.Fatalf("expected empty cursor ID, got %s", cursor.ID)
+	}
+
+	// Test composite cursor format
+	compositeCursorStr := "2026-05-10T12:00:00Z_550e8400-e29b-41d4-a716-446655440000"
+	_, _, compositeCursor, err := NormalizeListPostsQuery(ListPostsQuery{
+		Cursor: &compositeCursorStr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error for composite cursor: %v", err)
+	}
+	if compositeCursor == nil || compositeCursor.CreatedAt.Format(time.RFC3339) != cursorStr {
+		t.Fatalf("expected parsed composite cursor time %s, got %v", cursorStr, compositeCursor)
+	}
+	if compositeCursor.ID != "550e8400-e29b-41d4-a716-446655440000" {
+		t.Fatalf("expected composite cursor ID '550e8400-e29b-41d4-a716-446655440000', got %s", compositeCursor.ID)
+	}
+
+	invalidCompositeCursor := "2026-05-10T12:00:00Z_not-a-valid-uuid"
+	_, _, _, err = NormalizeListPostsQuery(ListPostsQuery{Cursor: &invalidCompositeCursor})
+	if err == nil {
+		t.Fatal("expected validation error for invalid UUID in composite cursor")
 	}
 
 	invalidLimitHigh := 101

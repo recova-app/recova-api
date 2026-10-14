@@ -13,7 +13,7 @@ import (
 type communityRepository interface {
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	CreatePost(ctx context.Context, row models.CommunityPost) (models.CommunityPost, error)
-	ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error)
+	ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *PostCursor) ([]communityPostListRow, error)
 	CreateCommentAndIncrement(ctx context.Context, userID string, postID string, content string) (models.CommunityComment, error)
 	CreateReplyAndIncrement(ctx context.Context, userID string, postID string, parentCommentID string, content string, depth int16) (models.CommunityComment, error)
 	FindCommentByID(ctx context.Context, commentID string) (models.CommunityComment, error)

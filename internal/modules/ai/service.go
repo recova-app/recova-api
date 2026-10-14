@@ -17,9 +17,21 @@ import (
 const (
 	defaultSummaryMessage = "Insight baru untukmu akan segera tersedia. Teruslah menulis jurnal harianmu!"
 	coachHistoryLimit     = 10
+	maxCoachHistoryChars  = 8000
 )
 
+// CoachContext represents preloaded user, profile, streak, and history context for AI coach.
+type CoachContext struct {
+	User         models.User
+	Profile      models.Profile
+	HasProfile   bool
+	ActiveStreak *models.Streak
+	RecentChats  []models.AIChat
+	Persona      string
+}
+
 type aiRepository interface {
+	GetCoachContext(ctx context.Context, userID string, limit int) (CoachContext, error)
 	FindUserByID(ctx context.Context, userID string) (models.User, error)
 	FindProfileByUserID(ctx context.Context, userID string) (models.Profile, error)
 	FindActiveStreakByUserID(ctx context.Context, userID string) (*models.Streak, error)
@@ -78,7 +90,7 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		return AskCoachResponseData{}, err
 	}
 
-	user, err := s.repo.FindUserByID(ctx, userID)
+	coachCtx, err := s.repo.GetCoachContext(ctx, userID, coachHistoryLimit)
 	if err != nil {
 		if IsRecordNotFound(err) {
 			return AskCoachResponseData{}, errs.New(errs.CodeNotFound, "Pengguna tidak ditemukan", nil, err)
@@ -86,38 +98,19 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data pengguna", nil, err)
 	}
 
-	profile, profileErr := s.repo.FindProfileByUserID(ctx, userID)
-	if profileErr != nil && !IsRecordNotFound(profileErr) {
-		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data profil", nil, profileErr)
-	}
-
 	streakDays := 0
-	activeStreak, err := s.repo.FindActiveStreakByUserID(ctx, userID)
-	if err != nil {
-		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca data streak", nil, err)
-	}
-	if activeStreak != nil && !activeStreak.StartDate.IsZero() {
-		streakDays = calculateStreakDays(s.now(), activeStreak.StartDate)
-	}
-
-	history, err := s.repo.ListRecentChatsByUserID(ctx, userID, coachHistoryLimit)
-	if err != nil {
-		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal membaca riwayat chat AI", nil, err)
-	}
-
-	persona, err := s.resolvePersonaPreference(ctx, userID)
-	if err != nil {
-		return AskCoachResponseData{}, err
+	if coachCtx.ActiveStreak != nil && !coachCtx.ActiveStreak.StartDate.IsZero() {
+		streakDays = calculateStreakDays(s.now(), coachCtx.ActiveStreak.StartDate)
 	}
 
 	reply, err := s.provider.Generate(ctx, aiplatform.GenerateRequest{
-		SystemInstruction: buildCoachSystemInstruction(user, profile, streakDays, persona),
+		SystemInstruction: buildCoachSystemInstruction(coachCtx.User, coachCtx.Profile, streakDays, coachCtx.Persona),
 		UserPrompt:        input.Message,
-		History:           mapAIHistory(history),
-		Persona:           persona,
+		History:           mapAIHistory(coachCtx.RecentChats),
+		Persona:           coachCtx.Persona,
 	})
 	if err != nil {
-		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
+		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, coachCtx.Persona, err)
 		return AskCoachResponseData{}, mapProviderError(err)
 	}
 
@@ -127,14 +120,14 @@ func (s *Service) AskCoach(ctx context.Context, userID string, req AskCoachReque
 		{UserID: strings.TrimSpace(userID), Role: "assistant", Content: assistantText},
 	}
 	if err := s.repo.CreateChatMessages(ctx, chatRows); err != nil {
-		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, err)
+		s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, coachCtx.Persona, err)
 		return AskCoachResponseData{}, errs.New(errs.CodeInternalError, "Gagal menyimpan riwayat chat AI", nil, err)
 	}
 
-	s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, persona, nil)
+	s.telemetry.RecordPersonaUsage(telemetryActionAskCoach, coachCtx.Persona, nil)
 	return AskCoachResponseData{
 		Response:    assistantText,
-		PersonaUsed: persona,
+		PersonaUsed: coachCtx.Persona,
 	}, nil
 }
 
@@ -386,18 +379,48 @@ func mapProviderError(err error) error {
 }
 
 func mapAIHistory(rows []models.AIChat) []aiplatform.Message {
-	result := make([]aiplatform.Message, 0, len(rows))
+	if len(rows) == 0 {
+		return nil
+	}
+
+	filtered := make([]aiplatform.Message, 0, len(rows))
 	for _, row := range rows {
 		content := strings.TrimSpace(row.Content)
 		if content == "" {
 			continue
 		}
-		result = append(result, aiplatform.Message{
+		result := aiplatform.Message{
 			Role:    strings.TrimSpace(row.Role),
 			Content: content,
-		})
+		}
+		filtered = append(filtered, result)
 	}
-	return result
+
+	if len(filtered) == 0 {
+		return nil
+	}
+
+	totalChars := 0
+	keepFrom := 0
+	for i := len(filtered) - 1; i >= 0; i-- {
+		msgLen := len([]rune(filtered[i].Content))
+		if totalChars+msgLen > maxCoachHistoryChars {
+			keepFrom = i + 1
+			break
+		}
+		totalChars += msgLen
+	}
+
+	// Ensure multi-turn history starts with a user turn (required by Gemini and LLM best practices)
+	for keepFrom < len(filtered) && strings.ToLower(strings.TrimSpace(filtered[keepFrom].Role)) != "user" {
+		keepFrom++
+	}
+
+	if keepFrom >= len(filtered) {
+		return nil
+	}
+
+	return filtered[keepFrom:]
 }
 
 func calculateStreakDays(nowUTC time.Time, startDate time.Time) int {

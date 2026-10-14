@@ -36,6 +36,21 @@ func TestClientGorm_ReturnsHandle(t *testing.T) {
 	}
 }
 
+func TestClientSQLDB_Nil_ReturnsNil(t *testing.T) {
+	var c *Client
+	if c.SQLDB() != nil {
+		t.Fatal("expected nil sqlDB for nil client")
+	}
+}
+
+func TestClientStats_Nil_ReturnsEmptyStats(t *testing.T) {
+	var c *Client
+	stats := c.Stats()
+	if stats.OpenConnections != 0 {
+		t.Fatalf("expected 0 open connections, got %d", stats.OpenConnections)
+	}
+}
+
 func TestConnect_UnreachableDatabase_ReturnsError(t *testing.T) {
 	cfg := config.Config{
 		Database: config.DatabaseConfig{

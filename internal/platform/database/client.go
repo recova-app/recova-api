@@ -62,6 +62,22 @@ func (c *Client) Gorm() *gorm.DB {
 	return c.gormDB
 }
 
+// SQLDB returns underlying sql.DB handle for pool stats or advanced connection management.
+func (c *Client) SQLDB() *sql.DB {
+	if c == nil {
+		return nil
+	}
+	return c.sqlDB
+}
+
+// Stats returns database connection pool statistics.
+func (c *Client) Stats() sql.DBStats {
+	if c == nil || c.sqlDB == nil {
+		return sql.DBStats{}
+	}
+	return c.sqlDB.Stats()
+}
+
 // Ping runs database connectivity check using the provided context.
 func (c *Client) Ping(ctx context.Context) error {
 	if c == nil || c.sqlDB == nil {

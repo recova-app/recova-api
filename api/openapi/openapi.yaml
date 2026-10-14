@@ -1591,9 +1591,9 @@ paths:
         - in: query
           name: cursor
           required: false
+          description: RFC3339 timestamp or composite keyset cursor (<timestamp>_<id>)
           schema:
             type: string
-            format: date-time
       responses:
         "200":
           description: Community post list fetched successfully

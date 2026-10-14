@@ -191,7 +191,8 @@ For production deployment procedures, VPS topology, and runbooks, refer to [DEPL
 - Exposes runtime Prometheus metrics:
   - HTTP requests, duration histograms, and errors partitioned by route and status class (`recova_http_requests_total`, `recova_http_request_duration_seconds`, `recova_http_errors_total`).
   - Database operation latency and status partitioned by operation and table (`recova_db_operation_duration_seconds`).
-  - AI provider latency partitioned by provider and model (`recova_ai_request_duration_seconds`) and persona usage counters (`recova_ai_persona_usage_total`).
+  - Database connection pool utilization and wait duration metrics (`recova_db_pool_open_connections`, `recova_db_pool_in_use_connections`, `recova_db_pool_idle_connections`, `recova_db_pool_wait_count_total`, `recova_db_pool_wait_duration_seconds_total`, `recova_db_pool_max_open_connections`) alongside standard Go SQL connection stats (`go_sql_*`).
+  - AI provider latency partitioned by provider and model (`recova_ai_request_duration_seconds`), persona usage counters (`recova_ai_persona_usage_total`), and fallback counters partitioned by provider and status (`recova_ai_fallback_total`).
   - Sensitive action audit event counters (`recova_audit_events_total`).
   - Standard Go runtime process metrics (memory allocation, goroutines, garbage collection).
 

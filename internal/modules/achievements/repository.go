@@ -144,7 +144,7 @@ type evaluationMetrics struct {
 	OnboardingCompletion   float64
 }
 
-// ComputeEvaluationMetrics calculates progress metrics for one user.
+// ComputeEvaluationMetrics calculates progress metrics for one user using batched queries.
 func (r *Repository) ComputeEvaluationMetrics(ctx context.Context, userID string, nowUTC time.Time) (evaluationMetrics, error) {
 	userID = strings.TrimSpace(userID)
 	dayStart := utcDayStart(nowUTC)
@@ -155,34 +155,27 @@ func (r *Repository) ComputeEvaluationMetrics(ctx context.Context, userID string
 	if err != nil {
 		return evaluationMetrics{}, err
 	}
-	checkinCount, err := r.countCheckinsWithinWindow(ctx, userID, windowStart, dayStart)
-	if err != nil {
-		return evaluationMetrics{}, err
-	}
-	journalCount, err := r.countJournalsWithinWindow(ctx, userID, windowStart, windowEndExclusive)
-	if err != nil {
-		return evaluationMetrics{}, err
-	}
 	relapseRecovery, err := r.relapseRecoveryScore(ctx, userID)
 	if err != nil {
 		return evaluationMetrics{}, err
 	}
-	communityCount, err := r.communityParticipationScore(ctx, userID)
-	if err != nil {
-		return evaluationMetrics{}, err
-	}
-	onboarding_completed, err := r.onboardingCompletionScore(ctx, userID)
+	activity, err := r.batchActivityMetrics(ctx, userID, windowStart, dayStart, windowEndExclusive)
 	if err != nil {
 		return evaluationMetrics{}, err
 	}
 
+	onboardingScore := 0.0
+	if activity.OnboardingDone > 0 {
+		onboardingScore = 1.0
+	}
+
 	return evaluationMetrics{
 		StreakMilestone:        streakProgress,
-		CheckinConsistency:     checkinCount,
-		JournalConsistency:     journalCount,
+		CheckinConsistency:     float64(activity.CheckinCount),
+		JournalConsistency:     float64(activity.JournalCount),
 		RelapseRecovery:        relapseRecovery,
-		CommunityParticipation: communityCount,
-		OnboardingCompletion:   onboarding_completed,
+		CommunityParticipation: float64(activity.CommunityCount),
+		OnboardingCompletion:   onboardingScore,
 	}, nil
 }
 
@@ -257,109 +250,57 @@ func (r *Repository) currentStreakDays(ctx context.Context, userID string, daySt
 	return float64(days), nil
 }
 
-func (r *Repository) countCheckinsWithinWindow(ctx context.Context, userID string, startDate time.Time, endDate time.Time) (float64, error) {
+type activityMetricsRow struct {
+	CheckinCount   int64 `gorm:"column:checkin_count"`
+	JournalCount   int64 `gorm:"column:journal_count"`
+	OnboardingDone int64 `gorm:"column:onboarding_done"`
+	CommunityCount int64 `gorm:"column:community_count"`
+}
+
+func (r *Repository) batchActivityMetrics(
+	ctx context.Context,
+	userID string,
+	windowStart time.Time,
+	dayStart time.Time,
+	windowEndExclusive time.Time,
+) (activityMetricsRow, error) {
+	var row activityMetricsRow
+	err := r.db.WithContext(ctx).
+		Raw(`
+			SELECT
+				(SELECT COUNT(*) FROM check_ins WHERE user_id = ? AND is_successful = true AND check_in_date >= ? AND check_in_date <= ?) AS checkin_count,
+				(SELECT COUNT(*) FROM journals WHERE user_id = ? AND created_at >= ? AND created_at < ?) AS journal_count,
+				(SELECT COUNT(*) FROM profiles WHERE user_id = ?) AS onboarding_done,
+				(
+					(SELECT COUNT(*) FROM community_posts WHERE user_id = ?) +
+					(SELECT COUNT(*) FROM community_comments WHERE user_id = ?) +
+					(SELECT COUNT(*) FROM community_post_likes WHERE user_id = ?)
+				) AS community_count
+		`, userID, windowStart, dayStart, userID, windowStart, windowEndExclusive, userID, userID, userID, userID).
+		Scan(&row).Error
+	if err != nil {
+		return activityMetricsRow{}, err
+	}
+	return row, nil
+}
+
+func (r *Repository) relapseRecoveryScore(ctx context.Context, userID string) (float64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Table("check_ins").
 		Where("user_id = ?", userID).
 		Where("is_successful = ?", true).
-		Where("check_in_date >= ?", startDate).
-		Where("check_in_date <= ?", endDate).
+		Where(`
+			check_in_date > COALESCE(
+				(SELECT check_in_date FROM check_ins WHERE user_id = ? AND is_successful = false ORDER BY check_in_date DESC LIMIT 1),
+				'0001-01-01'::date
+			)
+		`, userID).
 		Count(&count).Error
 	if err != nil {
 		return 0, err
 	}
 	return float64(count), nil
-}
-
-func (r *Repository) countJournalsWithinWindow(ctx context.Context, userID string, startAt time.Time, endAt time.Time) (float64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).
-		Table("journals").
-		Where("user_id = ?", userID).
-		Where("created_at >= ?", startAt).
-		Where("created_at < ?", endAt).
-		Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-	return float64(count), nil
-}
-
-func (r *Repository) relapseRecoveryScore(ctx context.Context, userID string) (float64, error) {
-	type relapseRow struct {
-		CheckInDate time.Time
-	}
-
-	var lastRelapse relapseRow
-	err := r.db.WithContext(ctx).
-		Table("check_ins").
-		Select("check_in_date").
-		Where("user_id = ?", userID).
-		Where("is_successful = ?", false).
-		Order("check_in_date desc").
-		Limit(1).
-		Scan(&lastRelapse).Error
-	if err != nil {
-		return 0, err
-	}
-
-	query := r.db.WithContext(ctx).
-		Table("check_ins").
-		Where("user_id = ?", userID).
-		Where("is_successful = ?", true)
-	if !lastRelapse.CheckInDate.IsZero() {
-		query = query.Where("check_in_date > ?", utcDayStart(lastRelapse.CheckInDate))
-	}
-
-	var count int64
-	if err := query.Count(&count).Error; err != nil {
-		return 0, err
-	}
-	return float64(count), nil
-}
-
-func (r *Repository) communityParticipationScore(ctx context.Context, userID string) (float64, error) {
-	var postsCount int64
-	if err := r.db.WithContext(ctx).
-		Table("community_posts").
-		Where("user_id = ?", userID).
-		Count(&postsCount).Error; err != nil {
-		return 0, err
-	}
-
-	var commentsCount int64
-	if err := r.db.WithContext(ctx).
-		Table("community_comments").
-		Where("user_id = ?", userID).
-		Count(&commentsCount).Error; err != nil {
-		return 0, err
-	}
-
-	var likesCount int64
-	if err := r.db.WithContext(ctx).
-		Table("community_post_likes").
-		Where("user_id = ?", userID).
-		Count(&likesCount).Error; err != nil {
-		return 0, err
-	}
-
-	return float64(postsCount + commentsCount + likesCount), nil
-}
-
-func (r *Repository) onboardingCompletionScore(ctx context.Context, userID string) (float64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).
-		Table("profiles").
-		Where("user_id = ?", userID).
-		Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-	if count > 0 {
-		return 1, nil
-	}
-	return 0, nil
 }
 
 func utcDayStart(value time.Time) time.Time {

@@ -143,6 +143,11 @@ To sustain fast queries on mobile read flows and high-volume check-ins:
    - `CREATE INDEX idx_community_posts_category_created_at_desc ON community_posts (category, created_at DESC)`: Optimizes category-filtered community feed retrieval.
 8. **Relapse History Ordered Retrieval**:
    - `CREATE INDEX idx_relapses_user_created ON relapses (user_id, created_at DESC)`: Optimizes user relapse history listing and chronological ordering.
+9. **Active Streak Instant Evaluation**:
+   - `CREATE INDEX idx_streaks_user_active_start_date_desc ON streaks (user_id, start_date DESC) WHERE is_active = true`: Partial index accelerating lateral join lookups for active streak across feed, routine, AI, and achievement calculations.
+10. **Deterministic Community Feed Keyset Pagination**:
+   - `CREATE INDEX idx_community_posts_created_at_id_desc ON community_posts (created_at DESC, id DESC)`: Enables deterministic tuple keyset pagination without record skipping on identical timestamps.
+   - `CREATE INDEX idx_community_posts_category_created_at_id_desc ON community_posts (category, created_at DESC, id DESC)`: Enables deterministic keyset pagination with category filtering.
 
 ## Database Seeding
 

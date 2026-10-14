@@ -137,7 +137,7 @@ All unhandled panics and errors bubble up through Fiber's custom error handler l
 
 - Every incoming HTTP request is assigned a unique `X-Request-ID` via middleware (using incoming client header or generating a new UUID).
 - The request ID is stored in the Fiber local context and attached to all structured log statements and response error envelopes.
-- Prometheus metrics are recorded via middleware and exposed at `/metrics` (request counts, latency histograms, status code distributions).
+- Prometheus metrics are recorded via middleware and exposed at `/metrics` (request counts, latency histograms, database connection pool gauges, AI provider latency and fallback counters, status code distributions).
 
 ### 3. Graceful Shutdown & Application Lifecycle
 
@@ -156,7 +156,7 @@ The service listens for OS termination signals (`SIGINT`, `SIGTERM`):
 
 ## Failure Containment
 
-- **AI Provider Outages**: External AI provider latency or downtime is isolated via request timeouts (default 10s). AI failures return structured `DOWNSTREAM_ERROR` envelopes and never crash the server or block unrelated database transactions.
+- **AI Provider Outages**: External AI provider latency or downtime is isolated via request timeouts (default 10s), composite deadline budgets (allocating 70% to primary and reserving 30% for fallback), and automated fallback metrics telemetry. AI failures return structured `DOWNSTREAM_ERROR` envelopes and never crash the server or block unrelated database transactions.
 - **Database Degradation**: When PostgreSQL becomes unreachable, the readiness probe (`/health/ready`) immediately reports `503 Service Unavailable`, preventing the ingress load balancer from routing traffic to an unhealthy node while allowing the process to attempt recovery.
 - **Validation Gating**: Strict DTO binding and validation occur in the handler layer before triggering any service logic or database queries, shedding invalid load early.
 

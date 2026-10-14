@@ -89,5 +89,15 @@ func RegisterDatabaseMetrics(db *gorm.DB, recorder *Recorder) error {
 		return err
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	if sqlDB != nil {
+		if err := RegisterDatabasePoolMetrics(sqlDB, recorder); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

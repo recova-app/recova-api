@@ -95,6 +95,66 @@ func TestIntegration_Repository_RelationshipQueryAndToggleLike(t *testing.T) {
 	}
 }
 
+func TestIntegration_Repository_ListPosts_DeterministicKeysetCursor(t *testing.T) {
+	databaseURL := databaseharness.RequireDatabaseURLFromEnv(t, "RECOVA_DB_INTEGRATION_URL")
+	databaseharness.ResetMigrations(t, databaseURL)
+
+	client, err := database.Connect(integrationConfigCommunity(databaseURL))
+	if err != nil {
+		t.Fatalf("connect db: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	repo := NewRepository(client.Gorm())
+	ctx := context.Background()
+
+	author := models.User{GoogleID: models.StringPtr("google-cursor-author"), Email: "cursor-author@example.test", Nickname: "cursor-author"}
+	if err := client.Gorm().WithContext(ctx).Create(&author).Error; err != nil {
+		t.Fatalf("create author: %v", err)
+	}
+
+	sameTime := time.Date(2026, 5, 10, 10, 0, 0, 0, time.UTC)
+	postA := models.CommunityPost{UserID: author.ID, Content: "content a for testing", Category: "motivasi", CreatedAt: sameTime}
+	postB := models.CommunityPost{UserID: author.ID, Content: "content b for testing", Category: "motivasi", CreatedAt: sameTime}
+	postC := models.CommunityPost{UserID: author.ID, Content: "content c for testing", Category: "motivasi", CreatedAt: sameTime}
+
+	if err := client.Gorm().WithContext(ctx).Create(&postA).Error; err != nil {
+		t.Fatalf("create postA: %v", err)
+	}
+	if err := client.Gorm().WithContext(ctx).Create(&postB).Error; err != nil {
+		t.Fatalf("create postB: %v", err)
+	}
+	if err := client.Gorm().WithContext(ctx).Create(&postC).Error; err != nil {
+		t.Fatalf("create postC: %v", err)
+	}
+
+	category := PostCategoryMotivasi
+	page1, err := repo.ListPosts(ctx, &category, 2, nil)
+	if err != nil {
+		t.Fatalf("list page 1: %v", err)
+	}
+	if len(page1) != 2 {
+		t.Fatalf("expected 2 posts on page 1, got %d", len(page1))
+	}
+
+	cursor := &PostCursor{
+		CreatedAt: page1[1].CreatedAt,
+		ID:        page1[1].ID,
+	}
+	page2, err := repo.ListPosts(ctx, &category, 2, cursor)
+	if err != nil {
+		t.Fatalf("list page 2: %v", err)
+	}
+	if len(page2) != 1 {
+		t.Fatalf("expected 1 remaining post on page 2, got %d", len(page2))
+	}
+	if page2[0].ID == page1[0].ID || page2[0].ID == page1[1].ID {
+		t.Fatalf("page 2 post duplicate of page 1: %s", page2[0].ID)
+	}
+}
+
 func TestIntegration_Repository_CreateReplyAndListThread(t *testing.T) {
 	databaseURL := databaseharness.RequireDatabaseURLFromEnv(t, "RECOVA_DB_INTEGRATION_URL")
 	databaseharness.ResetMigrations(t, databaseURL)

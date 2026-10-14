@@ -162,6 +162,9 @@ Provides interactive recovery coaching and emotional support via an AI companion
 - **Responsibilities**:
   - Orchestrate prompts and conversational history with the configured AI provider (Gemini or OpenAI).
   - Maintain context-aware recovery guidance tailored to the user's active streak and recent mood.
+  - Consolidate coach context retrieval (user, profile, active streak, persona preference) in single-row join queries to minimize database round-trips.
+  - Enforce conversation history token/character budgets (8,000 runes max) with turn-alignment ensuring context starts with a user turn.
+  - Guard upstream latency via total composite deadline budgets and graceful fallback switching.
   - Manage AI persona preferences (tone: compassionate, direct, scientific).
   - Enforce content safety guardrails and prompt sanitization.
 - **Key Models**: `AIChat`

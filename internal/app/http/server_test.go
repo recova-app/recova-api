@@ -229,10 +229,13 @@ func TestNewServer_APIPrefixBaseline_NotFoundEnvelope(t *testing.T) {
 func TestNewServer_MetricsRoute_ExposedWhenObservabilityEnabled(t *testing.T) {
 	cfg := testServerConfig()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv, err := NewServer(cfg, logger, WithObservability(observability.NewRecorder()))
+	rec := observability.NewRecorder()
+	srv, err := NewServer(cfg, logger, WithObservability(rec))
 	if err != nil {
 		t.Fatalf("failed to build server with observability: %v", err)
 	}
+
+	rec.RecordAIFallback("gemini", nil)
 
 	resp := httpharness.JSONRequest(t, srv.app, fiber.MethodGet, "/health/live", nil, map[string]string{
 		"Origin": "http://localhost:5173",
@@ -243,6 +246,9 @@ func TestNewServer_MetricsRoute_ExposedWhenObservabilityEnabled(t *testing.T) {
 	httpharness.RequireStatus(t, metricsResp.StatusCode, fiber.StatusOK)
 	if !strings.Contains(string(metricsResp.Body), "recova_http_requests_total") {
 		t.Fatalf("expected recova metrics in output, got: %s", string(metricsResp.Body))
+	}
+	if !strings.Contains(string(metricsResp.Body), "recova_ai_fallback_total") {
+		t.Fatalf("expected recova_ai_fallback_total in output, got: %s", string(metricsResp.Body))
 	}
 }
 

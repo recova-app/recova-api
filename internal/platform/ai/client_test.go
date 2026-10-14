@@ -143,6 +143,146 @@ func TestClient_Generate_FallbackOnPrimaryUnavailable(t *testing.T) {
 	}
 }
 
+type mockFallbackObserver struct {
+	called   bool
+	provider string
+	err      error
+}
+
+func (m *mockFallbackObserver) RecordAIFallback(provider string, err error) {
+	m.called = true
+	m.provider = provider
+	m.err = err
+}
+
+func TestClient_Generate_FallbackObserver_InvokedOnSuccessAndFailure(t *testing.T) {
+	fallbackFail := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		model, _ := payload["model"].(string)
+		if model == "primary-model" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "primary down"}})
+			return
+		}
+		if fallbackFail {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "fallback down"}})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{{
+				"message": map[string]any{"content": "fallback reply"},
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(config.AIConfig{
+		Provider:         string(ProviderOpenAICompatible),
+		Model:            "primary-model",
+		APIKey:           "test-key",
+		BaseURL:          srv.URL,
+		TimeoutMs:        500,
+		FallbackProvider: string(ProviderOpenAICompatible),
+		FallbackModel:    "fallback-model",
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	obs := &mockFallbackObserver{}
+	if composite, ok := client.(*compositeClient); ok {
+		composite.SetFallbackObserver(obs)
+	} else {
+		t.Fatal("expected *compositeClient type")
+	}
+
+	// 1. Fallback success
+	resp, err := client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if resp.Text != "fallback reply" {
+		t.Fatalf("unexpected reply: %q", resp.Text)
+	}
+	if !obs.called {
+		t.Fatal("expected fallback observer to be called on fallback success")
+	}
+	if obs.provider != string(ProviderOpenAICompatible) {
+		t.Fatalf("expected provider %s, got %s", ProviderOpenAICompatible, obs.provider)
+	}
+	if obs.err != nil {
+		t.Fatalf("expected nil error on success, got: %v", obs.err)
+	}
+
+	// 2. Fallback failure
+	fallbackFail = true
+	obs.called = false
+	obs.err = nil
+	_, err = client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	if err == nil {
+		t.Fatal("expected error when fallback also fails")
+	}
+	if !obs.called {
+		t.Fatal("expected fallback observer to be called on fallback failure")
+	}
+	if obs.err == nil {
+		t.Fatal("expected non-nil error recorded on fallback failure")
+	}
+}
+
+func TestClient_Generate_PrimaryTimeoutTriggersFallbackWithinTotalBudget(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		model, _ := payload["model"].(string)
+		if model == "primary-model" {
+			// Sleep longer than primary budget (which is 70% of 600ms = 420ms)
+			time.Sleep(500 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"choices": []map[string]any{{"message": map[string]any{"content": "primary late reply"}}},
+			})
+			return
+		}
+		// Fallback returns immediately
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{{"message": map[string]any{"content": "fallback fast reply"}}},
+		})
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(config.AIConfig{
+		Provider:         string(ProviderOpenAICompatible),
+		Model:            "primary-model",
+		APIKey:           "test-key",
+		BaseURL:          srv.URL,
+		TimeoutMs:        600,
+		FallbackProvider: string(ProviderOpenAICompatible),
+		FallbackModel:    "fallback-model",
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+
+	started := time.Now()
+	resp, err := client.Generate(context.Background(), GenerateRequest{UserPrompt: "Halo"})
+	elapsed := time.Since(started)
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if resp.Text != "fallback fast reply" {
+		t.Fatalf("expected fallback response, got: %s", resp.Text)
+	}
+	if elapsed > 700*time.Millisecond {
+		t.Fatalf("expected call to finish within total budget, took %v", elapsed)
+	}
+}
+
 func TestClient_Generate_TimeoutClassified(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(120 * time.Millisecond)

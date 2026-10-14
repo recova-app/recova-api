@@ -72,7 +72,7 @@ type communityPostListRow struct {
 }
 
 // ListPosts returns posts sorted latest first with visible author info, bounded by limit and optional cursor.
-func (r *Repository) ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *time.Time) ([]communityPostListRow, error) {
+func (r *Repository) ListPosts(ctx context.Context, category *PostCategory, limit int, cursor *PostCursor) ([]communityPostListRow, error) {
 	query := r.db.WithContext(ctx).
 		Table("community_posts AS p").
 		Select(`
@@ -99,14 +99,18 @@ func (r *Repository) ListPosts(ctx context.Context, category *PostCategory, limi
 		query = query.Where("p.category = ?", strings.TrimSpace(string(*category)))
 	}
 	if cursor != nil {
-		query = query.Where("p.created_at < ?", cursor.UTC())
+		if cursor.ID != "" {
+			query = query.Where("(p.created_at, p.id) < (?, ?)", cursor.CreatedAt.UTC(), cursor.ID)
+		} else {
+			query = query.Where("p.created_at < ?", cursor.CreatedAt.UTC())
+		}
 	}
 
 	if limit <= 0 || limit > maxPostLimit {
 		limit = defaultPostLimit
 	}
 
-	query = query.Order("p.created_at DESC").Limit(limit)
+	query = query.Order("p.created_at DESC, p.id DESC").Limit(limit)
 
 	var rows []communityPostListRow
 	if err := query.Scan(&rows).Error; err != nil {

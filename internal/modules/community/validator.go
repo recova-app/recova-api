@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/recova-app/backend-v2/internal/shared/errs"
 )
 
@@ -29,7 +30,7 @@ var allowedCategories = map[PostCategory]struct{}{
 }
 
 // NormalizeListPostsQuery validates list-post query and returns normalized category, limit, and cursor.
-func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, int, *time.Time, error) {
+func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, int, *PostCursor, error) {
 	var category *PostCategory
 	if query.Category != nil {
 		cat := PostCategory(strings.ToLower(strings.TrimSpace(*query.Category)))
@@ -53,25 +54,55 @@ func NormalizeListPostsQuery(query ListPostsQuery) (*PostCategory, int, *time.Ti
 		limit = *query.Limit
 	}
 
-	var cursorTime *time.Time
+	var cursor *PostCursor
 	if query.Cursor != nil {
 		trimmed := strings.TrimSpace(*query.Cursor)
 		if trimmed != "" {
-			parsed, err := time.Parse(time.RFC3339Nano, trimmed)
-			if err != nil {
-				parsed, err = time.Parse(time.RFC3339, trimmed)
-			}
+			parsedCursor, err := parsePostCursor(trimmed)
 			if err != nil {
 				return nil, 0, nil, errs.New(errs.CodeValidationError, "Format cursor tidak valid", []map[string]string{
-					{"field": "cursor", "message": "Format cursor harus RFC3339 valid"},
+					{"field": "cursor", "message": "Format cursor harus RFC3339 valid atau format <RFC3339>_<id>"},
 				}, nil)
 			}
-			cursorUTC := parsed.UTC()
-			cursorTime = &cursorUTC
+			cursor = parsedCursor
 		}
 	}
 
-	return category, limit, cursorTime, nil
+	return category, limit, cursor, nil
+}
+
+func parsePostCursor(raw string) (*PostCursor, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+
+	var timePart, idPart string
+	if idx := strings.LastIndex(raw, "_"); idx != -1 {
+		timePart = strings.TrimSpace(raw[:idx])
+		idPart = strings.TrimSpace(raw[idx+1:])
+	} else {
+		timePart = raw
+	}
+
+	parsed, err := time.Parse(time.RFC3339Nano, timePart)
+	if err != nil {
+		parsed, err = time.Parse(time.RFC3339, timePart)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if idPart != "" {
+		if _, err := uuid.Parse(idPart); err != nil {
+			return nil, err
+		}
+	}
+
+	return &PostCursor{
+		CreatedAt: parsed.UTC(),
+		ID:        idPart,
+	}, nil
 }
 
 // NormalizeCreatePostRequest validates and normalizes create-post payload.

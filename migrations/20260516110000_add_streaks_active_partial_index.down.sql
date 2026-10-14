@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS idx_community_posts_category_created_at_id_desc;
+DROP INDEX IF EXISTS idx_community_posts_created_at_id_desc;
+DROP INDEX IF EXISTS idx_streaks_user_active_start_date_desc;
