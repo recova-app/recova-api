@@ -342,7 +342,7 @@ func (s *Service) GetRelapseStatistics(ctx context.Context, userID string) (Rela
 	var relapseTriggerSummary *RelapseSolutionPayload
 	if len(relapses) > 0 {
 		latest := latestRelapseEvent(relapses)
-		solution := s.buildRelapseSolution(ctx, userID, latest.Mood, latest.Commitment, latest.RelapseTrigger)
+		solution := buildFallbackRelapseSolution(latest.Mood, latest.RelapseTrigger, s.now())
 		relapseTriggerSummary = &solution
 		relapseTimeSummary = s.buildRelapseTimeSummary(ctx, userID, relapses, peakHoursUTC, peakCount, latest)
 	}
@@ -1014,7 +1014,7 @@ func latestRelapseEvent(relapses []models.Relapse) models.Relapse {
 	return latest
 }
 
-func (s *Service) buildRelapseTimeSummary(ctx context.Context, userID string, relapses []models.Relapse, peakHoursUTC []int, peakCount int, latestRelapse models.Relapse) RelapseTimeSummaryPayload {
+func (s *Service) buildRelapseTimeSummary(_ context.Context, _ string, relapses []models.Relapse, peakHoursUTC []int, peakCount int, latestRelapse models.Relapse) RelapseTimeSummaryPayload {
 	if len(peakHoursUTC) == 0 {
 		return emptyRelapseTimeSummary(s.now())
 	}
@@ -1029,7 +1029,7 @@ func (s *Service) buildRelapseTimeSummary(ctx context.Context, userID string, re
 		syntheticTrigger = append(syntheticTrigger, topTriggerLine)
 	}
 
-	plan := s.buildRelapseSolution(ctx, userID, latestRelapse.Mood, latestRelapse.Commitment, syntheticTrigger)
+	plan := buildFallbackRelapseSolution(latestRelapse.Mood, syntheticTrigger, s.now())
 	summary := strings.TrimSpace(plan.Summary)
 	if topTrigger != "" {
 		summary = "Trigger paling sering saat ini: " + topTrigger + ". " + summary
