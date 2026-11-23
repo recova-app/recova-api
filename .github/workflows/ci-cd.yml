@@ -212,10 +212,14 @@ jobs:
 
       - name: Connect to Tailscale network (Zero Public SSH Exposure)
         if: ${{ steps.check_head.outputs.should_deploy == 'true' && steps.check_config.outputs.deploy_configured == 'true' && steps.check_config.outputs.use_tailscale == 'true' }}
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@05c58255396c88c609919d571a8b117099c69020 # v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           tags: tag:ci
+          # Pin the client explicitly; the action default is 1.42.0 (Nov 2023).
+          version: 1.104.7
+          # Checksum of tailscale_1.104.7_amd64.tgz, verified against pkgs.tailscale.com.
+          sha256sum: e56693ff74a64f2591b7e819c280635a100aae1ddfb0ef058fcd052b7cd8d16c
 
       - name: Execute remote deployment via SSH
         if: ${{ steps.check_head.outputs.should_deploy == 'true' && steps.check_config.outputs.deploy_configured == 'true' }}
